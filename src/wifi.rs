@@ -141,6 +141,11 @@ impl ScanResult {
         security: Security::Open,
         channel: 0,
     };
+
+    /// Empty value for caller-provided fixed scan buffers.
+    pub const fn empty() -> Self {
+        Self::EMPTY
+    }
 }
 
 /// Bounded station scan request.
