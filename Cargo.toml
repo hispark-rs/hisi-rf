@@ -1,0 +1,33 @@
+[package]
+name = "hisi-rf"
+version = "0.1.0-alpha.1"
+edition = "2024"
+rust-version = "1.85"
+authors = ["sanchuanhehe"]
+license = "MIT"
+description = "Chip-neutral async radio controller contracts for HiSilicon embedded Rust"
+repository = "https://github.com/hispark-rs/hisi-rf"
+keywords = ["embedded", "no-std", "wifi", "radio", "hisilicon"]
+categories = ["embedded", "no-std", "network-programming"]
+
+[dependencies]
+embassy-sync = { version = "0.7", default-features = false }
+portable-atomic = { version = "1", default-features = false, features = ["critical-section"] }
+smoltcp = { version = "0.13", default-features = false, features = [
+    "medium-ethernet",
+    "proto-ipv4",
+    "socket-raw",
+], optional = true }
+
+[dev-dependencies]
+critical-section = { version = "1", features = ["std"] }
+
+[features]
+default = []
+smoltcp = ["dep:smoltcp"]
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+
+[lints.clippy]
+undocumented_unsafe_blocks = "deny"
