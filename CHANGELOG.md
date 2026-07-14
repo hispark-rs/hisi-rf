@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Typed WPA3-Personal station configuration with mandatory PMF and explicit SAE
+  password-element policy.
+
 ## [0.1.0-alpha.1] - 2026-07-14
 
 ### Added
@@ -19,4 +24,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.1...HEAD
 [0.1.0-alpha.1]: https://github.com/hispark-rs/hisi-rf/releases/tag/v0.1.0-alpha.1
-

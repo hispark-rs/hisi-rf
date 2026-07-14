@@ -3,6 +3,9 @@ use portable_atomic::Ordering;
 use crate::Error;
 use crate::state::SharedState;
 
+pub mod security;
+pub use security::{ManagementFrameProtection, PersonalSecurity, SaePwe};
+
 pub(crate) const MAX_SCAN_RESULTS: usize = 32;
 const SSID_CAPACITY: usize = 32;
 const PASSPHRASE_CAPACITY: usize = 63;
@@ -60,7 +63,7 @@ impl Ssid {
     }
 }
 
-/// Owned WPA2-Personal passphrase that is erased on drop.
+/// Owned WPA2/WPA3-Personal passphrase that is erased on drop.
 #[derive(Debug, Eq, PartialEq)]
 pub struct Passphrase {
     bytes: [u8; PASSPHRASE_CAPACITY],
@@ -108,6 +111,8 @@ pub enum Security {
     Open,
     /// WPA2-Personal with CCMP.
     Wpa2Personal,
+    /// WPA3-Personal with SAE and mandatory PMF.
+    Wpa3Personal,
     /// A protected mode not yet represented by this public API.
     OtherProtected,
 }
@@ -188,8 +193,9 @@ pub struct StationConfig {
     pub bssid: [u8; 6],
     /// Primary channel selected by the immediately preceding scan.
     pub channel: u8,
-    /// WPA2-Personal passphrase.
+    /// WPA2/WPA3-Personal passphrase.
     pub passphrase: Passphrase,
+    security: PersonalSecurity,
     timeout_ms: u32,
 }
 
@@ -208,8 +214,37 @@ impl StationConfig {
             bssid: result.bssid,
             channel: result.channel,
             passphrase,
+            security: PersonalSecurity::Wpa2,
             timeout_ms,
         })
+    }
+
+    /// Select a WPA3-Personal scan result and take ownership of its passphrase.
+    ///
+    /// PMF is mandatory by construction; callers only choose the SAE
+    /// password-element policy supported by their controlled deployment.
+    pub fn wpa3_personal(
+        result: &ScanResult,
+        passphrase: Passphrase,
+        sae_pwe: SaePwe,
+        timeout_ms: u32,
+    ) -> Option<Self> {
+        if result.security != Security::Wpa3Personal || timeout_ms == 0 {
+            return None;
+        }
+        Some(Self {
+            ssid: result.ssid,
+            bssid: result.bssid,
+            channel: result.channel,
+            passphrase,
+            security: PersonalSecurity::Wpa3 { sae_pwe },
+            timeout_ms,
+        })
+    }
+
+    /// Typed Personal-mode security consumed by the chip backend.
+    pub const fn security(&self) -> PersonalSecurity {
+        self.security
     }
 
     /// Maximum time to wait for association and authorization.
@@ -846,5 +881,34 @@ mod tests {
         assert!(Passphrase::try_from_ascii(b"short").is_none());
         assert!(Passphrase::try_from_ascii(b"testtest").is_some());
         assert!(ScanConfig::try_from_timeout_ms(0).is_none());
+    }
+
+    #[test]
+    fn wpa3_config_requires_wpa3_scan_and_implies_required_pmf() {
+        let result = ScanResult {
+            ssid: Ssid::try_from_bytes(b"wpa3-ap").unwrap(),
+            bssid: [1, 2, 3, 4, 5, 6],
+            frequency_mhz: 5180,
+            rssi_dbm: -38,
+            security: Security::Wpa3Personal,
+            channel: 36,
+        };
+        let config = StationConfig::wpa3_personal(
+            &result,
+            Passphrase::try_from_ascii(b"testtest").unwrap(),
+            SaePwe::Both,
+            10_000,
+        )
+        .unwrap();
+        assert_eq!(
+            config.security(),
+            PersonalSecurity::Wpa3 {
+                sae_pwe: SaePwe::Both
+            }
+        );
+        assert_eq!(
+            config.security().management_frame_protection(),
+            ManagementFrameProtection::Required
+        );
     }
 }
