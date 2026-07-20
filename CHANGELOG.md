@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.5] - 2026-07-20
+
+### Added
+
+- Added a complete WS63 firmware example that uses only the public
+  `hisi_rf::ws63` composition root; the facade CI links it on Linux, macOS, and
+  Windows with stock `rust-lld`.
+
+### Changed
+
+- Updated the WS63 backend to `0.1.0-alpha.3`. Normalized radio archives,
+  native upstream hostap, ROM/NVS fallbacks, and the relocatable ROM patch
+  table are now fully transitive implementation details of `hisi-rf`.
+
 ## [0.1.0-alpha.4] - 2026-07-20
 
 ### Fixed
@@ -56,7 +70,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.4...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.5...HEAD
+[0.1.0-alpha.5]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.4...v0.1.0-alpha.5
 [0.1.0-alpha.4]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.3...v0.1.0-alpha.4
 [0.1.0-alpha.3]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.2...v0.1.0-alpha.3
 [0.1.0-alpha.2]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.1...v0.1.0-alpha.2
