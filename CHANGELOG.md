@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### CI
+
+- Added a crates.io-only external WS63 consumer fixture with no path dependency,
+  workspace patch, consumer `build.rs`, or direct sys/blob/runtime-driver
+  dependency. Linux, macOS, and Windows now perform both clean online and clean
+  offline final firmware links for WPA2 and WPA3 profiles.
+
 ## [0.1.0-alpha.5] - 2026-07-20
 
 ### Added

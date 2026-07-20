@@ -61,3 +61,18 @@ jobs:
         run: cargo build -Zbuild-std=core --locked --release --target riscv32imfc-unknown-none-elf --features chip-ws63,wifi,smoltcp,${{ matrix.profile }}
       - name: Link a complete firmware through the public facade
         run: cargo build -Zbuild-std=core --locked --release --target riscv32imfc-unknown-none-elf --example ws63_plain_firmware --features chip-ws63,wifi,smoltcp,${{ matrix.profile }}
+      - name: Build the released facade from an external crates.io-only fixture
+        working-directory: .github/fixtures/ws63-consumer
+        env:
+          CARGO_TARGET_DIR: ${{ runner.temp }}/hisi rf build/${{ matrix.profile }}
+        run: cargo build --release --locked --features hisi-rf/${{ matrix.profile }}
+      - name: Remove the external fixture output before offline proof
+        working-directory: .github/fixtures/ws63-consumer
+        env:
+          CARGO_TARGET_DIR: ${{ runner.temp }}/hisi rf build/${{ matrix.profile }}
+        run: cargo clean
+      - name: Rebuild the released facade offline
+        working-directory: .github/fixtures/ws63-consumer
+        env:
+          CARGO_TARGET_DIR: ${{ runner.temp }}/hisi rf build/${{ matrix.profile }}
+        run: cargo build --release --locked --offline --features hisi-rf/${{ matrix.profile }}

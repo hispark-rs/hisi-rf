@@ -1,0 +1,13 @@
+[build]
+target = "riscv32imfc-unknown-none-elf"
+
+[unstable]
+build-std = ["core"]
+
+[target.riscv32imfc-unknown-none-elf]
+rustflags = [
+    "-C",
+    "link-arg=-Thisi-riscv-link.x",
+    "-C",
+    "link-arg=--no-relax",
+]

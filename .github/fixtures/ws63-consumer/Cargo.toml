@@ -1,0 +1,22 @@
+[package]
+name = "hisi-rf-ws63-external-consumer"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+hisi-rf = { version = "=0.1.0-alpha.5", features = ["chip-ws63", "wifi", "smoltcp"] }
+hisi-hal = { version = "0.7.0-alpha.3", features = ["chip-ws63", "unstable"] }
+hisi-riscv-rt = { version = "0.5.5", default-features = false, features = [
+    "chip-ws63",
+    "bundled-memory-x",
+    "boot-header",
+    "ws63-bgle-32k",
+] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+debug = true
