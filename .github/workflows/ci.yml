@@ -90,7 +90,7 @@ jobs:
         working-directory: .github/fixtures/ws63-consumer
         env:
           CARGO_TARGET_DIR: ${{ runner.temp }}/hisi rf build 构建/long external consumer path/${{ matrix.profile }}
-        run: cargo build --release --locked --features hisi-rf/${{ matrix.profile }}
+        run: cargo build --release --locked --features hisi-rf/${{ matrix.named-profile }}
       - name: Rebuild offline with read-only registry sources
         env:
           CARGO_TARGET_DIR: ${{ runner.temp }}/hisi rf build 构建/long external consumer path/${{ matrix.profile }}

@@ -20,6 +20,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 CONSUMER = ROOT / ".github" / "fixtures" / "ws63-consumer"
 TARGET = "riscv32imfc-unknown-none-elf"
+NAMED_PROFILES = {
+    "wpa2-personal": "profile-wifi-wpa2-smoltcp",
+    "wpa3-personal": "profile-wifi-wpa3-smoltcp",
+}
 
 
 def run(command: list[str], *, env: dict[str, str] | None = None) -> None:
@@ -33,7 +37,7 @@ def consumer_command(profile: str, *, offline: bool = True) -> list[str]:
         "--release",
         "--locked",
         "--features",
-        f"hisi-rf/{profile}",
+        f"hisi-rf/{NAMED_PROFILES[profile]}",
     ]
     if offline:
         command.insert(4, "--offline")
@@ -52,7 +56,7 @@ def registry_package_roots(profile: str) -> list[Path]:
             "--filter-platform",
             TARGET,
             "--features",
-            f"hisi-rf/{profile}",
+            f"hisi-rf/{NAMED_PROFILES[profile]}",
         ],
         cwd=CONSUMER,
         check=True,

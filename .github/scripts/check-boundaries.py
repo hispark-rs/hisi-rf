@@ -146,7 +146,7 @@ def check_source(profile: str) -> None:
 def check_consumer(profile: str) -> None:
     meta = metadata(
         CONSUMER / "Cargo.toml",
-        f"hisi-rf/{profile}",
+        f"hisi-rf/{NAMED_PROFILES[profile]}",
     )
     nodes, names, root = graph(meta, CONSUMER / "Cargo.toml")
     if names[root] != "hisi-rf-ws63-external-consumer":
