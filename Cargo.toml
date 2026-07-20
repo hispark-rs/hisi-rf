@@ -1,6 +1,6 @@
 [package]
 name = "hisi-rf"
-version = "0.1.0-alpha.5"
+version = "0.1.0-alpha.6"
 edition = "2024"
 rust-version = "1.91"
 authors = ["sanchuanhehe"]
@@ -30,6 +30,10 @@ wifi = ["hisi-rf-ws63?/wifi"]
 smoltcp = ["hisi-rf-core/smoltcp", "hisi-rf-ws63?/smoltcp"]
 wpa2-personal = ["wifi", "hisi-rf-ws63?/wpa2-personal"]
 wpa3-personal = ["wifi", "hisi-rf-ws63?/wpa3-personal"]
+# Application profiles select a complete, tested protocol + security + L2
+# composition. The chip remains explicit so one profile never guesses hardware.
+profile-wifi-wpa2-smoltcp = ["wifi", "smoltcp", "wpa2-personal"]
+profile-wifi-wpa3-smoltcp = ["wifi", "smoltcp", "wpa3-personal"]
 
 [lints.rust]
 unsafe_op_in_unsafe_fn = "deny"

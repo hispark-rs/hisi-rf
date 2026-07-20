@@ -16,6 +16,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 CONSUMER = ROOT / ".github" / "fixtures" / "ws63-consumer"
 TARGET = "riscv32imfc-unknown-none-elf"
+NAMED_PROFILES = {
+    "wpa2-personal": "profile-wifi-wpa2-smoltcp",
+    "wpa3-personal": "profile-wifi-wpa3-smoltcp",
+}
 HIDDEN = {
     "hisi-rf-core",
     "hisi-rf-rtos-driver",
@@ -115,10 +119,7 @@ def require_edge(
 def check_source(profile: str) -> None:
     meta = metadata(
         ROOT / "Cargo.toml",
-        ",".join(
-            f"hisi-rf/{feature}"
-            for feature in ("chip-ws63", "wifi", "smoltcp", profile)
-        ),
+        f"hisi-rf/chip-ws63,hisi-rf/{NAMED_PROFILES[profile]}",
     )
     nodes, names, root = graph(meta, ROOT / "Cargo.toml")
     if names[root] != "hisi-rf":
