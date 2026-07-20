@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.2] - 2026-07-20
+
+### Changed
+
+- Moved the chip-neutral implementation into `hisi-rf-core 0.1.0-alpha.1` and
+  re-exported it without changing existing `hisi_rf::*` source paths.
+- Reduced this crate to the application-facing facade in preparation for
+  feature-selected chip composition roots.
+
 ### Added
 
 - Typed WPA3-Personal station configuration with mandatory PMF and explicit SAE
@@ -24,5 +33,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.1...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.2...HEAD
+[0.1.0-alpha.2]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.1...v0.1.0-alpha.2
 [0.1.0-alpha.1]: https://github.com/hispark-rs/hisi-rf/releases/tag/v0.1.0-alpha.1
