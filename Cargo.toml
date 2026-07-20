@@ -1,8 +1,8 @@
 [package]
 name = "hisi-rf"
-version = "0.1.0-alpha.2"
+version = "0.1.0-alpha.3"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.91"
 authors = ["sanchuanhehe"]
 license = "MIT"
 description = "Chip-selecting radio facade for HiSilicon embedded Rust"
@@ -12,10 +12,15 @@ categories = ["embedded", "no-std", "network-programming"]
 
 [dependencies]
 hisi-rf-core = "0.1.0-alpha.1"
+hisi-rf-ws63 = { version = "=0.1.0-alpha.1", optional = true, default-features = false }
 
 [features]
 default = []
-smoltcp = ["hisi-rf-core/smoltcp"]
+chip-ws63 = ["dep:hisi-rf-ws63"]
+wifi = ["hisi-rf-ws63?/wifi"]
+smoltcp = ["hisi-rf-core/smoltcp", "hisi-rf-ws63?/smoltcp"]
+wpa2-personal = ["wifi", "hisi-rf-ws63?/wpa2-personal"]
+wpa3-personal = ["wifi", "hisi-rf-ws63?/wpa3-personal"]
 
 [lints.rust]
 unsafe_op_in_unsafe_fn = "deny"

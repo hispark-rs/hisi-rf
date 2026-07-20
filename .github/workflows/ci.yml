@@ -15,8 +15,41 @@ jobs:
           toolchain: nightly-2026-07-09
           components: clippy,rust-src,rustfmt
       - run: cargo fmt --all -- --check
-      - run: cargo test --locked --all-features
-      - run: cargo clippy --locked --all-targets --all-features -- -D warnings
-      - run: cargo check -Zbuild-std=core --locked --target riscv32imfc-unknown-none-elf --all-features
+      - run: cargo test --locked --features chip-ws63
+      - run: cargo clippy --locked --all-targets --features chip-ws63 -- -D warnings
+      - name: Check WS63 WPA2 composition
+        run: cargo check -Zbuild-std=core --locked --target riscv32imfc-unknown-none-elf --features chip-ws63,wifi,wpa2-personal,smoltcp
+      - name: Check WS63 WPA3 composition
+        run: cargo check -Zbuild-std=core --locked --target riscv32imfc-unknown-none-elf --features chip-ws63,wifi,wpa3-personal,smoltcp
+      - name: Reject a missing chip selection
+        run: |
+          if cargo check --locked 2>missing-chip.log; then
+            echo "hisi-rf unexpectedly accepted a missing chip feature" >&2
+            exit 1
+          fi
+          grep -F "select exactly one chip feature" missing-chip.log
+      - name: Reject conflicting security profiles
+        run: |
+          if cargo check --locked --features chip-ws63,smoltcp,wpa2-personal,wpa3-personal 2>profile-conflict.log; then
+            echo "hisi-rf unexpectedly accepted conflicting security profiles" >&2
+            exit 1
+          fi
+          grep -F "select exactly one Personal security profile" profile-conflict.log
       - run: cargo package --locked --no-verify
 
+  consumer-matrix:
+    name: Consumer (${{ matrix.os }}, ${{ matrix.profile }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-14, windows-latest]
+        profile: [wpa2-personal, wpa3-personal]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2026-07-09
+          components: rust-src
+      - name: Build the facade-selected WS63 dependency graph
+        run: cargo build -Zbuild-std=core --locked --release --target riscv32imfc-unknown-none-elf --features chip-ws63,wifi,smoltcp,${{ matrix.profile }}

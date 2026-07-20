@@ -1,10 +1,24 @@
 //! HiSilicon radio facade.
 //!
-//! This migration release re-exports the complete chip-neutral API from
-//! [`hisi_rf_core`], preserving existing `hisi_rf::*` source paths while chip
-//! backends move behind feature-selected composition roots.
+//! Applications select exactly one `chip-*` feature. The facade re-exports the
+//! chip-neutral API from [`hisi_rf_core`] and exposes only the selected chip's
+//! safe composition root; raw sys/blob/runtime-driver crates stay transitive.
 
 #![no_std]
+
+#[cfg(not(feature = "chip-ws63"))]
+compile_error!("select exactly one chip feature, for example `chip-ws63`");
+
+#[cfg(all(feature = "wpa2-personal", feature = "wpa3-personal"))]
+compile_error!("select exactly one Personal security profile");
+
+#[cfg(all(
+    any(feature = "wpa2-personal", feature = "wpa3-personal"),
+    not(feature = "smoltcp")
+))]
+compile_error!(
+    "the current WS63 Personal profile requires `smoltcp`; an Embassy Net profile is not available yet"
+);
 
 pub use hisi_rf_core::{
     BackendError, BackendErrorClass, ConnectionInfo, Error, EventDiagnostics,
@@ -13,3 +27,13 @@ pub use hisi_rf_core::{
     ScanResult, Security, Ssid, StationConfig, WifiBackend, WifiConfig, WifiController, WifiDevice,
     WifiEvent, WifiParts, init,
 };
+
+/// WS63 safe resources and radio composition root.
+#[cfg(feature = "chip-ws63")]
+pub mod ws63 {
+    #[cfg(all(
+        feature = "smoltcp",
+        any(feature = "wpa2-personal", feature = "wpa3-personal")
+    ))]
+    pub use hisi_rf_ws63::{RadioController, Resources, init};
+}

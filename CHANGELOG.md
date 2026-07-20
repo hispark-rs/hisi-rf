@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.3] - 2026-07-20
+
+### Added
+
+- Added the explicit `chip-ws63` composition root and safe
+  `hisi_rf::ws63::{Resources, RadioController, init}` re-exports.
+- Added one-way `wifi`, `smoltcp`, `wpa2-personal`, and `wpa3-personal`
+  feature forwarding to the selected WS63 backend.
+
+### Changed
+
+- A chip must now be selected explicitly; the facade never guesses from the
+  target triple or a default feature.
+- WPA2-Personal and WPA3-Personal are mutually exclusive, and the current
+  Personal profiles require the available smoltcp data-plane integration.
+
 ## [0.1.0-alpha.2] - 2026-07-20
 
 ### Changed
@@ -33,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.2...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.3...HEAD
+[0.1.0-alpha.3]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.2...v0.1.0-alpha.3
 [0.1.0-alpha.2]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.1...v0.1.0-alpha.2
 [0.1.0-alpha.1]: https://github.com/hispark-rs/hisi-rf/releases/tag/v0.1.0-alpha.1
