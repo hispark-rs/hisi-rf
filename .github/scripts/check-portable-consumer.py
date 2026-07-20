@@ -26,16 +26,18 @@ def run(command: list[str], *, env: dict[str, str] | None = None) -> None:
     subprocess.run(command, cwd=CONSUMER, env=env, check=True)
 
 
-def consumer_command(profile: str) -> list[str]:
-    return [
+def consumer_command(profile: str, *, offline: bool = True) -> list[str]:
+    command = [
         "cargo",
         "build",
         "--release",
         "--locked",
-        "--offline",
         "--features",
         f"hisi-rf/{profile}",
     ]
+    if offline:
+        command.insert(4, "--offline")
+    return command
 
 
 def registry_package_roots(profile: str) -> list[Path]:
@@ -129,7 +131,7 @@ def concurrent_builds() -> None:
         env = os.environ.copy()
         env["CARGO_TARGET_DIR"] = str(target_root / profile)
         process = subprocess.Popen(
-            consumer_command(profile),
+            consumer_command(profile, offline=False),
             cwd=CONSUMER,
             env=env,
             text=True,
