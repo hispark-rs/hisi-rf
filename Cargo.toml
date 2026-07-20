@@ -1,6 +1,6 @@
 [package]
 name = "hisi-rf"
-version = "0.1.0-alpha.3"
+version = "0.1.0-alpha.4"
 edition = "2024"
 rust-version = "1.91"
 authors = ["sanchuanhehe"]
@@ -12,7 +12,7 @@ categories = ["embedded", "no-std", "network-programming"]
 
 [dependencies]
 hisi-rf-core = "0.1.0-alpha.1"
-hisi-rf-ws63 = { version = "=0.1.0-alpha.1", optional = true, default-features = false }
+hisi-rf-ws63 = { version = "=0.1.0-alpha.2", optional = true, default-features = false }
 
 [features]
 default = []

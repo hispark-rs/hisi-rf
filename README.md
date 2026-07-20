@@ -8,7 +8,7 @@ an explicit `chip-*` feature.
 ```toml
 [dependencies]
 hisi-rf = {
-    version = "0.1.0-alpha.3",
+    version = "0.1.0-alpha.4",
     features = ["chip-ws63", "wifi", "wpa2-personal", "smoltcp"]
 }
 ```
