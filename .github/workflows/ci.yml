@@ -64,15 +64,15 @@ jobs:
       - name: Build the released facade from an external crates.io-only fixture
         working-directory: .github/fixtures/ws63-consumer
         env:
-          CARGO_TARGET_DIR: ${{ runner.temp }}/hisi rf build/${{ matrix.profile }}
+          CARGO_TARGET_DIR: ${{ runner.temp }}/hisi rf build 构建/long external consumer path/${{ matrix.profile }}
         run: cargo build --release --locked --features hisi-rf/${{ matrix.profile }}
       - name: Remove the external fixture output before offline proof
         working-directory: .github/fixtures/ws63-consumer
         env:
-          CARGO_TARGET_DIR: ${{ runner.temp }}/hisi rf build/${{ matrix.profile }}
+          CARGO_TARGET_DIR: ${{ runner.temp }}/hisi rf build 构建/long external consumer path/${{ matrix.profile }}
         run: cargo clean
       - name: Rebuild the released facade offline
         working-directory: .github/fixtures/ws63-consumer
         env:
-          CARGO_TARGET_DIR: ${{ runner.temp }}/hisi rf build/${{ matrix.profile }}
+          CARGO_TARGET_DIR: ${{ runner.temp }}/hisi rf build 构建/long external consumer path/${{ matrix.profile }}
         run: cargo build --release --locked --offline --features hisi-rf/${{ matrix.profile }}
