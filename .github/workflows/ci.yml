@@ -62,6 +62,7 @@ jobs:
         with:
           toolchain: nightly-2026-07-09
           components: rust-src
+      - uses: astral-sh/setup-uv@v7
       - name: Build the facade-selected WS63 dependency graph
         run: cargo build -Zbuild-std=core --locked --release --target riscv32imfc-unknown-none-elf --features chip-ws63,wifi,smoltcp,${{ matrix.profile }}
       - name: Link a complete firmware through the public facade
@@ -73,13 +74,10 @@ jobs:
         env:
           CARGO_TARGET_DIR: ${{ runner.temp }}/hisi rf build 构建/long external consumer path/${{ matrix.profile }}
         run: cargo build --release --locked --features hisi-rf/${{ matrix.profile }}
-      - name: Remove the external fixture output before offline proof
-        working-directory: .github/fixtures/ws63-consumer
+      - name: Rebuild offline with read-only registry sources
         env:
           CARGO_TARGET_DIR: ${{ runner.temp }}/hisi rf build 构建/long external consumer path/${{ matrix.profile }}
-        run: cargo clean
-      - name: Rebuild the released facade offline
-        working-directory: .github/fixtures/ws63-consumer
-        env:
-          CARGO_TARGET_DIR: ${{ runner.temp }}/hisi rf build 构建/long external consumer path/${{ matrix.profile }}
-        run: cargo build --release --locked --offline --features hisi-rf/${{ matrix.profile }}
+        run: uv run --script .github/scripts/check-portable-consumer.py readonly --profile ${{ matrix.profile }}
+      - name: Build WPA2 and WPA3 consumers concurrently
+        if: matrix.os == 'ubuntu-latest' && matrix.profile == 'wpa2-personal'
+        run: uv run --script .github/scripts/check-portable-consumer.py concurrent
