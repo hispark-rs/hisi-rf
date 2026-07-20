@@ -23,18 +23,20 @@ jobs:
         run: cargo check -Zbuild-std=core --locked --target riscv32imfc-unknown-none-elf --features chip-ws63,wifi,wpa3-personal,smoltcp
       - name: Reject a missing chip selection
         run: |
-          if cargo check --locked 2>missing-chip.log; then
+          log="${RUNNER_TEMP}/hisi-rf-missing-chip.log"
+          if cargo check --locked 2>"${log}"; then
             echo "hisi-rf unexpectedly accepted a missing chip feature" >&2
             exit 1
           fi
-          grep -F "select exactly one chip feature" missing-chip.log
+          grep -F "select exactly one chip feature" "${log}"
       - name: Reject conflicting security profiles
         run: |
-          if cargo check --locked --features chip-ws63,smoltcp,wpa2-personal,wpa3-personal 2>profile-conflict.log; then
+          log="${RUNNER_TEMP}/hisi-rf-profile-conflict.log"
+          if cargo check --locked --features chip-ws63,smoltcp,wpa2-personal,wpa3-personal 2>"${log}"; then
             echo "hisi-rf unexpectedly accepted conflicting security profiles" >&2
             exit 1
           fi
-          grep -F "select exactly one Personal security profile" profile-conflict.log
+          grep -F "select exactly one Personal security profile" "${log}"
       - run: cargo package --locked --no-verify
 
   consumer-matrix:
