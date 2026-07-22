@@ -30,6 +30,24 @@ fn check_incremental_contract<B: hisi_rf::IncrementalWifiBackend>(backend: B) {
 }
 
 #[cfg(feature = "incremental-contract")]
+struct ExternalWaitPlatform;
+
+#[cfg(feature = "incremental-contract")]
+impl hisi_rf::IncrementalWaitPlatform for ExternalWaitPlatform {
+    type Error = core::convert::Infallible;
+
+    fn poll_ready(
+        &mut self,
+        _: &mut core::task::Context<'_>,
+        sources: hisi_rf::WaitSet,
+        deadline_us: Option<u64>,
+    ) -> core::task::Poll<Result<hisi_rf::WaitSet, Self::Error>> {
+        let _registered_contract = (sources, deadline_us);
+        core::task::Poll::Pending
+    }
+}
+
+#[cfg(feature = "incremental-contract")]
 #[allow(dead_code)]
 fn check_incremental_facade<B, D, const EVENTS: usize>(
     radio: hisi_rf::RadioController<B, D, EVENTS>,
@@ -44,6 +62,8 @@ fn check_incremental_facade<B, D, const EVENTS: usize>(
         intent.deadline_us(),
         intent.run_immediately(),
     );
+    let mut platform = ExternalWaitPlatform;
+    let _wait = parts.runner.wait_ready(&mut platform);
 }
 
 #[entry]
@@ -66,12 +86,8 @@ fn main() -> ! {
         peripherals.PKE,
         peripherals.TRNG,
     );
-    let _radio = hisi_rf::ws63::init(
-        hisi_rf::RadioConfig::default(),
-        resources,
-        &RADIO_STORAGE,
-    )
-    .expect("fresh static radio storage");
+    let _radio = hisi_rf::ws63::init(hisi_rf::RadioConfig::default(), resources, &RADIO_STORAGE)
+        .expect("fresh static radio storage");
 
     loop {
         core::hint::spin_loop();
