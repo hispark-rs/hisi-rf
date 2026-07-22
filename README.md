@@ -8,7 +8,7 @@ an explicit `chip-*` feature.
 ```toml
 [dependencies]
 hisi-rf = {
-    version = "0.1.0-alpha.10",
+    version = "0.1.0-alpha.11",
     features = ["chip-ws63", "profile-wifi-wpa2-smoltcp"]
 }
 ```
@@ -31,6 +31,12 @@ static RADIO_STORAGE: hisi_rf::ws63::Storage<hisi_rf::ws63::SelectedProfile, 4> 
 ```
 
 `Storage::report()` provides allocation-free, versioned resource metadata.
+The same contract can be emitted without naming the chip backend crate:
+
+```console
+cargo run --example ws63_resource_report --target <host-triple> \
+  --features chip-ws63,profile-wifi-wpa2-smoltcp
+```
 Task-stack, supplicant-arena, and final-image totals remain marked uncalibrated
 until the runtime and HIL admission contracts can supply them truthfully.
 

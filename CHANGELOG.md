@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.11] - 2026-07-22
+
+### Added
+
+- Added `ws63_resource_report`, so applications and CI can emit the selected
+  profile's versioned resource contract through the public facade.
+
+### Changed
+
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.8`; WS63 initialization now reserves
+  the profile's dynamic task capacity before claiming storage or hardware.
+
 ## [0.1.0-alpha.10] - 2026-07-22
 
 ### Added
@@ -131,7 +143,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.10...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.11...HEAD
+[0.1.0-alpha.11]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.10...v0.1.0-alpha.11
 [0.1.0-alpha.10]: https://github.com/hispark-rs/hisi-rf/releases/tag/v0.1.0-alpha.10
 [0.1.0-alpha.9]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.8...v0.1.0-alpha.9
 [0.1.0-alpha.8]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.7...v0.1.0-alpha.8
