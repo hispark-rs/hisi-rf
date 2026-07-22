@@ -21,11 +21,12 @@ compile_error!(
 );
 
 pub use hisi_rf_core::{
-    BackendError, BackendErrorClass, ConnectionInfo, Diagnostic, DiagnosticCode, DiagnosticStage,
-    Error, EventDiagnostics, ManagementFrameProtection, Passphrase, PersonalSecurity, RadioConfig,
-    RadioController, RadioParts, RadioRunner, RecoveryAction, SaePwe, ScanConfig, ScanOutcome,
-    ScanResult, Security, Ssid, StationConfig, WifiBackend, WifiConfig, WifiController, WifiDevice,
-    WifiEvent, WifiParts,
+    BackendError, BackendErrorClass, ConnectionInfo, DIAGNOSTIC_SCHEMA, DIAGNOSTIC_TRACE_CAPACITY,
+    Diagnostic, DiagnosticCode, DiagnosticStage, DiagnosticTrace, DiagnosticTraceEntry,
+    DiagnosticTraceKind, Error, EventDiagnostics, ManagementFrameProtection, Passphrase,
+    PersonalSecurity, RadioConfig, RadioController, RadioParts, RadioRunner, RecoveryAction,
+    SaePwe, ScanConfig, ScanOutcome, ScanResult, Security, Ssid, StationConfig, WifiBackend,
+    WifiConfig, WifiController, WifiDevice, WifiEvent, WifiParts,
 };
 
 /// WS63 safe resources and radio composition root.
