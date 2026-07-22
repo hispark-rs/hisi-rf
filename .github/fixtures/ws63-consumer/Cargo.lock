@@ -289,9 +289,9 @@ dependencies = [
 
 [[package]]
 name = "hisi-rf"
-version = "0.1.0-alpha.10"
+version = "0.1.0-alpha.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "222c4ae6fb2a7ece3c5aecde9e1c44c82de3045295294d97288c912ba21ec5d7"
+checksum = "87d69e5b535eb1a250240ff7009a77de425836a6d7b5040c30baf84b8a45a7c8"
 dependencies = [
  "hisi-rf-core",
  "hisi-rf-ws63",
@@ -315,18 +315,18 @@ checksum = "a018fff88f3a4b74a87dd2c6106933905da76b022a8f993ee4473c58e74bbe48"
 
 [[package]]
 name = "hisi-rf-rtos-driver"
-version = "0.1.0-alpha.15"
+version = "0.1.0-alpha.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da9034728f6abd4fb50b0535ae46a6487afc74734c0a1e40ed79d1d25f57f8e2"
+checksum = "730df8ff1f491ebb4f22c0064e913e12b6f9f486ba09bbbb6455ca787fde5f9c"
 dependencies = [
  "critical-section",
 ]
 
 [[package]]
 name = "hisi-rf-ws63"
-version = "0.1.0-alpha.7"
+version = "0.1.0-alpha.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1b2bc6634c5bb7e3ab87929908704ffe80a6d3c7f2b993464b1873679ca7ec4"
+checksum = "603b9de2f7c3e1f08d0b4dfdad25fa2619912f0057cc1e6bb7af5ef2c2afeddd"
 dependencies = [
  "ar_archive_writer",
  "critical-section",
@@ -425,9 +425,9 @@ checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 
 [[package]]
 name = "libc"
-version = "0.2.186"
+version = "0.2.189"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "68ab91017fe16c622486840e4c83c9a37afeff978bd239b5293d61ece587de66"
+checksum = "3eaf3ede3fee6db1a4c2ee091bf8a8b4dccdc6d17f656fb07896ee72867612f2"
 
 [[package]]
 name = "linked_list_allocator"
@@ -593,7 +593,7 @@ checksum = "e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.2",
+ "syn 3.0.3",
 ]
 
 [[package]]
@@ -663,9 +663,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "3.0.2"
+version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a207d6d6a2b7fc470b80443726053f18a2481b7e1eee970597051596567987a3"
+checksum = "53e9bae58849f64dfa4f5d5ae372c8341f7305f82a3868709269343628b659a3"
 dependencies = [
  "proc-macro2",
  "quote",
