@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Re-exported the incremental platform wait-intent snapshot so executors can
+  compose command, backend, L2, and timer wakes without depending on
+  `hisi-rf-core` directly.
+
+### Changed
+
+- Updated `hisi-rf-core` to `0.1.0-alpha.10`.
+
 ## [0.1.0-alpha.21] - 2026-07-23
 
 ### Added
