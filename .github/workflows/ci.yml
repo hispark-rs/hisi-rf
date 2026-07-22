@@ -94,6 +94,10 @@ jobs:
         env:
           CARGO_TARGET_DIR: ${{ runner.temp }}/hisi rf build 构建/long external consumer path/${{ matrix.profile }}
         run: cargo build --release --locked --features hisi-rf/${{ matrix.named-profile }}
+      - name: Check the released opt-in incremental contract externally
+        if: matrix.os == 'ubuntu-latest' && matrix.profile == 'wpa2-personal'
+        working-directory: .github/fixtures/ws63-consumer
+        run: cargo check --locked --features hisi-rf/${{ matrix.named-profile }},hisi-rf/incremental-backend-experiment
       - name: Rebuild offline with read-only registry sources
         env:
           CARGO_TARGET_DIR: ${{ runner.temp }}/hisi rf build 构建/long external consumer path/${{ matrix.profile }}

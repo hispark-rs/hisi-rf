@@ -289,9 +289,9 @@ dependencies = [
 
 [[package]]
 name = "hisi-rf"
-version = "0.1.0-alpha.18"
+version = "0.1.0-alpha.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5d049302e5e7733c1b28af5220ba85593a3e099d54b0cb4a7f38819cdf3562d"
+checksum = "3ecae5882f874d707a5b5e609de276a8e8aa846720b944025f935316dc0cd4b5"
 dependencies = [
  "hisi-rf-core",
  "hisi-rf-ws63",
@@ -299,9 +299,9 @@ dependencies = [
 
 [[package]]
 name = "hisi-rf-core"
-version = "0.1.0-alpha.6"
+version = "0.1.0-alpha.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2ebc422b986a56009b7048eee8caba060065b16ac31c344d75ed512252a3d3b"
+checksum = "37b85e78aefc5c0f5d265e0f74816ddbb42248f32e82b9edec0089429e623255"
 dependencies = [
  "embassy-sync",
  "portable-atomic",
