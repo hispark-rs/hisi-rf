@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.12] - 2026-07-23
+
+### Added
+
+- Re-exported stable cancellation/resource diagnostic classes and bounded
+  required/available resource trace fields.
+- WS63 `InitError` now provides the same allocation-free, actionable,
+  secret-free diagnostic schema as runtime radio operations.
+
+### Changed
+
+- Updated `hisi-rf-core` to `0.1.0-alpha.4` and `hisi-rf-ws63` to
+  `0.1.0-alpha.9`.
+
 ## [0.1.0-alpha.11] - 2026-07-22
 
 ### Added
@@ -143,7 +157,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.11...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.12...HEAD
+[0.1.0-alpha.12]: https://github.com/hispark-rs/hisi-rf/releases/tag/v0.1.0-alpha.12
 [0.1.0-alpha.11]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.10...v0.1.0-alpha.11
 [0.1.0-alpha.10]: https://github.com/hispark-rs/hisi-rf/releases/tag/v0.1.0-alpha.10
 [0.1.0-alpha.9]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.8...v0.1.0-alpha.9
