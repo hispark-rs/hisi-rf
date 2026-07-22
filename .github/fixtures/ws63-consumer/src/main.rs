@@ -37,7 +37,13 @@ fn check_incremental_facade<B, D, const EVENTS: usize>(
     B: hisi_rf::IncrementalWifiBackend,
 {
     let budget = hisi_rf::WorkBudget::try_new(4, 100).expect("non-zero work budget");
-    let _parts = radio.split_incremental(budget);
+    let parts = radio.split_incremental(budget);
+    let intent: hisi_rf::IncrementalWaitIntent = parts.runner.wait_intent();
+    let _platform_wait_contract = (
+        intent.sources(),
+        intent.deadline_us(),
+        intent.run_immediately(),
+    );
 }
 
 #[entry]

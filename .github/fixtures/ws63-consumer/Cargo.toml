@@ -10,7 +10,7 @@ publish = false
 incremental-contract = ["hisi-rf/incremental-backend-experiment"]
 
 [dependencies]
-hisi-rf = { version = "=0.1.0-alpha.21", features = ["chip-ws63"] }
+hisi-rf = { version = "=0.1.0-alpha.22", features = ["chip-ws63"] }
 hisi-hal = { version = "0.7.0-alpha.3", features = ["chip-ws63", "unstable"] }
 hisi-riscv-rt = { version = "0.5.5", default-features = false, features = [
     "chip-ws63",
