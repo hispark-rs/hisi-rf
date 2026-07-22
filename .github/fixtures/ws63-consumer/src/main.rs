@@ -14,6 +14,21 @@ impl core::fmt::Write for DiagnosticSink {
 static RADIO_STORAGE: hisi_rf::ws63::Storage<hisi_rf::ws63::SelectedProfile, 4> =
     hisi_rf::ws63::Storage::new();
 
+#[cfg(feature = "incremental-contract")]
+#[allow(dead_code)]
+fn check_incremental_contract<B: hisi_rf::IncrementalWifiBackend>(backend: B) {
+    let budget = hisi_rf::WorkBudget::try_new(4, 100).expect("non-zero work budget");
+    let _driver = hisi_rf::IncrementalBackendDriver::new(backend, budget);
+    let sequence = hisi_rf::CommandSequence::try_from_raw(1).expect("non-zero sequence");
+    let mut arbiter = hisi_rf::CommandArbiter::new();
+    arbiter
+        .submit(hisi_rf::PendingCommand::new(
+            sequence,
+            hisi_rf::IncrementalRequest::Initialize(hisi_rf::WifiConfig::default()),
+        ))
+        .expect("empty bounded arbiter");
+}
+
 #[entry]
 fn main() -> ! {
     let mut diagnostic_sink = DiagnosticSink;
