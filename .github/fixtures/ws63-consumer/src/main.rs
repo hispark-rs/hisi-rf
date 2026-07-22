@@ -17,6 +17,10 @@ static RADIO_STORAGE: hisi_rf::ws63::Storage<hisi_rf::ws63::SelectedProfile, 4> 
 #[entry]
 fn main() -> ! {
     let mut diagnostic_sink = DiagnosticSink;
+    let _diagnostic_contract = (
+        hisi_rf::DIAGNOSTIC_SCHEMA,
+        hisi_rf::DIAGNOSTIC_TRACE_CAPACITY,
+    );
     hisi_rf::Error::AlreadyInitialized
         .diagnostic()
         .write_json(&mut diagnostic_sink)
