@@ -29,6 +29,17 @@ fn check_incremental_contract<B: hisi_rf::IncrementalWifiBackend>(backend: B) {
         .expect("empty bounded arbiter");
 }
 
+#[cfg(feature = "incremental-contract")]
+#[allow(dead_code)]
+fn check_incremental_facade<B, D, const EVENTS: usize>(
+    radio: hisi_rf::RadioController<B, D, EVENTS>,
+) where
+    B: hisi_rf::IncrementalWifiBackend,
+{
+    let budget = hisi_rf::WorkBudget::try_new(4, 100).expect("non-zero work budget");
+    let _parts = radio.split_incremental(budget);
+}
+
 #[entry]
 fn main() -> ! {
     let mut diagnostic_sink = DiagnosticSink;
