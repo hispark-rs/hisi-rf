@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.20] - 2026-07-23
+
+### Added
+
+- Re-exported the opt-in executable incremental backend driver and bounded
+  active/pending command arbiter. The blocking WS63 backend remains the default.
+
+### Changed
+
+- Updated `hisi-rf-core` to `0.1.0-alpha.8`.
+
 ## [0.1.0-alpha.19] - 2026-07-23
 
 ### Added
@@ -236,7 +247,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.19...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.20...HEAD
+[0.1.0-alpha.20]: https://github.com/hispark-rs/hisi-rf/releases/tag/v0.1.0-alpha.20
 [0.1.0-alpha.19]: https://github.com/hispark-rs/hisi-rf/releases/tag/v0.1.0-alpha.19
 [0.1.0-alpha.18]: https://github.com/hispark-rs/hisi-rf/releases/tag/v0.1.0-alpha.18
 [0.1.0-alpha.17]: https://github.com/hispark-rs/hisi-rf/releases/tag/v0.1.0-alpha.17
