@@ -251,9 +251,9 @@ dependencies = [
 
 [[package]]
 name = "hisi-alloc"
-version = "0.1.0-alpha.1"
+version = "0.1.0-alpha.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d87908d7e79f4a0f5ca7f774651de6285aa5a6dc03444761002beb8d1e506695"
+checksum = "faba70f76aab1e33186ee4a42c234e31f3fc618740d7faf9ddaa61da2f64fddc"
 dependencies = [
  "critical-section",
  "linked_list_allocator",
@@ -289,9 +289,9 @@ dependencies = [
 
 [[package]]
 name = "hisi-rf"
-version = "0.1.0-alpha.11"
+version = "0.1.0-alpha.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87d69e5b535eb1a250240ff7009a77de425836a6d7b5040c30baf84b8a45a7c8"
+checksum = "ae38c7d932be3de597f2e61cf333d19343836e8e4725f28e02bb7ec8de3e21f7"
 dependencies = [
  "hisi-rf-core",
  "hisi-rf-ws63",
@@ -299,9 +299,9 @@ dependencies = [
 
 [[package]]
 name = "hisi-rf-core"
-version = "0.1.0-alpha.3"
+version = "0.1.0-alpha.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c03416a7216cf612d3080ff283130eb2425f5743508c38f52cb980a17156b23c"
+checksum = "c035652ad070a651347be0c055dd70df27b004177fcb43d27d1afe82c93b0293"
 dependencies = [
  "embassy-sync",
  "portable-atomic",
@@ -324,9 +324,9 @@ dependencies = [
 
 [[package]]
 name = "hisi-rf-ws63"
-version = "0.1.0-alpha.8"
+version = "0.1.0-alpha.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "603b9de2f7c3e1f08d0b4dfdad25fa2619912f0057cc1e6bb7af5ef2c2afeddd"
+checksum = "20c344550dbbbc02e3091176a78f5df35f356806397bd2a6ea0b8bceed03ec57"
 dependencies = [
  "ar_archive_writer",
  "critical-section",

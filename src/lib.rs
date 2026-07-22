@@ -29,6 +29,13 @@ pub use hisi_rf_core::{
     WifiConfig, WifiController, WifiDevice, WifiEvent, WifiParts,
 };
 
+#[cfg(feature = "incremental-backend-experiment")]
+pub use hisi_rf_core::{
+    CancelOutcome, IncrementalCompletion, IncrementalRequest, IncrementalWifiBackend, OperationId,
+    OperationLifecycle, OperationStateError, OperationTracker, PollDisposition, WaitSet,
+    WorkBudget, WorkReport,
+};
+
 /// WS63 safe resources and radio composition root.
 #[cfg(feature = "chip-ws63")]
 pub mod ws63 {

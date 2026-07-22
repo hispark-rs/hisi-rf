@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.18] - 2026-07-23
+
+### Added
+
+- Added the opt-in `incremental-backend-experiment` facade feature, forwarding
+  the bounded A5B operation protocol without changing the default WS63 backend.
+
+### Changed
+
+- Updated `hisi-rf-core` to `0.1.0-alpha.6`.
+
 ## [0.1.0-alpha.17] - 2026-07-23
 
 ### Added
@@ -213,7 +224,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.15...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.18...HEAD
+[0.1.0-alpha.18]: https://github.com/hispark-rs/hisi-rf/releases/tag/v0.1.0-alpha.18
+[0.1.0-alpha.17]: https://github.com/hispark-rs/hisi-rf/releases/tag/v0.1.0-alpha.17
+[0.1.0-alpha.16]: https://github.com/hispark-rs/hisi-rf/releases/tag/v0.1.0-alpha.16
 [0.1.0-alpha.15]: https://github.com/hispark-rs/hisi-rf/releases/tag/v0.1.0-alpha.15
 [0.1.0-alpha.14]: https://github.com/hispark-rs/hisi-rf/releases/tag/v0.1.0-alpha.14
 [0.1.0-alpha.13]: https://github.com/hispark-rs/hisi-rf/releases/tag/v0.1.0-alpha.13
