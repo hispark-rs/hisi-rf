@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.16] - 2026-07-23
+
+### Fixed
+
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.13`, whose C `memalign` boundary now
+  preserves checked power-of-two alignment for supplicant and DMA-capable
+  allocations.
+
 ## [0.1.0-alpha.15] - 2026-07-23
 
 ### Added
