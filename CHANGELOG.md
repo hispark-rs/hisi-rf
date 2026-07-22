@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Re-exported the opt-in incremental async-facade runner and split result while
+  preserving the existing `WifiController`, L2 device, and bounded event API.
+
+### Changed
+
+- Updated `hisi-rf-core` to `0.1.0-alpha.9`; facade command intake now applies
+  bounded backpressure while an active plus pending replacement are retained.
+
 ## [0.1.0-alpha.20] - 2026-07-23
 
 ### Added
