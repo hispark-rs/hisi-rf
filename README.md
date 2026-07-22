@@ -8,7 +8,7 @@ an explicit `chip-*` feature.
 ```toml
 [dependencies]
 hisi-rf = {
-    version = "0.1.0-alpha.13",
+    version = "0.1.0-alpha.14",
     features = ["chip-ws63", "profile-wifi-wpa2-smoltcp"]
 }
 ```
@@ -38,11 +38,16 @@ handles:
 let mut wifi = hisi_rf::ws63::init(config, resources, &RADIO_STORAGE)?
     .start_runner()?;
 let scan = wifi.controller.scan(scan_config, &mut results).await?;
+let station_mac = hisi_rf::ws63::station_mac_address()
+    .ok_or("station netif has not been initialized")?;
 ```
 
 The application does not import `hisi-rf-rtos-driver`, `ws63-radio-sys`, or a
 chip backend type. Starting the runtime itself remains explicit application
 policy rather than a hidden side effect of radio initialization.
+The station MAC accessor becomes available after radio initialization and lets
+the application configure a standard IP stack without importing backend netif
+internals.
 
 `Storage::report()` provides allocation-free, versioned resource metadata.
 The same contract can be emitted without naming the chip backend crate:

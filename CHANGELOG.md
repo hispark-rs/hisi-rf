@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.14] - 2026-07-23
+
+### Added
+
+- Re-exported the initialized WS63 station MAC from the safe composition root
+  for standard L2/IP stack configuration.
+
+### Changed
+
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.11`.
+
 ## [0.1.0-alpha.13] - 2026-07-23
 
 ### Added
@@ -170,7 +181,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.13...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.14...HEAD
+[0.1.0-alpha.14]: https://github.com/hispark-rs/hisi-rf/releases/tag/v0.1.0-alpha.14
 [0.1.0-alpha.13]: https://github.com/hispark-rs/hisi-rf/releases/tag/v0.1.0-alpha.13
 [0.1.0-alpha.12]: https://github.com/hispark-rs/hisi-rf/releases/tag/v0.1.0-alpha.12
 [0.1.0-alpha.11]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.10...v0.1.0-alpha.11

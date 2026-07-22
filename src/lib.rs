@@ -38,6 +38,6 @@ pub mod ws63 {
     ))]
     pub use hisi_rf_ws63::{
         InitError, RadioController, ResourceReport, Resources, SelectedProfile, Storage,
-        WifiWpa2Smoltcp, WifiWpa3Smoltcp, init,
+        WifiWpa2Smoltcp, WifiWpa3Smoltcp, init, station_mac_address,
     };
 }
