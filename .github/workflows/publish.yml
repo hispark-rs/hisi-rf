@@ -24,8 +24,8 @@ jobs:
       - name: Lockfile preflight
         run: |
           set -euo pipefail
-          cargo generate-lockfile --locked
           git ls-files --error-unmatch Cargo.lock >/dev/null
+          cargo metadata --locked --format-version 1 --no-deps >/dev/null
           git diff --exit-code -- Cargo.lock
       - name: Publish crate
         env:
@@ -33,5 +33,5 @@ jobs:
           DRY: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry-run' || '' }}
         run: |
           set -euo pipefail
-          cargo package --locked --no-verify
-          cargo publish --locked --no-verify $DRY
+          cargo package --locked --features chip-ws63
+          cargo publish --locked --features chip-ws63 --no-verify $DRY

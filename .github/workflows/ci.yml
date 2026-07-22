@@ -46,7 +46,8 @@ jobs:
             exit 1
           fi
           grep -F "select exactly one Personal security profile" "${log}"
-      - run: cargo package --locked --no-verify
+      - name: Package the current published chip backend
+        run: cargo package --locked --features chip-ws63
 
   consumer-matrix:
     name: Consumer (${{ matrix.os }}, ${{ matrix.profile }})
