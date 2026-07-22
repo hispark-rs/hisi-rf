@@ -23,9 +23,8 @@ compile_error!(
 pub use hisi_rf_core::{
     BackendError, BackendErrorClass, ConnectionInfo, Error, EventDiagnostics,
     ManagementFrameProtection, Passphrase, PersonalSecurity, RadioConfig, RadioController,
-    RadioParts, RadioResources, RadioRunner, RadioState, SaePwe, ScanConfig, ScanOutcome,
-    ScanResult, Security, Ssid, StationConfig, WifiBackend, WifiConfig, WifiController, WifiDevice,
-    WifiEvent, WifiParts, init,
+    RadioParts, RadioRunner, SaePwe, ScanConfig, ScanOutcome, ScanResult, Security, Ssid,
+    StationConfig, WifiBackend, WifiConfig, WifiController, WifiDevice, WifiEvent, WifiParts,
 };
 
 /// WS63 safe resources and radio composition root.
@@ -35,5 +34,8 @@ pub mod ws63 {
         feature = "smoltcp",
         any(feature = "wpa2-personal", feature = "wpa3-personal")
     ))]
-    pub use hisi_rf_ws63::{RadioController, Resources, init};
+    pub use hisi_rf_ws63::{
+        InitError, RadioController, ResourceReport, Resources, SelectedProfile, Storage,
+        WifiWpa2Smoltcp, WifiWpa3Smoltcp, init,
+    };
 }

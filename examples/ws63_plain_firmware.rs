@@ -5,7 +5,8 @@
 use hisi_riscv_rt::entry;
 
 #[cfg(target_arch = "riscv32")]
-static RADIO_STATE: hisi_rf::RadioState<4> = hisi_rf::RadioState::new();
+static RADIO_STORAGE: hisi_rf::ws63::Storage<hisi_rf::ws63::SelectedProfile, 4> =
+    hisi_rf::ws63::Storage::new();
 
 #[cfg(target_arch = "riscv32")]
 #[entry]
@@ -18,7 +19,7 @@ fn main() -> ! {
         peripherals.PKE,
         peripherals.TRNG,
     );
-    let _radio = hisi_rf::ws63::init(hisi_rf::RadioConfig::default(), resources, &RADIO_STATE)
+    let _radio = hisi_rf::ws63::init(hisi_rf::RadioConfig::default(), resources, &RADIO_STORAGE)
         .expect("fresh static radio state");
 
     loop {
