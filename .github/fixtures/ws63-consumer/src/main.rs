@@ -3,11 +3,25 @@
 
 use hisi_riscv_rt::entry;
 
+struct DiagnosticSink;
+
+impl core::fmt::Write for DiagnosticSink {
+    fn write_str(&mut self, _: &str) -> core::fmt::Result {
+        Ok(())
+    }
+}
+
 static RADIO_STORAGE: hisi_rf::ws63::Storage<hisi_rf::ws63::SelectedProfile, 4> =
     hisi_rf::ws63::Storage::new();
 
 #[entry]
 fn main() -> ! {
+    let mut diagnostic_sink = DiagnosticSink;
+    hisi_rf::Error::AlreadyInitialized
+        .diagnostic()
+        .write_json(&mut diagnostic_sink)
+        .expect("diagnostic sink is infallible");
+
     let peripherals = unsafe { hisi_hal::peripherals::Peripherals::steal() };
     let resources = hisi_rf::ws63::Resources::new(
         peripherals.EFUSE,
