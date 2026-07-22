@@ -31,9 +31,10 @@ pub use hisi_rf_core::{
 
 #[cfg(feature = "incremental-backend-experiment")]
 pub use hisi_rf_core::{
-    CancelOutcome, IncrementalCompletion, IncrementalRequest, IncrementalWifiBackend, OperationId,
-    OperationLifecycle, OperationStateError, OperationTracker, PollDisposition, WaitSet,
-    WorkBudget, WorkReport,
+    CancelDirective, CancelOutcome, FairWakeSelector, IncrementalCompletion, IncrementalRequest,
+    IncrementalRunnerState, IncrementalWifiBackend, OperationId, OperationLifecycle,
+    OperationStateError, OperationTracker, PollDisposition, RunnerStateError, RunnerStep,
+    RunnerTransition, WaitSet, WakeReason, WorkBudget, WorkReport,
 };
 
 /// WS63 safe resources and radio composition root.
