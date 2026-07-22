@@ -129,22 +129,26 @@ def readonly_build(profile: str) -> None:
 def concurrent_builds() -> None:
     run(["cargo", "fetch", "--locked", "--target", TARGET])
     temp_root = Path(os.environ.get("RUNNER_TEMP", tempfile.gettempdir()))
-    target_root = temp_root / "hisi rf concurrent 构建"
-    processes: list[tuple[str, subprocess.Popen[str]]] = []
-    for profile in ("wpa2-personal", "wpa3-personal"):
-        env = os.environ.copy()
-        env["CARGO_TARGET_DIR"] = str(target_root / profile)
-        process = subprocess.Popen(
-            consumer_command(profile, offline=False),
-            cwd=CONSUMER,
-            env=env,
-            text=True,
-        )
-        processes.append((profile, process))
+    with tempfile.TemporaryDirectory(
+        dir=temp_root,
+        prefix="hisi rf concurrent 构建 ",
+    ) as target_dir:
+        target_root = Path(target_dir)
+        processes: list[tuple[str, subprocess.Popen[str]]] = []
+        for profile in ("wpa2-personal", "wpa3-personal"):
+            env = os.environ.copy()
+            env["CARGO_TARGET_DIR"] = str(target_root / profile)
+            process = subprocess.Popen(
+                consumer_command(profile, offline=False),
+                cwd=CONSUMER,
+                env=env,
+                text=True,
+            )
+            processes.append((profile, process))
 
-    failures = [profile for profile, process in processes if process.wait() != 0]
-    if failures:
-        raise RuntimeError("concurrent consumer build failed: " + ", ".join(failures))
+        failures = [profile for profile, process in processes if process.wait() != 0]
+        if failures:
+            raise RuntimeError("concurrent consumer build failed: " + ", ".join(failures))
     print("concurrent WPA2/WPA3 consumer builds OK")
 
 
