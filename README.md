@@ -8,7 +8,7 @@ an explicit `chip-*` feature.
 ```toml
 [dependencies]
 hisi-rf = {
-    version = "0.1.0-alpha.7",
+    version = "0.1.0-alpha.9",
     features = ["chip-ws63", "profile-wifi-wpa2-smoltcp"]
 }
 ```
@@ -33,6 +33,12 @@ static RADIO_STORAGE: hisi_rf::ws63::Storage<hisi_rf::ws63::SelectedProfile, 4> 
 `Storage::report()` provides allocation-free, versioned resource metadata.
 Task-stack, supplicant-arena, and final-image totals remain marked uncalibrated
 until the runtime and HIL admission contracts can supply them truthfully.
+
+Public [`hisi_rf::Error`](https://docs.rs/hisi-rf/latest/hisi_rf/enum.Error.html)
+values expose `diagnostic()`, a versioned, allocation-free view with a stable
+machine code, stage, recovery action, documentation anchor, and optional raw
+backend code. Its JSON form cannot contain SSIDs, passphrases, or key material
+because those values are not part of the diagnostic type.
 
 This crate is an early alpha. The current public surface may change while WS63
 connectivity parity is established on real silicon.

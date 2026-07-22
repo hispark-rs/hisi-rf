@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.9] - 2026-07-22
+
+### Added
+
+- Re-exported the allocation-free `hisi-rf-error/v1` diagnostic schema,
+  including stable machine codes, operation stages, recovery actions, lossless
+  backend codes, and deterministic secret-free JSON.
+
+### Changed
+
+- Updated `hisi-rf-core` to `0.1.0-alpha.2` and `hisi-rf-ws63` to
+  `0.1.0-alpha.6`.
+
+## [0.1.0-alpha.8] - 2026-07-22
+
+### Changed
+
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.5`, which performs a typed dynamic-task
+  capacity preflight before claiming caller storage or touching radio hardware.
+
 ## [0.1.0-alpha.7] - 2026-07-22
 
 ### Added
@@ -99,7 +119,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.7...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.9...HEAD
+[0.1.0-alpha.9]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.8...v0.1.0-alpha.9
+[0.1.0-alpha.8]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.7...v0.1.0-alpha.8
 [0.1.0-alpha.7]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.6...v0.1.0-alpha.7
 [0.1.0-alpha.6]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.5...v0.1.0-alpha.6
 [0.1.0-alpha.5]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.4...v0.1.0-alpha.5
