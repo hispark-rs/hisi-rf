@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.17] - 2026-07-23
+
+### Added
+
+- Re-exported allocation-free WS63 RF heap metrics through the safe facade for
+  HIL calibration without exposing the backend crate to applications.
+
+### Changed
+
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.14`, including synchronized host tests
+  and runtime RF heap usage observations.
+
 ## [0.1.0-alpha.16] - 2026-07-23
 
 ### Fixed
