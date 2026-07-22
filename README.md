@@ -8,7 +8,7 @@ an explicit `chip-*` feature.
 ```toml
 [dependencies]
 hisi-rf = {
-    version = "0.1.0-alpha.11",
+    version = "0.1.0-alpha.13",
     features = ["chip-ws63", "profile-wifi-wpa2-smoltcp"]
 }
 ```
@@ -29,6 +29,20 @@ application storage:
 static RADIO_STORAGE: hisi_rf::ws63::Storage<hisi_rf::ws63::SelectedProfile, 4> =
     hisi_rf::ws63::Storage::new();
 ```
+
+After the application installs its `hisi-rtos` backend, the storage-bound
+controller starts the mandatory runner and returns only the Wi-Fi control/L2
+handles:
+
+```rust,ignore
+let mut wifi = hisi_rf::ws63::init(config, resources, &RADIO_STORAGE)?
+    .start_runner()?;
+let scan = wifi.controller.scan(scan_config, &mut results).await?;
+```
+
+The application does not import `hisi-rf-rtos-driver`, `ws63-radio-sys`, or a
+chip backend type. Starting the runtime itself remains explicit application
+policy rather than a hidden side effect of radio initialization.
 
 `Storage::report()` provides allocation-free, versioned resource metadata.
 The same contract can be emitted without naming the chip backend crate:
