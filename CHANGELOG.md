@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Re-exported blocking-runner work counters and event-queue high-water
+  diagnostics for A5B migration measurements.
+
+### Changed
+
+- Updated `hisi-rf-core` to `0.1.0-alpha.12`.
+
 ## [0.1.0-alpha.23] - 2026-07-23
 
 ### Added
