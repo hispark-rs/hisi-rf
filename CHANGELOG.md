@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Updated `hisi-rf-core` to `0.1.0-alpha.13`, exposing current and high-water
+  occupancy for the fixed-capacity control command channel.
+
 ## [0.1.0-alpha.25] - 2026-07-23
 
 ### Added
