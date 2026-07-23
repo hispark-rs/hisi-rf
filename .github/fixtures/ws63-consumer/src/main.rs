@@ -18,6 +18,8 @@ fn check_blocking_runner_diagnostics<const EVENTS: usize>(
     let runner: hisi_rf::BlockingRunnerDiagnostics = controller.blocking_runner_diagnostics();
     let events: hisi_rf::EventDiagnostics = controller.event_diagnostics();
     let _migration_baseline = (
+        runner.command_queue_pending,
+        runner.command_queue_high_water,
         runner.run_once_calls,
         runner.commands_processed,
         runner.backend_poll_calls,
