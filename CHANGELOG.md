@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.26] - 2026-07-23
+
 ### Changed
 
 - Updated `hisi-rf-core` to `0.1.0-alpha.13`, exposing current and high-water
@@ -310,7 +312,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.25...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.26...HEAD
+[0.1.0-alpha.26]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.25...v0.1.0-alpha.26
 [0.1.0-alpha.25]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.24...v0.1.0-alpha.25
 [0.1.0-alpha.24]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.23...v0.1.0-alpha.24
 [0.1.0-alpha.23]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.22...v0.1.0-alpha.23
