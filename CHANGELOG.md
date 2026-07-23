@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Re-exported secret-free WS63 blocking backend operation, sleep, and native
+  supplicant poll metrics through the safe composition root.
+
+### Changed
+
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.15`.
+
 ## [0.1.0-alpha.24] - 2026-07-23
 
 ### Added

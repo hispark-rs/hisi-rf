@@ -49,7 +49,8 @@ pub mod ws63 {
         any(feature = "wpa2-personal", feature = "wpa3-personal")
     ))]
     pub use hisi_rf_ws63::{
-        InitError, RadioController, ResourceReport, Resources, RfHeapMetrics, SelectedProfile,
-        Storage, WifiWpa2Smoltcp, WifiWpa3Smoltcp, init, rf_heap_metrics, station_mac_address,
+        BlockingBackendMetrics, BlockingOperationMetrics, InitError, RadioController,
+        ResourceReport, Resources, RfHeapMetrics, SelectedProfile, Storage, WifiWpa2Smoltcp,
+        WifiWpa3Smoltcp, blocking_backend_metrics, init, rf_heap_metrics, station_mac_address,
     };
 }

@@ -12,7 +12,7 @@ categories = ["embedded", "no-std", "network-programming"]
 
 [dependencies]
 hisi-rf-core = "=0.1.0-alpha.12"
-hisi-rf-ws63 = { version = "=0.1.0-alpha.14", optional = true, default-features = false }
+hisi-rf-ws63 = { version = "=0.1.0-alpha.15", optional = true, default-features = false }
 
 [target.'cfg(target_arch = "riscv32")'.dev-dependencies]
 hisi-hal = { version = "0.7.0-alpha.3", features = ["chip-ws63", "unstable"] }
