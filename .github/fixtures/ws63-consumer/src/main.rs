@@ -28,6 +28,20 @@ fn check_blocking_runner_diagnostics<const EVENTS: usize>(
     );
 }
 
+#[allow(dead_code)]
+fn check_ws63_blocking_backend_metrics() {
+    let metrics: hisi_rf::ws63::BlockingBackendMetrics =
+        hisi_rf::ws63::blocking_backend_metrics();
+    let connect: hisi_rf::ws63::BlockingOperationMetrics = metrics.connect;
+    let _migration_baseline = (
+        connect.calls,
+        connect.timed_calls,
+        connect.max_elapsed_ms,
+        metrics.internal_sleep_calls,
+        metrics.supplicant_poll_calls,
+    );
+}
+
 static RADIO_STORAGE: hisi_rf::ws63::Storage<hisi_rf::ws63::SelectedProfile, 4> =
     hisi_rf::ws63::Storage::new();
 
