@@ -1,6 +1,6 @@
 [package]
 name = "hisi-rf"
-version = "0.1.0-alpha.28"
+version = "0.1.0-alpha.29"
 edition = "2024"
 rust-version = "1.91"
 authors = ["sanchuanhehe"]
@@ -12,7 +12,7 @@ categories = ["embedded", "no-std", "network-programming"]
 
 [dependencies]
 hisi-rf-core = "=0.1.0-alpha.13"
-hisi-rf-ws63 = { version = "=0.1.0-alpha.17", optional = true, default-features = false }
+hisi-rf-ws63 = { version = "=0.1.0-alpha.18", optional = true, default-features = false }
 
 [target.'cfg(target_arch = "riscv32")'.dev-dependencies]
 hisi-hal = { version = "0.7.0-alpha.3", features = ["chip-ws63", "unstable"] }
@@ -26,7 +26,10 @@ hisi-riscv-rt = { version = "0.5.5", default-features = false, features = [
 [features]
 default = []
 chip-ws63 = ["dep:hisi-rf-ws63"]
-incremental-backend-experiment = ["hisi-rf-core/incremental-backend-experiment"]
+incremental-backend-experiment = [
+    "hisi-rf-core/incremental-backend-experiment",
+    "hisi-rf-ws63?/incremental-backend-experiment",
+]
 wifi = ["hisi-rf-ws63?/wifi"]
 smoltcp = ["hisi-rf-core/smoltcp", "hisi-rf-ws63?/smoltcp"]
 wpa2-personal = ["wifi", "hisi-rf-ws63?/wpa2-personal"]

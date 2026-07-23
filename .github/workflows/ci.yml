@@ -20,8 +20,10 @@ jobs:
       - run: cargo clippy --locked --all-targets --features chip-ws63 -- -D warnings
       - name: Check feature-minimal WS63 composition
         run: cargo check -Zbuild-std=core --locked --target riscv32imfc-unknown-none-elf --features chip-ws63
-      - name: Check opt-in incremental backend contract
-        run: cargo check -Zbuild-std=core --locked --target riscv32imfc-unknown-none-elf --features chip-ws63,incremental-backend-experiment
+      - name: Check WS63 WPA2 incremental composition
+        run: cargo check -Zbuild-std=core --locked --target riscv32imfc-unknown-none-elf --features chip-ws63,profile-wifi-wpa2-smoltcp,incremental-backend-experiment
+      - name: Check WS63 WPA3 incremental composition
+        run: cargo check -Zbuild-std=core --locked --target riscv32imfc-unknown-none-elf --features chip-ws63,profile-wifi-wpa3-smoltcp,incremental-backend-experiment
       - name: Check WS63 WPA2 composition
         run: cargo check -Zbuild-std=core --locked --target riscv32imfc-unknown-none-elf --features chip-ws63,profile-wifi-wpa2-smoltcp
       - name: Check WS63 WPA3 composition

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.29] - 2026-07-23
+
+### Added
+
+- Forwarded the non-default WS63 incremental experiment through the facade and
+  exposed its explicitly named blocking-bootstrap/owned-runner lifecycle from
+  `hisi_rf::ws63`.
+
+### Changed
+
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.18`. The default blocking profile is
+  unchanged; callers must opt in to the experimental feature and drive its
+  bounded runner with an explicit work budget and wait platform.
+
 ## [0.1.0-alpha.28] - 2026-07-23
 
 ### Changed

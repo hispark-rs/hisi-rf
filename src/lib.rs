@@ -53,4 +53,31 @@ pub mod ws63 {
         ResourceReport, Resources, RfHeapMetrics, SelectedProfile, Storage, WifiWpa2Smoltcp,
         WifiWpa3Smoltcp, blocking_backend_metrics, init, rf_heap_metrics, station_mac_address,
     };
+
+    #[cfg(all(
+        feature = "incremental-backend-experiment",
+        feature = "smoltcp",
+        any(feature = "wpa2-personal", feature = "wpa3-personal")
+    ))]
+    pub use hisi_rf_ws63::{
+        IncrementalRadioController, IncrementalRadioParts, IncrementalRadioRunner,
+        init_incremental_after_blocking_bootstrap,
+    };
+}
+
+#[cfg(all(
+    test,
+    feature = "chip-ws63",
+    feature = "incremental-backend-experiment",
+    feature = "smoltcp",
+    any(feature = "wpa2-personal", feature = "wpa3-personal")
+))]
+mod tests {
+    #[test]
+    fn facade_exposes_the_explicit_ws63_incremental_lifecycle() {
+        let _init = super::ws63::init_incremental_after_blocking_bootstrap::<
+            super::ws63::SelectedProfile,
+            4,
+        >;
+    }
 }
