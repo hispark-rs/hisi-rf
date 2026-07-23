@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.16`, consuming the versioned v9
+  supplicant poll ABI and exact bounded-work accounting. The partial WS63
+  incremental adapter remains internal and non-default until initialize and
+  scan are genuinely incremental.
+
 ## [0.1.0-alpha.26] - 2026-07-23
 
 ### Changed
