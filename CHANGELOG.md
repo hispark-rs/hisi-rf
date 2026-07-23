@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.30] - 2026-07-23
+
+### Added
+
+- Re-exported the hidden WS63 bootstrap-stage identifiers and metrics through
+  the safe composition root so A5B can measure each blocking prerequisite
+  without exposing raw sys/blob crates.
+
+### Changed
+
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.19`. Stage boundaries are diagnostic
+  observations only; vendor bootstrap remains blocking and the default backend
+  is unchanged.
+
 ## [0.1.0-alpha.29] - 2026-07-23
 
 ### Added
