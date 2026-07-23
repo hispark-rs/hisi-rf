@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.28] - 2026-07-23
+
+### Changed
+
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.17`, including the non-default,
+  bounded scan/connect/disconnect implementation and exact v9 poll accounting.
+  The WS63 implementation remains internal until its blocking initialization
+  prerequisite has a coherent facade lifecycle; the default backend is unchanged.
+
 ## [0.1.0-alpha.27] - 2026-07-23
 
 ### Changed
