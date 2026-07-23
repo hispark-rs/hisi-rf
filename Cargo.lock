@@ -447,7 +447,7 @@ dependencies = [
 
 [[package]]
 name = "hisi-rf"
-version = "0.1.0-alpha.26"
+version = "0.1.0-alpha.27"
 dependencies = [
  "hisi-hal",
  "hisi-rf-core",
