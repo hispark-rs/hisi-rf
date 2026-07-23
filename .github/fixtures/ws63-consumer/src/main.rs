@@ -11,6 +11,23 @@ impl core::fmt::Write for DiagnosticSink {
     }
 }
 
+#[allow(dead_code)]
+fn check_blocking_runner_diagnostics<const EVENTS: usize>(
+    controller: &hisi_rf::WifiController<EVENTS>,
+) {
+    let runner: hisi_rf::BlockingRunnerDiagnostics = controller.blocking_runner_diagnostics();
+    let events: hisi_rf::EventDiagnostics = controller.event_diagnostics();
+    let _migration_baseline = (
+        runner.run_once_calls,
+        runner.commands_processed,
+        runner.backend_poll_calls,
+        runner.backend_poll_work_batches,
+        runner.backend_poll_errors,
+        runner.immediate_repoll_hints,
+        events.high_water,
+    );
+}
+
 static RADIO_STORAGE: hisi_rf::ws63::Storage<hisi_rf::ws63::SelectedProfile, 4> =
     hisi_rf::ws63::Storage::new();
 
