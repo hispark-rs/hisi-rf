@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.33] - 2026-07-26
+
+### Fixed
+
+- Switched to `hisi-rf-ws63 0.1.0-alpha.23`, which embeds mask-ROM fallback
+  addresses as transitive ELF symbols. Removed the ineffective facade
+  build-script relay: Cargo linker arguments apply to the package that emits
+  them and cannot be forwarded through a library dependency to an application.
+
 ## [0.1.0-alpha.32] - 2026-07-26
 
 ### Fixed
@@ -376,7 +385,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.32...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.33...HEAD
+[0.1.0-alpha.33]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.32...v0.1.0-alpha.33
 [0.1.0-alpha.32]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.31...v0.1.0-alpha.32
 [0.1.0-alpha.31]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.30...v0.1.0-alpha.31
 [0.1.0-alpha.30]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.29...v0.1.0-alpha.30
