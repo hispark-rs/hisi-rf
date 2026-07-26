@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.34] - 2026-07-26
+
+### Added
+
+- Re-exported the opt-in incremental runner and WS63 wait-bridge diagnostics
+  through the single-dependency facade. Applications can now capture bounded
+  work, wake-source, callback/L2 signal, timer, terminal, and error counters
+  without importing the chip backend or runtime-driver crates.
+
+### Changed
+
+- Updated `hisi-rf-core` to `0.1.0-alpha.14` and `hisi-rf-ws63` to
+  `0.1.0-alpha.24`. The validated blocking backend remains the default.
+
 ## [0.1.0-alpha.33] - 2026-07-26
 
 ### Fixed

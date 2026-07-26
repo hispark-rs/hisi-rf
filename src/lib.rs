@@ -34,11 +34,11 @@ pub use hisi_rf_core::{
     CancelDirective, CancelOutcome, CommandArbiter, CommandArbiterAction, CommandArbiterError,
     CommandSequence, FairWakeSelector, IncrementalBackendDriver, IncrementalCompletion,
     IncrementalDriverError, IncrementalDriverEvent, IncrementalRadioParts, IncrementalRadioRunner,
-    IncrementalRadioRunnerError, IncrementalRequest, IncrementalRunnerState, IncrementalWaitError,
-    IncrementalWaitIntent, IncrementalWaitPlatform, IncrementalWifiBackend, OperationId,
-    OperationLifecycle, OperationStateError, OperationTracker, PendingCommand, PollDisposition,
-    RunnerStateError, RunnerStep, RunnerTransition, SubmitError, WaitSet, WakeReason, WorkBudget,
-    WorkReport,
+    IncrementalRadioRunnerError, IncrementalRequest, IncrementalRunnerDiagnostics,
+    IncrementalRunnerState, IncrementalWaitError, IncrementalWaitIntent, IncrementalWaitPlatform,
+    IncrementalWifiBackend, OperationId, OperationLifecycle, OperationStateError, OperationTracker,
+    PendingCommand, PollDisposition, RunnerStateError, RunnerStep, RunnerTransition, SubmitError,
+    WaitSet, WakeReason, WorkBudget, WorkReport,
 };
 
 /// WS63 safe resources and radio composition root.
@@ -62,7 +62,7 @@ pub mod ws63 {
     ))]
     pub use hisi_rf_ws63::{
         IncrementalRadioController, IncrementalRadioParts, IncrementalRadioRunner,
-        init_incremental_after_blocking_bootstrap,
+        Ws63IncrementalWaitDiagnostics, init_incremental_after_blocking_bootstrap,
     };
 }
 
@@ -80,5 +80,7 @@ mod tests {
             super::ws63::SelectedProfile,
             4,
         >;
+        let _: Option<super::IncrementalRunnerDiagnostics> = None;
+        let _: Option<super::ws63::Ws63IncrementalWaitDiagnostics> = None;
     }
 }
