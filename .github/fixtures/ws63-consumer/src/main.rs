@@ -99,6 +99,16 @@ fn check_incremental_facade<B, D, const EVENTS: usize>(
     let _wait = parts.runner.wait_ready(&mut platform);
 }
 
+#[cfg(feature = "incremental-contract")]
+#[allow(dead_code)]
+fn check_ws63_incremental_facade<const EVENTS: usize>(
+    radio: hisi_rf::ws63::IncrementalRadioController<hisi_rf::ws63::SelectedProfile, EVENTS>,
+) {
+    let budget = hisi_rf::WorkBudget::try_new(4, 100).expect("non-zero work budget");
+    let mut parts = radio.split(budget);
+    let _wait = parts.runner.wait_ready();
+}
+
 #[entry]
 fn main() -> ! {
     let mut diagnostic_sink = DiagnosticSink;
