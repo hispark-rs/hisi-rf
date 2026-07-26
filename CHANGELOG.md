@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.31] - 2026-07-26
+
+### Changed
+
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.21`. The opt-in incremental WS63
+  runner now owns its callback, L2 receive, and monotonic timer wait platform;
+  applications no longer construct a chip-specific wait adapter.
+- Kept the blocking backend as the default while the incremental backend
+  remains an explicitly selected experiment.
+
 ## [0.1.0-alpha.30] - 2026-07-23
 
 ### Added
@@ -358,7 +368,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.26...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.31...HEAD
+[0.1.0-alpha.31]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.30...v0.1.0-alpha.31
+[0.1.0-alpha.30]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.29...v0.1.0-alpha.30
+[0.1.0-alpha.29]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.28...v0.1.0-alpha.29
+[0.1.0-alpha.28]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.27...v0.1.0-alpha.28
+[0.1.0-alpha.27]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.26...v0.1.0-alpha.27
 [0.1.0-alpha.26]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.25...v0.1.0-alpha.26
 [0.1.0-alpha.25]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.24...v0.1.0-alpha.25
 [0.1.0-alpha.24]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.23...v0.1.0-alpha.24
