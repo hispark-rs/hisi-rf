@@ -97,6 +97,12 @@ fn check_incremental_facade<B, D, const EVENTS: usize>(
     );
     let mut platform = ExternalWaitPlatform;
     let _wait = parts.runner.wait_ready(&mut platform);
+    let diagnostics: hisi_rf::IncrementalRunnerDiagnostics = parts.runner.diagnostics();
+    let _observability_contract = (
+        diagnostics.run_once_calls,
+        diagnostics.wait_ready_calls,
+        diagnostics.operations_completed,
+    );
 }
 
 #[cfg(feature = "incremental-contract")]
@@ -106,7 +112,17 @@ fn check_ws63_incremental_facade<const EVENTS: usize>(
 ) {
     let budget = hisi_rf::WorkBudget::try_new(4, 100).expect("non-zero work budget");
     let mut parts = radio.split(budget);
-    let _wait = parts.runner.wait_ready();
+    {
+        let _wait = parts.runner.wait_ready();
+    }
+    let runner_diagnostics: hisi_rf::IncrementalRunnerDiagnostics = parts.runner.diagnostics();
+    let wait_diagnostics: hisi_rf::ws63::Ws63IncrementalWaitDiagnostics =
+        parts.runner.wait_diagnostics();
+    let _observability_contract = (
+        runner_diagnostics.wait_ready_completions,
+        wait_diagnostics.backend_signals,
+        wait_diagnostics.ready_polls,
+    );
 }
 
 #[entry]
