@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.32] - 2026-07-26
+
+### Fixed
+
+- Relayed the WS63 mask-ROM fallback linker script exported by
+  `hisi-rf-ws63 0.1.0-alpha.22`, preserving the complete native link contract
+  when applications depend only on the user-facing facade.
+
 ## [0.1.0-alpha.31] - 2026-07-26
 
 ### Changed
@@ -368,7 +376,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.31...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.32...HEAD
+[0.1.0-alpha.32]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.31...v0.1.0-alpha.32
 [0.1.0-alpha.31]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.30...v0.1.0-alpha.31
 [0.1.0-alpha.30]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.29...v0.1.0-alpha.30
 [0.1.0-alpha.29]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.28...v0.1.0-alpha.29
