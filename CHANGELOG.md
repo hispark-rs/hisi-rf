@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.35] - 2026-07-28
+
+### Changed
+
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.25`, carrying the bounded
+  transition-mode recovery diagnostics and the 100 ms incremental-runner
+  work-budget evidence while keeping the blocking backend as the default.
+- Mirrored the backend's explicit `incremental-embassy-wait` capability instead
+  of exposing its executor/time-dependent runner types from the bounded
+  backend feature alone.
+
 ## [0.1.0-alpha.34] - 2026-07-26
 
 ### Added

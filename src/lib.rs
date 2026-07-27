@@ -60,9 +60,15 @@ pub mod ws63 {
         feature = "smoltcp",
         any(feature = "wpa2-personal", feature = "wpa3-personal")
     ))]
+    pub use hisi_rf_ws63::{IncrementalRadioController, init_incremental_after_blocking_bootstrap};
+
+    #[cfg(all(
+        feature = "incremental-embassy-wait",
+        feature = "smoltcp",
+        any(feature = "wpa2-personal", feature = "wpa3-personal")
+    ))]
     pub use hisi_rf_ws63::{
-        IncrementalRadioController, IncrementalRadioParts, IncrementalRadioRunner,
-        Ws63IncrementalWaitDiagnostics, init_incremental_after_blocking_bootstrap,
+        IncrementalRadioParts, IncrementalRadioRunner, Ws63IncrementalWaitDiagnostics,
     };
 }
 
@@ -81,6 +87,11 @@ mod tests {
             4,
         >;
         let _: Option<super::IncrementalRunnerDiagnostics> = None;
+    }
+
+    #[cfg(feature = "incremental-embassy-wait")]
+    #[test]
+    fn facade_exposes_the_explicit_ws63_embassy_wait_bridge() {
         let _: Option<super::ws63::Ws63IncrementalWaitDiagnostics> = None;
     }
 }

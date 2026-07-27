@@ -22,6 +22,8 @@ jobs:
         run: cargo check -Zbuild-std=core --locked --target riscv32imfc-unknown-none-elf --features chip-ws63
       - name: Check WS63 WPA2 incremental composition
         run: cargo check -Zbuild-std=core --locked --target riscv32imfc-unknown-none-elf --features chip-ws63,profile-wifi-wpa2-smoltcp,incremental-backend-experiment
+      - name: Check WS63 WPA2 incremental Embassy wait composition
+        run: cargo check -Zbuild-std=core --locked --target riscv32imfc-unknown-none-elf --features chip-ws63,profile-wifi-wpa2-smoltcp,incremental-embassy-wait
       - name: Check WS63 WPA3 incremental composition
         run: cargo check -Zbuild-std=core --locked --target riscv32imfc-unknown-none-elf --features chip-ws63,profile-wifi-wpa3-smoltcp,incremental-backend-experiment
       - name: Check WS63 WPA2 composition
