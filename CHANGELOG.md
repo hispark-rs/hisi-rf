@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.38] - 2026-07-28
+
+### Added
+
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.28`, exposing actionable
+  `hisi-rf-error/v2` diagnostics for caller-owned arena admission failures
+  through the public facade.
+
 ## [0.1.0-alpha.37] - 2026-07-28
 
 ### Added
@@ -18,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Updated `hisi-rf-ws63` to `0.1.0-alpha.27` and the firmware fixture to
-  `hisi-riscv-rt 0.5.7`. The fixture now reserves its 300 KiB RF arena in the
+  `hisi-riscv-rt 0.5.7`. The fixture now reserves its 296 KiB RF arena in the
   runtime-owned shared-arena linker region and uses the fixed 32 KiB radio main
   stack profile.
 
