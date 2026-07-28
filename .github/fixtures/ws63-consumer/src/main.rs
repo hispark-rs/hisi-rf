@@ -12,9 +12,7 @@ impl core::fmt::Write for DiagnosticSink {
 }
 
 #[allow(dead_code)]
-fn check_blocking_runner_diagnostics<const EVENTS: usize>(
-    controller: &hisi_rf::WifiController<EVENTS>,
-) {
+fn check_blocking_runner_diagnostics(controller: &hisi_rf::WifiController) {
     let runner: hisi_rf::BlockingRunnerDiagnostics = controller.blocking_runner_diagnostics();
     let events: hisi_rf::EventDiagnostics = controller.event_diagnostics();
     let _migration_baseline = (
@@ -44,17 +42,15 @@ fn check_ws63_blocking_backend_metrics() {
 }
 
 #[allow(dead_code)]
-fn check_opaque_ws63_composition<const EVENTS: usize>(
-    controller: hisi_rf::ws63::RadioController<hisi_rf::ws63::SelectedProfile, EVENTS>,
-) {
-    let result: Result<hisi_rf::ws63::WifiParts<EVENTS>, hisi_rf::ws63::InitError> =
+fn check_opaque_ws63_composition(controller: hisi_rf::ws63::RadioController) {
+    let result: Result<hisi_rf::ws63::WifiParts, hisi_rf::ws63::InitError> =
         controller.start_runner();
     if let Err(error) = result {
         let _opaque_error_contract = (error.kind(), error.diagnostic());
     }
 }
 
-hisi_rf::ws63::declare_radio_storage!(static RADIO_STORAGE, events = 4);
+hisi_rf::ws63::declare_radio_storage!(static RADIO_STORAGE);
 
 #[cfg(feature = "incremental-contract")]
 #[allow(dead_code)]
@@ -91,9 +87,8 @@ impl hisi_rf::IncrementalWaitPlatform for ExternalWaitPlatform {
 
 #[cfg(feature = "incremental-contract")]
 #[allow(dead_code)]
-fn check_incremental_facade<B, D, const EVENTS: usize>(
-    radio: hisi_rf::RadioController<B, D, EVENTS>,
-) where
+fn check_incremental_facade<B, D>(radio: hisi_rf::RadioController<B, D>)
+where
     B: hisi_rf::IncrementalWifiBackend,
 {
     let budget = hisi_rf::WorkBudget::try_new(4, 100).expect("non-zero work budget");
@@ -116,9 +111,7 @@ fn check_incremental_facade<B, D, const EVENTS: usize>(
 
 #[cfg(feature = "incremental-contract")]
 #[allow(dead_code)]
-fn check_ws63_incremental_facade<const EVENTS: usize>(
-    radio: hisi_rf::ws63::IncrementalRadioController<hisi_rf::ws63::SelectedProfile, EVENTS>,
-) {
+fn check_ws63_incremental_facade(radio: hisi_rf::ws63::IncrementalRadioController) {
     let budget = hisi_rf::WorkBudget::try_new(4, 100).expect("non-zero work budget");
     let mut parts = radio.split(budget);
     {
