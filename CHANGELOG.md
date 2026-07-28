@@ -7,8 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.53] - 2026-07-29
+
 ### Changed
 
+- Removed event-capacity const generics from the facade's common controller,
+  parts, runner, and WS63 initialization signatures. The selected profile owns
+  an eight-event queue through caller-owned storage and its resource report;
+  backend maintainers use the independently versioned chip backend for generic
+  capacities.
 - Migrated the crates.io-only external consumer to the published
   `hisi-rf 0.1.0-alpha.52` and the single `declare_radio_storage!`
   composition contract.

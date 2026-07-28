@@ -5,7 +5,7 @@
 use hisi_riscv_rt::entry;
 
 #[cfg(target_arch = "riscv32")]
-hisi_rf::ws63::declare_radio_storage!(static RADIO_STORAGE, events = 4);
+hisi_rf::ws63::declare_radio_storage!(static RADIO_STORAGE);
 
 #[cfg(target_arch = "riscv32")]
 #[entry]

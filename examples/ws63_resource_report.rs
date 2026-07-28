@@ -1,9 +1,9 @@
 #[cfg(any(feature = "wpa2-personal", feature = "wpa3-personal"))]
-use hisi_rf::ws63::{SelectedProfile, Storage};
+use hisi_rf::ws63::Storage;
 
 #[cfg(any(feature = "wpa2-personal", feature = "wpa3-personal"))]
 fn main() {
-    let storage = Storage::<SelectedProfile, 4>::new();
+    let storage = Storage::new();
     let mut output = String::new();
     storage
         .report()
