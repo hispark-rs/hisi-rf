@@ -7,10 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.48] - 2026-07-28
+
 ### Added
 
 - Re-exported structured association ioctl timing diagnostics through the WS63
   facade for application-level response-bound evidence.
+
+### Changed
+
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.38`.
 
 ## [0.1.0-alpha.47] - 2026-07-28
 
