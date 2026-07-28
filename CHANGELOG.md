@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added a pinned `cargo-public-api` snapshot gate for the complete WS63
+  incremental facade. WPA2 and WPA3 named profiles must expose the same public
+  API, and every intentional API change now produces a reviewable CI diff.
+
 ## [0.1.0-alpha.48] - 2026-07-28
 
 ### Added

@@ -36,6 +36,10 @@ jobs:
         run: uv run --script .github/scripts/check-boundaries.py --profile wpa2-personal --rustdoc target/doc/hisi_rf
       - name: Check WPA3 dependency boundaries
         run: uv run --script .github/scripts/check-boundaries.py --profile wpa3-personal
+      - name: Install public API checker
+        run: cargo install cargo-public-api --version 0.52.0 --locked
+      - name: Check facade public API snapshot
+        run: .github/scripts/check-public-api.sh
       - name: Reject a missing chip selection
         run: |
           log="${RUNNER_TEMP}/hisi-rf-missing-chip.log"
