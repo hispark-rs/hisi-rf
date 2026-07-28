@@ -8,7 +8,7 @@ an explicit `chip-*` feature.
 ```toml
 [dependencies]
 hisi-rf = {
-    version = "0.1.0-alpha.14",
+    version = "0.1.0-alpha.51",
     features = ["chip-ws63", "profile-wifi-wpa2-smoltcp"]
 }
 ```
@@ -26,13 +26,21 @@ The profile owns its bounded state and crypto DMA scratch through explicit
 application storage:
 
 ```rust,ignore
-static RADIO_STORAGE: hisi_rf::ws63::Storage<hisi_rf::ws63::SelectedProfile, 4> =
-    hisi_rf::ws63::Storage::new();
+hisi_rf::ws63::declare_radio_storage!(
+    static RADIO_STORAGE,
+    events = 4
+);
 ```
 
-After the application installs its `hisi-rtos` backend, the storage-bound
-controller starts the mandatory runner and returns only the Wi-Fi control/L2
-handles:
+Before starting `hisi-rtos`, call `RADIO_STORAGE.install()` once and use its
+allocation functions for the runtime. After RTOS startup,
+`into_init_parts()` transfers the arena capability to the typed chip-resource
+builder and lends the bounded control state to radio initialization. This
+temporal split preserves the real linker/runtime boundary without exposing two
+application-owned statics.
+
+The storage-bound controller then starts the mandatory runner and returns only
+the Wi-Fi control/L2 handles:
 
 ```rust,ignore
 let mut wifi = hisi_rf::ws63::init(config, resources, &RADIO_STORAGE)?
@@ -49,7 +57,7 @@ The station MAC accessor becomes available after radio initialization and lets
 the application configure a standard IP stack without importing backend netif
 internals.
 
-`Storage::report()` provides allocation-free, versioned resource metadata.
+`RadioStorage::report()` provides allocation-free, versioned resource metadata.
 The same contract can be emitted without naming the chip backend crate:
 
 ```console

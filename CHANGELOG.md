@@ -7,11 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.51] - 2026-07-29
+
+### Added
+
+- Re-exported the WS63 `RadioStorage`, `InstalledRadioStorage`, and
+  `declare_radio_storage!` composition contract. Applications now declare and
+  admit one caller-owned radio storage object while the backend preserves the
+  correct BSS/NOLOAD split internally.
+
 ### Changed
 
 - Moved the crates.io-only consumer's security choice into explicit local
   WPA2/WPA3 profile features, migrated it to the profile-aware resource
   builder, and made deprecated API use a compile error in that fixture.
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.42` and exposed its deterministic
+  `hisi-rf-resource-report/v6` accounting.
 
 ## [0.1.0-alpha.50] - 2026-07-29
 

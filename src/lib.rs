@@ -44,7 +44,6 @@ pub use hisi_rf_core::{
 /// WS63 safe resources and radio composition root.
 #[cfg(feature = "chip-ws63")]
 pub mod ws63 {
-    pub use hisi_rf_ws63::declare_radio_arena;
     #[cfg(all(
         feature = "smoltcp",
         any(feature = "wpa2-personal", feature = "wpa3-personal")
@@ -52,13 +51,15 @@ pub mod ws63 {
     pub use hisi_rf_ws63::{
         AssociationIoctlMetrics, AssociationTimingDiagnostics, BlockingBackendMetrics,
         BlockingBootstrapMetrics, BlockingOperationMetrics, BootstrapStage, BootstrapStageMetrics,
-        CryptoReady, DhcpDiagnostics, InitError, InitErrorKind, InstalledRadioArena, MissingCrypto,
-        MissingPke, PkeNotRequired, PkeReady, RadioArena, RadioArenaStorage, RadioController,
-        ResourceReport, Resources, ResourcesBuilder, RfHeapMetrics, RxQueueDiagnostics,
-        SELECTED_RF_ARENA_BYTES, SelectedProfile, Storage, WifiDevice, WifiParts, WifiRxToken,
-        WifiTxToken, WifiWpa2Smoltcp, WifiWpa3Smoltcp, association_timing_diagnostics,
-        blocking_backend_metrics, rf_heap_metrics, station_mac_address,
+        CryptoReady, DhcpDiagnostics, InitError, InitErrorKind, InstalledRadioArena,
+        InstalledRadioStorage, MissingCrypto, MissingPke, PkeNotRequired, PkeReady, RadioArena,
+        RadioArenaStorage, RadioController, RadioStorage, ResourceReport, Resources,
+        ResourcesBuilder, RfHeapMetrics, RxQueueDiagnostics, SELECTED_RF_ARENA_BYTES,
+        SelectedProfile, Storage, WifiDevice, WifiParts, WifiRxToken, WifiTxToken, WifiWpa2Smoltcp,
+        WifiWpa3Smoltcp, association_timing_diagnostics, blocking_backend_metrics, rf_heap_metrics,
+        station_mac_address,
     };
+    pub use hisi_rf_ws63::{declare_radio_arena, declare_radio_storage};
 
     #[cfg(all(
         not(feature = "incremental-backend-experiment"),
@@ -96,16 +97,18 @@ pub mod ws63 {
     any(feature = "wpa2-personal", feature = "wpa3-personal")
 ))]
 mod tests {
+    type TestProfile = super::ws63::SelectedProfile;
+    type TestStorage = super::ws63::Storage<TestProfile, 4>;
+    type TestController = super::ws63::IncrementalRadioController<TestProfile, 4>;
+    type TestInit = fn(
+        super::RadioConfig,
+        super::ws63::Resources<TestProfile>,
+        &'static TestStorage,
+    ) -> Result<TestController, super::ws63::InitError>;
+
     #[test]
     fn facade_exposes_the_explicit_ws63_incremental_lifecycle() {
-        let _: fn(
-            super::RadioConfig,
-            super::ws63::Resources<super::ws63::SelectedProfile>,
-            &'static super::ws63::Storage<super::ws63::SelectedProfile, 4>,
-        ) -> Result<
-            super::ws63::IncrementalRadioController<super::ws63::SelectedProfile, 4>,
-            super::ws63::InitError,
-        > = super::ws63::init::<super::ws63::SelectedProfile, 4>;
+        let _: TestInit = super::ws63::init::<TestProfile, 4>;
         let _: Option<super::IncrementalRunnerDiagnostics> = None;
         let _: Option<super::ws63::DhcpDiagnostics> = None;
         let _: Option<super::ws63::RxQueueDiagnostics> = None;

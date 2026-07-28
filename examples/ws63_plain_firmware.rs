@@ -5,19 +5,16 @@
 use hisi_riscv_rt::entry;
 
 #[cfg(target_arch = "riscv32")]
-static RADIO_STORAGE: hisi_rf::ws63::Storage<hisi_rf::ws63::SelectedProfile, 4> =
-    hisi_rf::ws63::Storage::new();
-#[cfg(target_arch = "riscv32")]
-hisi_rf::ws63::declare_radio_arena!(static RADIO_ARENA);
+hisi_rf::ws63::declare_radio_storage!(static RADIO_STORAGE, events = 4);
 
 #[cfg(target_arch = "riscv32")]
 #[entry]
 fn main() -> ! {
     let peripherals = unsafe { hisi_hal::peripherals::Peripherals::steal() };
-    let arena = RADIO_ARENA
-        .claim_for::<hisi_rf::ws63::SelectedProfile>()
-        .and_then(|arena| arena.install())
-        .expect("install shared RF arena");
+    let (control, arena) = RADIO_STORAGE
+        .install()
+        .expect("install caller-owned radio storage")
+        .into_init_parts();
     let resources = hisi_rf::ws63::Resources::<hisi_rf::ws63::SelectedProfile>::builder(
         peripherals.EFUSE,
         arena,
@@ -27,7 +24,7 @@ fn main() -> ! {
     let resources = resources.build();
     #[cfg(feature = "wpa3-personal")]
     let resources = resources.pke(peripherals.PKE).build();
-    let _radio = hisi_rf::ws63::init(hisi_rf::RadioConfig::default(), resources, &RADIO_STORAGE)
+    let _radio = hisi_rf::ws63::init(hisi_rf::RadioConfig::default(), resources, control)
         .expect("fresh static radio state");
 
     loop {

@@ -83,9 +83,11 @@ pub use hisi_rf::ws63::IncrementalRadioRunner
 pub use hisi_rf::ws63::InitError
 pub use hisi_rf::ws63::InitErrorKind
 pub use hisi_rf::ws63::InstalledRadioArena
+pub use hisi_rf::ws63::InstalledRadioStorage
 pub use hisi_rf::ws63::RadioArena
 pub use hisi_rf::ws63::RadioArenaStorage
 pub use hisi_rf::ws63::RadioController
+pub use hisi_rf::ws63::RadioStorage
 pub use hisi_rf::ws63::ResourceReport
 pub use hisi_rf::ws63::Resources
 pub use hisi_rf::ws63::ResourcesBuilder
@@ -102,6 +104,7 @@ pub use hisi_rf::ws63::WifiWpa3Smoltcp
 pub use hisi_rf::ws63::Ws63IncrementalWaitDiagnostics
 pub use hisi_rf::ws63::association_timing_diagnostics
 pub use hisi_rf::ws63::declare_radio_arena
+pub use hisi_rf::ws63::declare_radio_storage
 pub use hisi_rf::ws63::init
 pub use hisi_rf::ws63::init_incremental_after_blocking_bootstrap
 pub use hisi_rf::ws63::rf_heap_metrics
