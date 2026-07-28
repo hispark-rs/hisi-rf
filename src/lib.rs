@@ -60,7 +60,11 @@ pub type IncrementalRadioParts<B, D> = hisi_rf_core::IncrementalRadioParts<B, D,
 pub type IncrementalRadioRunner<B> = hisi_rf_core::IncrementalRadioRunner<B, EVENT_CAPACITY>;
 
 /// WS63 safe resources and radio composition root.
-#[cfg(feature = "chip-ws63")]
+#[cfg(all(
+    feature = "chip-ws63",
+    feature = "smoltcp",
+    any(feature = "wpa2-personal", feature = "wpa3-personal")
+))]
 pub mod ws63 {
     pub use crate::declare_radio_storage;
     pub use hisi_rf_ws63::declare_radio_arena;
@@ -348,6 +352,11 @@ pub mod ws63 {
 }
 
 /// Declare one caller-owned WS63 radio composition for the selected profile.
+#[cfg(all(
+    feature = "chip-ws63",
+    feature = "smoltcp",
+    any(feature = "wpa2-personal", feature = "wpa3-personal")
+))]
 #[macro_export]
 macro_rules! declare_radio_storage {
     ($(#[$meta:meta])* $vis:vis static $name:ident) => {
