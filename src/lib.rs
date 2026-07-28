@@ -21,11 +21,12 @@ compile_error!(
 );
 
 pub use hisi_rf_core::{
-    BackendError, BackendErrorClass, BlockingRunnerDiagnostics, ConnectionInfo, DIAGNOSTIC_SCHEMA,
-    DIAGNOSTIC_TRACE_CAPACITY, Diagnostic, DiagnosticCode, DiagnosticStage, DiagnosticTrace,
-    DiagnosticTraceEntry, DiagnosticTraceKind, Error, EventDiagnostics, ManagementFrameProtection,
-    Passphrase, PersonalSecurity, RadioConfig, RecoveryAction, SaePwe, ScanConfig, ScanOutcome,
-    ScanResult, Security, Ssid, StationConfig, WifiBackend, WifiConfig, WifiDevice, WifiEvent,
+    BackendError, BackendErrorClass, BackendTimeout, BlockingRunnerDiagnostics, ConnectionInfo,
+    DIAGNOSTIC_SCHEMA, DIAGNOSTIC_TRACE_CAPACITY, Diagnostic, DiagnosticCode, DiagnosticStage,
+    DiagnosticTrace, DiagnosticTraceEntry, DiagnosticTraceKind, Error, EventDiagnostics,
+    ManagementFrameProtection, OperationTimeout, Passphrase, PersonalSecurity, RadioConfig,
+    RecoveryAction, SaePwe, ScanConfig, ScanOutcome, ScanResult, Security, Ssid, StationConfig,
+    WifiBackend, WifiConfig, WifiDevice, WifiEvent,
 };
 /// Event capacity selected by the public WS63 application profiles.
 pub const EVENT_CAPACITY: usize = 8;

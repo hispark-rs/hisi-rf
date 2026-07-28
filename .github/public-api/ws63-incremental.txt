@@ -1,6 +1,7 @@
 pub mod hisi_rf
 pub use hisi_rf::BackendError
 pub use hisi_rf::BackendErrorClass
+pub use hisi_rf::BackendTimeout
 pub use hisi_rf::BlockingRunnerDiagnostics
 pub use hisi_rf::CancelDirective
 pub use hisi_rf::CancelOutcome
@@ -36,6 +37,7 @@ pub use hisi_rf::ManagementFrameProtection
 pub use hisi_rf::OperationId
 pub use hisi_rf::OperationLifecycle
 pub use hisi_rf::OperationStateError
+pub use hisi_rf::OperationTimeout
 pub use hisi_rf::OperationTracker
 pub use hisi_rf::Passphrase
 pub use hisi_rf::PendingCommand

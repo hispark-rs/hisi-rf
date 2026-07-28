@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.54] - 2026-07-29
+
+### Added
+
+- Re-exported the typed `OperationTimeout` and `BackendTimeout` contracts.
+  Applications can now keep protocol deadlines, backend lifecycle bounds, and
+  their own outer wait deadlines distinct at the type level.
+
+### Changed
+
+- Updated `hisi-rf-core` to `0.1.0-alpha.17` and `hisi-rf-ws63` to
+  `0.1.0-alpha.44`, including dropped-future cancellation and the
+  `hisi-rf-error/v3` operation/backend timeout split.
+
 ## [0.1.0-alpha.53] - 2026-07-29
 
 ### Changed
@@ -604,10 +618,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.46...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.54...HEAD
+[0.1.0-alpha.54]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.53...v0.1.0-alpha.54
+[0.1.0-alpha.53]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.52...v0.1.0-alpha.53
+[0.1.0-alpha.52]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.51...v0.1.0-alpha.52
+[0.1.0-alpha.51]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.50...v0.1.0-alpha.51
+[0.1.0-alpha.50]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.49...v0.1.0-alpha.50
+[0.1.0-alpha.49]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.48...v0.1.0-alpha.49
+[0.1.0-alpha.48]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.47...v0.1.0-alpha.48
+[0.1.0-alpha.47]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.46...v0.1.0-alpha.47
 [0.1.0-alpha.46]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.45...v0.1.0-alpha.46
 [0.1.0-alpha.45]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.44...v0.1.0-alpha.45
 [0.1.0-alpha.44]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.43...v0.1.0-alpha.44
+[0.1.0-alpha.43]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.42...v0.1.0-alpha.43
+[0.1.0-alpha.42]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.41...v0.1.0-alpha.42
+[0.1.0-alpha.41]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.40...v0.1.0-alpha.41
+[0.1.0-alpha.40]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.39...v0.1.0-alpha.40
+[0.1.0-alpha.39]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.38...v0.1.0-alpha.39
+[0.1.0-alpha.38]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.37...v0.1.0-alpha.38
+[0.1.0-alpha.37]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.36...v0.1.0-alpha.37
+[0.1.0-alpha.36]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.35...v0.1.0-alpha.36
+[0.1.0-alpha.35]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.34...v0.1.0-alpha.35
+[0.1.0-alpha.34]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.33...v0.1.0-alpha.34
 [0.1.0-alpha.33]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.32...v0.1.0-alpha.33
 [0.1.0-alpha.32]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.31...v0.1.0-alpha.32
 [0.1.0-alpha.31]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.30...v0.1.0-alpha.31
