@@ -51,11 +51,11 @@ pub mod ws63 {
     ))]
     pub use hisi_rf_ws63::{
         BlockingBackendMetrics, BlockingBootstrapMetrics, BlockingOperationMetrics, BootstrapStage,
-        BootstrapStageMetrics, InitError, InitErrorKind, InstalledRadioArena, RadioArena,
-        RadioArenaStorage, RadioController, ResourceReport, Resources, RfHeapMetrics,
-        SELECTED_RF_ARENA_BYTES, SelectedProfile, Storage, WifiDevice, WifiParts, WifiRxToken,
-        WifiTxToken, WifiWpa2Smoltcp, WifiWpa3Smoltcp, blocking_backend_metrics, init,
-        rf_heap_metrics, station_mac_address,
+        BootstrapStageMetrics, DhcpDiagnostics, InitError, InitErrorKind, InstalledRadioArena,
+        RadioArena, RadioArenaStorage, RadioController, ResourceReport, Resources, RfHeapMetrics,
+        RxQueueDiagnostics, SELECTED_RF_ARENA_BYTES, SelectedProfile, Storage, WifiDevice,
+        WifiParts, WifiRxToken, WifiTxToken, WifiWpa2Smoltcp, WifiWpa3Smoltcp,
+        blocking_backend_metrics, init, rf_heap_metrics, station_mac_address,
     };
 
     #[cfg(all(
@@ -90,6 +90,8 @@ mod tests {
             4,
         >;
         let _: Option<super::IncrementalRunnerDiagnostics> = None;
+        let _: Option<super::ws63::DhcpDiagnostics> = None;
+        let _: Option<super::ws63::RxQueueDiagnostics> = None;
     }
 
     #[cfg(feature = "incremental-embassy-wait")]
