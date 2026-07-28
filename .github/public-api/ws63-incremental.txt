@@ -88,6 +88,7 @@ pub use hisi_rf::ws63::RadioArenaStorage
 pub use hisi_rf::ws63::RadioController
 pub use hisi_rf::ws63::ResourceReport
 pub use hisi_rf::ws63::Resources
+pub use hisi_rf::ws63::ResourcesBuilder
 pub use hisi_rf::ws63::RfHeapMetrics
 pub use hisi_rf::ws63::SELECTED_RF_ARENA_BYTES
 pub use hisi_rf::ws63::SelectedProfile

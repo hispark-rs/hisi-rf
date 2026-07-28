@@ -52,12 +52,12 @@ pub mod ws63 {
     pub use hisi_rf_ws63::{
         AssociationIoctlMetrics, AssociationTimingDiagnostics, BlockingBackendMetrics,
         BlockingBootstrapMetrics, BlockingOperationMetrics, BootstrapStage, BootstrapStageMetrics,
-        DhcpDiagnostics, InitError, InitErrorKind, InstalledRadioArena, RadioArena,
-        RadioArenaStorage, RadioController, ResourceReport, Resources, RfHeapMetrics,
-        RxQueueDiagnostics, SELECTED_RF_ARENA_BYTES, SelectedProfile, Storage, WifiDevice,
-        WifiParts, WifiRxToken, WifiTxToken, WifiWpa2Smoltcp, WifiWpa3Smoltcp,
-        association_timing_diagnostics, blocking_backend_metrics, init, rf_heap_metrics,
-        station_mac_address,
+        CryptoReady, DhcpDiagnostics, InitError, InitErrorKind, InstalledRadioArena, MissingCrypto,
+        MissingPke, PkeNotRequired, PkeReady, RadioArena, RadioArenaStorage, RadioController,
+        ResourceReport, Resources, ResourcesBuilder, RfHeapMetrics, RxQueueDiagnostics,
+        SELECTED_RF_ARENA_BYTES, SelectedProfile, Storage, WifiDevice, WifiParts, WifiRxToken,
+        WifiTxToken, WifiWpa2Smoltcp, WifiWpa3Smoltcp, association_timing_diagnostics,
+        blocking_backend_metrics, init, rf_heap_metrics, station_mac_address,
     };
 
     #[cfg(all(

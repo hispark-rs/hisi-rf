@@ -7,11 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.49] - 2026-07-29
+
 ### Added
 
+- Re-exported the profile-aware WS63 typestate resource builder. WPA2 callers
+  no longer surrender an unused PKE token, while WPA3 cannot construct its
+  resources without one.
 - Added a pinned `cargo-public-api` snapshot gate for the complete WS63
   incremental facade. WPA2 and WPA3 named profiles must expose the same public
   API, and every intentional API change now produces a reviewable CI diff.
+
+### Changed
+
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.40`.
 
 ## [0.1.0-alpha.48] - 2026-07-28
 
