@@ -51,9 +51,10 @@ pub mod ws63 {
     ))]
     pub use hisi_rf_ws63::{
         BlockingBackendMetrics, BlockingBootstrapMetrics, BlockingOperationMetrics, BootstrapStage,
-        BootstrapStageMetrics, InitError, InstalledRadioArena, RadioArena, RadioArenaStorage,
-        RadioController, ResourceReport, Resources, RfHeapMetrics, SELECTED_RF_ARENA_BYTES,
-        SelectedProfile, Storage, WifiWpa2Smoltcp, WifiWpa3Smoltcp, blocking_backend_metrics, init,
+        BootstrapStageMetrics, InitError, InitErrorKind, InstalledRadioArena, RadioArena,
+        RadioArenaStorage, RadioController, ResourceReport, Resources, RfHeapMetrics,
+        SELECTED_RF_ARENA_BYTES, SelectedProfile, Storage, WifiDevice, WifiParts, WifiRxToken,
+        WifiTxToken, WifiWpa2Smoltcp, WifiWpa3Smoltcp, blocking_backend_metrics, init,
         rf_heap_metrics, station_mac_address,
     };
 

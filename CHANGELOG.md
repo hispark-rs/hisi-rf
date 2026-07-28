@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.43] - 2026-07-28
+
+### Changed
+
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.33`. The WS63 composition API now
+  exposes only facade-owned Wi-Fi/device/token types, an opaque initialization
+  error, and standard smoltcp contracts; runtime-driver and concrete backend
+  types no longer appear in public signatures.
+- Kept runtime selection with the application: enabling the incremental
+  Embassy wait bridge no longer selects `hisi-rtos` through the backend's
+  normal dependency graph.
+
+### Added
+
+- Extended dependency-boundary CI to resolve the incremental Embassy feature
+  and reject any concrete runtime selected by the facade graph.
+
 ## [0.1.0-alpha.42] - 2026-07-28
 
 ### Changed

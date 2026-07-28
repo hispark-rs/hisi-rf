@@ -227,12 +227,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "embassy-executor-timer-queue"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2fc328bf943af66b80b98755db9106bf7e7471b0cf47dc8559cd9a6be504cc9c"
-
-[[package]]
 name = "embassy-sync"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -269,16 +263,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ee71af1b3a0deaa53eaf2d39252f83504c853646e472400b763060389b9fcc9"
 dependencies = [
  "document-features",
-]
-
-[[package]]
-name = "embassy-time-queue-utils"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "168297bf80aaf114b3c9ad589bf38b01b3009b9af7f97cd18086c5bbf96f5693"
-dependencies = [
- "embassy-executor-timer-queue",
- "heapless 0.9.3",
 ]
 
 [[package]]
@@ -516,7 +500,7 @@ dependencies = [
 
 [[package]]
 name = "hisi-rf"
-version = "0.1.0-alpha.42"
+version = "0.1.0-alpha.43"
 dependencies = [
  "hisi-hal",
  "hisi-rf-core",
@@ -552,9 +536,9 @@ dependencies = [
 
 [[package]]
 name = "hisi-rf-ws63"
-version = "0.1.0-alpha.32"
+version = "0.1.0-alpha.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e0f941a2c63b81f4c4f41af360fef9ae4f7336b12ac1dee74e60704f5f3873b"
+checksum = "ed6fa5d32b8f5839ccd2e3e1a5c914830093c594855335c616d72b1257044f87"
 dependencies = [
  "ar_archive_writer",
  "critical-section",
@@ -567,7 +551,6 @@ dependencies = [
  "hisi-nvs",
  "hisi-rf-core",
  "hisi-rf-rtos-driver",
- "hisi-rtos",
  "hisi-storage",
  "object",
  "portable-atomic",
@@ -603,18 +586,6 @@ name = "hisi-rom-sys-ws63"
 version = "0.1.0-alpha.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5fc2f9dded6797c89610a734aab74bdb96c9a44399fc38e40bb61ee337a8559d"
-
-[[package]]
-name = "hisi-rtos"
-version = "0.1.0-alpha.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e78acc231858be7360385eb49236d0065af41bd7ef45e279d0149cbf048b226f"
-dependencies = [
- "critical-section",
- "embassy-time-driver",
- "embassy-time-queue-utils",
- "hisi-rf-rtos-driver",
-]
 
 [[package]]
 name = "hisi-storage"

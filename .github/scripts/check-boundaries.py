@@ -158,7 +158,14 @@ def graph(meta: dict, manifest: Path) -> tuple[dict[str, dict], dict[str, str], 
         if package_id in reachable:
             continue
         reachable.add(package_id)
-        pending.extend(dependency["pkg"] for dependency in all_nodes[package_id]["deps"])
+        pending.extend(
+            dependency["pkg"]
+            for dependency in all_nodes[package_id]["deps"]
+            if any(
+                kind.get("kind") != "dev"
+                for kind in dependency.get("dep_kinds", ())
+            )
+        )
 
     nodes = {package_id: all_nodes[package_id] for package_id in reachable}
     names = {package_id: packages[package_id]["name"] for package_id in reachable}
@@ -166,7 +173,15 @@ def graph(meta: dict, manifest: Path) -> tuple[dict[str, dict], dict[str, str], 
 
 
 def direct_names(nodes: dict[str, dict], names: dict[str, str], package_id: str) -> set[str]:
-    return {names[dependency["pkg"]] for dependency in nodes[package_id]["deps"]}
+    return {
+        names[dependency["pkg"]]
+        for dependency in nodes[package_id]["deps"]
+        if dependency["pkg"] in names
+        and any(
+            kind.get("kind") != "dev"
+            for kind in dependency.get("dep_kinds", ())
+        )
+    }
 
 
 def unique_id(names: dict[str, str], package_name: str) -> str:
@@ -189,7 +204,10 @@ def require_edge(
 def check_source(profile: str) -> None:
     meta = metadata(
         ROOT / "Cargo.toml",
-        f"hisi-rf/chip-ws63,hisi-rf/{NAMED_PROFILES[profile]}",
+        (
+            f"hisi-rf/chip-ws63,hisi-rf/{NAMED_PROFILES[profile]},"
+            "hisi-rf/incremental-embassy-wait"
+        ),
     )
     nodes, names, root = graph(meta, ROOT / "Cargo.toml")
     if names[root] != "hisi-rf":
@@ -208,6 +226,11 @@ def check_source(profile: str) -> None:
 
     if "ws63-rf-rs" in names.values():
         raise ValueError("legacy ws63-rf-rs leaked into the facade dependency graph")
+    if "hisi-rtos" in names.values():
+        raise ValueError(
+            "incremental-embassy-wait selected the concrete hisi-rtos backend; "
+            "applications must choose their runtime explicitly"
+        )
 
     for package_name in HIDDEN | {"hisi-rf"}:
         unique_id(names, package_name)
