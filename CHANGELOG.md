@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.39] - 2026-07-28
+
+### Changed
+
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.29`, carrying the credential-free
+  cancellation and backend-timeout target parity fixture.
+
 ## [0.1.0-alpha.38] - 2026-07-28
 
 ### Added
