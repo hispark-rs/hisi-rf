@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.41] - 2026-07-28
+
+### Changed
+
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.31`, carrying production
+  incremental-driver evidence for terminal cancellation, backend timeout, and
+  operation-slot recovery on QEMU and real WS63 silicon.
+
 ## [0.1.0-alpha.40] - 2026-07-28
 
 ### Changed
