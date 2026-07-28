@@ -44,15 +44,17 @@ pub use hisi_rf_core::{
 /// WS63 safe resources and radio composition root.
 #[cfg(feature = "chip-ws63")]
 pub mod ws63 {
+    pub use hisi_rf_ws63::declare_radio_arena;
     #[cfg(all(
         feature = "smoltcp",
         any(feature = "wpa2-personal", feature = "wpa3-personal")
     ))]
     pub use hisi_rf_ws63::{
         BlockingBackendMetrics, BlockingBootstrapMetrics, BlockingOperationMetrics, BootstrapStage,
-        BootstrapStageMetrics, InitError, RadioController, ResourceReport, Resources,
-        RfHeapMetrics, SelectedProfile, Storage, WifiWpa2Smoltcp, WifiWpa3Smoltcp,
-        blocking_backend_metrics, init, rf_heap_metrics, station_mac_address,
+        BootstrapStageMetrics, InitError, InstalledRadioArena, RadioArena, RadioArenaStorage,
+        RadioController, ResourceReport, Resources, RfHeapMetrics, SELECTED_RF_ARENA_BYTES,
+        SelectedProfile, Storage, WifiWpa2Smoltcp, WifiWpa3Smoltcp, blocking_backend_metrics, init,
+        rf_heap_metrics, station_mac_address,
     };
 
     #[cfg(all(

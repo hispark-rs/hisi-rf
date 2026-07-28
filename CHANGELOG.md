@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.37] - 2026-07-28
+
+### Added
+
+- Re-exported the caller-owned WS63 radio arena, one-shot claim/install
+  capability, selected-profile arena size, and declaration macro through the
+  chip-selecting facade.
+
+### Changed
+
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.27` and the firmware fixture to
+  `hisi-riscv-rt 0.5.7`. The fixture now reserves its 300 KiB RF arena in the
+  runtime-owned shared-arena linker region and uses the fixed 32 KiB radio main
+  stack profile.
+
+## [0.1.0-alpha.36] - 2026-07-28
+
+### Changed
+
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.26`,
+  `hisi-rf-rtos-driver` to `0.1.0-alpha.17`, and `hisi-rtos` to
+  `0.1.0-alpha.13`, carrying the A5R resource-lifecycle conformance fixes and
+  the latest WS63 diagnostics.
+
 ## [0.1.0-alpha.35] - 2026-07-28
 
 ### Changed

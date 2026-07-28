@@ -7,6 +7,8 @@ use hisi_riscv_rt::entry;
 #[cfg(target_arch = "riscv32")]
 static RADIO_STORAGE: hisi_rf::ws63::Storage<hisi_rf::ws63::SelectedProfile, 4> =
     hisi_rf::ws63::Storage::new();
+#[cfg(target_arch = "riscv32")]
+hisi_rf::ws63::declare_radio_arena!(static RADIO_ARENA);
 
 #[cfg(target_arch = "riscv32")]
 #[entry]
@@ -18,6 +20,10 @@ fn main() -> ! {
         peripherals.SPACC,
         peripherals.PKE,
         peripherals.TRNG,
+        RADIO_ARENA
+            .claim_for::<hisi_rf::ws63::SelectedProfile>()
+            .and_then(|arena| arena.install())
+            .expect("install shared RF arena"),
     );
     let _radio = hisi_rf::ws63::init(hisi_rf::RadioConfig::default(), resources, &RADIO_STORAGE)
         .expect("fresh static radio state");
