@@ -516,7 +516,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.44...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.46...HEAD
+[0.1.0-alpha.46]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.45...v0.1.0-alpha.46
+[0.1.0-alpha.45]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.44...v0.1.0-alpha.45
 [0.1.0-alpha.44]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.43...v0.1.0-alpha.44
 [0.1.0-alpha.33]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.32...v0.1.0-alpha.33
 [0.1.0-alpha.32]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.31...v0.1.0-alpha.32
