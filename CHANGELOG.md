@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.42] - 2026-07-28
+
+### Changed
+
+- Updated `hisi-rf-core` to `0.1.0-alpha.15` and `hisi-rf-ws63` to
+  `0.1.0-alpha.32`, carrying the incremental local-continuation fix and the
+  adversarial cancellation resource-conservation coverage into the public
+  single-dependency facade.
+
 ## [0.1.0-alpha.41] - 2026-07-28
 
 ### Changed
