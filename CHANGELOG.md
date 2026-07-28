@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.50] - 2026-07-29
+
+### Changed
+
+- Made `hisi_rf::ws63::init` the stable composition-root name for both backend
+  selections. With `incremental-backend-experiment`, it returns the bounded
+  incremental controller; without that explicit feature it retains the
+  validated blocking controller.
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.41`. The implementation-specific
+  `init_incremental_after_blocking_bootstrap` alias remains deprecated for one
+  alpha migration cycle.
+
 ## [0.1.0-alpha.49] - 2026-07-29
 
 ### Added

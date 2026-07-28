@@ -57,15 +57,26 @@ pub mod ws63 {
         ResourceReport, Resources, ResourcesBuilder, RfHeapMetrics, RxQueueDiagnostics,
         SELECTED_RF_ARENA_BYTES, SelectedProfile, Storage, WifiDevice, WifiParts, WifiRxToken,
         WifiTxToken, WifiWpa2Smoltcp, WifiWpa3Smoltcp, association_timing_diagnostics,
-        blocking_backend_metrics, init, rf_heap_metrics, station_mac_address,
+        blocking_backend_metrics, rf_heap_metrics, station_mac_address,
     };
+
+    #[cfg(all(
+        not(feature = "incremental-backend-experiment"),
+        feature = "smoltcp",
+        any(feature = "wpa2-personal", feature = "wpa3-personal")
+    ))]
+    pub use hisi_rf_ws63::init;
 
     #[cfg(all(
         feature = "incremental-backend-experiment",
         feature = "smoltcp",
         any(feature = "wpa2-personal", feature = "wpa3-personal")
     ))]
-    pub use hisi_rf_ws63::{IncrementalRadioController, init_incremental_after_blocking_bootstrap};
+    #[allow(deprecated)]
+    pub use hisi_rf_ws63::{
+        IncrementalRadioController, init_incremental as init,
+        init_incremental_after_blocking_bootstrap,
+    };
 
     #[cfg(all(
         feature = "incremental-embassy-wait",
@@ -87,10 +98,14 @@ pub mod ws63 {
 mod tests {
     #[test]
     fn facade_exposes_the_explicit_ws63_incremental_lifecycle() {
-        let _init = super::ws63::init_incremental_after_blocking_bootstrap::<
-            super::ws63::SelectedProfile,
-            4,
-        >;
+        let _: fn(
+            super::RadioConfig,
+            super::ws63::Resources<super::ws63::SelectedProfile>,
+            &'static super::ws63::Storage<super::ws63::SelectedProfile, 4>,
+        ) -> Result<
+            super::ws63::IncrementalRadioController<super::ws63::SelectedProfile, 4>,
+            super::ws63::InitError,
+        > = super::ws63::init::<super::ws63::SelectedProfile, 4>;
         let _: Option<super::IncrementalRunnerDiagnostics> = None;
         let _: Option<super::ws63::DhcpDiagnostics> = None;
         let _: Option<super::ws63::RxQueueDiagnostics> = None;
