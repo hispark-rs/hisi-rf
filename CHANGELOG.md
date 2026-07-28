@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.46] - 2026-07-28
+
+### Changed
+
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.36`, carrying credential-free
+  cancellation and timeout injection through the public controller, facade
+  channels, incremental runner, and WS63 backend. QEMU and real WS63 now prove
+  the same `operation.cancelled` and connect-stage `backend.timeout` output.
+
 ## [0.1.0-alpha.45] - 2026-07-28
 
 ### Changed
