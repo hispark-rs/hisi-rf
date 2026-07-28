@@ -44,6 +44,19 @@ fn check_ws63_blocking_backend_metrics() {
     );
 }
 
+#[allow(dead_code)]
+fn check_opaque_ws63_composition<const EVENTS: usize>(
+    controller: hisi_rf::ws63::RadioController<hisi_rf::ws63::SelectedProfile, EVENTS>,
+) {
+    let result: Result<
+        hisi_rf::ws63::WifiParts<EVENTS>,
+        hisi_rf::ws63::InitError,
+    > = controller.start_runner();
+    if let Err(error) = result {
+        let _opaque_error_contract = (error.kind(), error.diagnostic());
+    }
+}
+
 static RADIO_STORAGE: hisi_rf::ws63::Storage<hisi_rf::ws63::SelectedProfile, 4> =
     hisi_rf::ws63::Storage::new();
 hisi_rf::ws63::declare_radio_arena!(static RADIO_ARENA);
