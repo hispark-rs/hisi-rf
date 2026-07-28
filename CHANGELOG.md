@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.47] - 2026-07-28
+
+### Added
+
+- Re-exported counter-only DHCP and receive-queue diagnostics through the WS63
+  facade. Final connectivity applications can attribute packet loss while
+  keeping `hisi-rf-ws63` and its netif implementation transitive.
+
+### Changed
+
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.37`.
+
 ## [0.1.0-alpha.46] - 2026-07-28
 
 ### Changed
