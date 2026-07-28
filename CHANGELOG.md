@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.45] - 2026-07-28
+
+### Changed
+
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.35`, carrying the real upstream
+  supplicant `NEW_KEY`/`SET_KEY`/`DEL_KEY` lifecycle and fail-closed rollback
+  evidence through the public facade release train.
+
 ## [0.1.0-alpha.44] - 2026-07-28
 
 ### Changed
