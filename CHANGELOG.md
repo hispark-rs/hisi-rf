@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.52] - 2026-07-29
+
+### Changed
+
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.43`, whose host-generated resource
+  report now models the actual WS63 RV32 storage layout and aligned arena
+  backing bytes.
+
 ## [0.1.0-alpha.51] - 2026-07-29
 
 ### Added

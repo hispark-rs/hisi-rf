@@ -8,7 +8,7 @@ an explicit `chip-*` feature.
 ```toml
 [dependencies]
 hisi-rf = {
-    version = "0.1.0-alpha.51",
+    version = "0.1.0-alpha.52",
     features = ["chip-ws63", "profile-wifi-wpa2-smoltcp"]
 }
 ```
@@ -43,7 +43,9 @@ The storage-bound controller then starts the mandatory runner and returns only
 the Wi-Fi control/L2 handles:
 
 ```rust,ignore
-let mut wifi = hisi_rf::ws63::init(config, resources, &RADIO_STORAGE)?
+let (control, arena) = RADIO_STORAGE.install()?.into_init_parts();
+let resources = build_resources(arena);
+let mut wifi = hisi_rf::ws63::init(config, resources, control)?
     .start_runner()?;
 let scan = wifi.controller.scan(scan_config, &mut results).await?;
 let station_mac = hisi_rf::ws63::station_mac_address()
