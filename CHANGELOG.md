@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.44] - 2026-07-28
+
+### Changed
+
+- Updated `hisi-rf-core` to `0.1.0-alpha.16` and `hisi-rf-ws63` to
+  `0.1.0-alpha.34`. Incremental operation start, cancellation, and WS63 vendor
+  actions now advance only through bounded poll turns.
+
 ## [0.1.0-alpha.43] - 2026-07-28
 
 ### Changed
@@ -491,7 +499,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.33...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.44...HEAD
+[0.1.0-alpha.44]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.43...v0.1.0-alpha.44
 [0.1.0-alpha.33]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.32...v0.1.0-alpha.33
 [0.1.0-alpha.32]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.31...v0.1.0-alpha.32
 [0.1.0-alpha.31]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.30...v0.1.0-alpha.31
