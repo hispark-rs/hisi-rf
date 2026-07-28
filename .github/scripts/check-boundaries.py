@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
+import tomllib
 from pathlib import Path
 
 
@@ -33,6 +35,74 @@ FORBIDDEN_PUBLIC_TOKENS = {
     "ws63_radio_blob",
     "ws63_radio_sys",
 }
+
+
+def manifest(path: Path) -> dict:
+    with path.open("rb") as source:
+        return tomllib.load(source)
+
+
+def exact_dependency_version(value: object, dependency: str) -> str:
+    if isinstance(value, str):
+        requirement = value
+    elif isinstance(value, dict):
+        requirement = value.get("version")
+    else:
+        requirement = None
+    if not isinstance(requirement, str) or not requirement.startswith("="):
+        raise ValueError(f"{dependency} must pin an exact version")
+    return requirement[1:]
+
+
+def alpha_release(version: str) -> tuple[tuple[int, int, int], int]:
+    match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)-alpha\.(\d+)", version)
+    if match is None:
+        raise ValueError(f"expected an alpha release version, found {version!r}")
+    return tuple(int(value) for value in match.groups()[:3]), int(match.group(4))
+
+
+def check_consumer_release_version(packages: dict[str, dict]) -> None:
+    source = manifest(ROOT / "Cargo.toml")
+    consumer = manifest(CONSUMER / "Cargo.toml")
+    source_version = source["package"]["version"]
+    requested_version = exact_dependency_version(
+        consumer["dependencies"]["hisi-rf"], "hisi-rf"
+    )
+    source_base, source_alpha = alpha_release(source_version)
+    requested_base, requested_alpha = alpha_release(requested_version)
+    if source_base != requested_base or requested_alpha not in {
+        source_alpha,
+        source_alpha - 1,
+    }:
+        raise ValueError(
+            "external fixture must track the current facade or the immediately "
+            f"previous release during publish propagation: source={source_version}, "
+            f"fixture={requested_version}"
+        )
+
+    resolved_facade = packages["hisi-rf"]["version"]
+    if resolved_facade != requested_version:
+        raise ValueError(
+            "external fixture lockfile does not match its exact facade dependency: "
+            f"requested={requested_version}, resolved={resolved_facade}"
+        )
+
+    if requested_version != source_version:
+        print(
+            "external fixture is one release behind the source facade; "
+            "update it after the current release publishes"
+        )
+        return
+
+    for dependency in ("hisi-rf-core", "hisi-rf-ws63"):
+        expected = exact_dependency_version(
+            source["dependencies"][dependency], dependency
+        )
+        resolved = packages[dependency]["version"]
+        if resolved != expected:
+            raise ValueError(
+                f"external fixture resolved {dependency} {resolved}, expected {expected}"
+            )
 
 
 def metadata(manifest: Path, features: str) -> dict:
@@ -160,6 +230,7 @@ def check_consumer(profile: str) -> None:
         raise ValueError("consumer does not depend directly on the hisi-rf facade")
 
     packages = {package["name"]: package for package in meta["packages"]}
+    check_consumer_release_version(packages)
     for package_name in HIDDEN | {"hisi-rf"}:
         package = packages.get(package_name)
         if package is None:
