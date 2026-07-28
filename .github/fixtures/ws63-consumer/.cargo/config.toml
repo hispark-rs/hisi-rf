@@ -6,6 +6,8 @@ build-std = ["core"]
 
 [target.riscv32imfc-unknown-none-elf]
 rustflags = [
+    "-D",
+    "deprecated",
     "-C",
     "link-arg=-Thisi-riscv-link.x",
     "-C",
