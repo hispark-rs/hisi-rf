@@ -54,9 +54,7 @@ fn check_opaque_ws63_composition<const EVENTS: usize>(
     }
 }
 
-static RADIO_STORAGE: hisi_rf::ws63::Storage<hisi_rf::ws63::SelectedProfile, 4> =
-    hisi_rf::ws63::Storage::new();
-hisi_rf::ws63::declare_radio_arena!(static RADIO_ARENA);
+hisi_rf::ws63::declare_radio_storage!(static RADIO_STORAGE, events = 4);
 
 #[cfg(feature = "incremental-contract")]
 #[allow(dead_code)]
@@ -149,19 +147,20 @@ fn main() -> ! {
         .expect("diagnostic sink is infallible");
 
     let peripherals = unsafe { hisi_hal::peripherals::Peripherals::steal() };
+    let (control, arena) = RADIO_STORAGE
+        .install()
+        .expect("install caller-owned radio storage")
+        .into_init_parts();
     let resources = hisi_rf::ws63::Resources::<hisi_rf::ws63::SelectedProfile>::builder(
         peripherals.EFUSE,
-        RADIO_ARENA
-            .claim_for::<hisi_rf::ws63::SelectedProfile>()
-            .and_then(|arena| arena.install())
-            .expect("install shared RF arena"),
+        arena,
     )
     .crypto(peripherals.KM, peripherals.SPACC, peripherals.TRNG);
     #[cfg(feature = "wpa2-personal")]
     let resources = resources.build();
     #[cfg(feature = "wpa3-personal")]
     let resources = resources.pke(peripherals.PKE).build();
-    let _radio = hisi_rf::ws63::init(hisi_rf::RadioConfig::default(), resources, &RADIO_STORAGE)
+    let _radio = hisi_rf::ws63::init(hisi_rf::RadioConfig::default(), resources, control)
         .expect("fresh static radio storage");
 
     loop {

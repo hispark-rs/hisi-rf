@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Migrated the crates.io-only external consumer to `hisi-rf 0.1.0-alpha.51`
+  and the single `declare_radio_storage!` composition contract. It remains one
+  release behind source until `0.1.0-alpha.52` publishes.
+
 ## [0.1.0-alpha.52] - 2026-07-29
 
 ### Changed
