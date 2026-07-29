@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.57] - 2026-07-29
+
+### Fixed
+
+- Made the incremental unified diagnostic snapshot readable from
+  `WifiParts::diagnostics()` after the runner and Wi-Fi handles have been moved
+  into separate executor tasks. Applications no longer need a global
+  `Mutex<Cell<Option<_>>>` to retain runner/wait counters.
+
+### Changed
+
+- Updated to `hisi-rf-core 0.1.0-alpha.19` and `hisi-rf-ws63
+  0.1.0-alpha.47` for instance-owned runner and non-consuming wait-bridge
+  snapshots.
+- Advanced the aggregate diagnostic schema to
+  `hisi-rf-radio-diagnostics/v2`; the new `control` member preserves
+  command-channel and blocking-to-incremental migration counters after the
+  runner has moved into its executor task.
+
 ## [0.1.0-alpha.56] - 2026-07-29
 
 ### Added

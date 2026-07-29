@@ -124,6 +124,7 @@ impl hisi_rf::ws63::RadioController
 pub fn hisi_rf::ws63::RadioController::start_runner(self) -> core::result::Result<hisi_rf::ws63::WifiParts, hisi_rf_ws63::composition::InitError>
 pub struct hisi_rf::ws63::RadioDiagnosticsSnapshot
 pub hisi_rf::ws63::RadioDiagnosticsSnapshot::blocking_calls: hisi_rf_ws63::blocking_diagnostics::BlockingBackendMetrics
+pub hisi_rf::ws63::RadioDiagnosticsSnapshot::control: hisi_rf_core::wifi::BlockingRunnerDiagnostics
 pub hisi_rf::ws63::RadioDiagnosticsSnapshot::dhcp: hisi_rf_ws63::netif_smoltcp::DhcpDiagnostics
 pub hisi_rf::ws63::RadioDiagnosticsSnapshot::error_schema: &'static str
 pub hisi_rf::ws63::RadioDiagnosticsSnapshot::events: hisi_rf_core::wifi::EventDiagnostics
@@ -156,8 +157,11 @@ pub fn hisi_rf::ws63::WaitDiagnosticsSnapshot::from(hisi_rf_ws63::incremental_wa
 pub struct hisi_rf::ws63::WifiParts
 pub hisi_rf::ws63::WifiParts::controller: hisi_rf::WifiController
 pub hisi_rf::ws63::WifiParts::device: hisi_rf_ws63::composition::WifiDevice
+impl hisi_rf::ws63::WifiParts
+pub fn hisi_rf::ws63::WifiParts::diagnostics(&self) -> hisi_rf::ws63::RadioDiagnosticsSnapshot
 pub const hisi_rf::ws63::EVENT_CAPACITY: usize
 pub const hisi_rf::ws63::RADIO_DIAGNOSTICS_SCHEMA: &str
+pub fn hisi_rf::ws63::diagnostics(&hisi_rf::WifiController, &hisi_rf_ws63::composition::WifiDevice) -> hisi_rf::ws63::RadioDiagnosticsSnapshot
 pub fn hisi_rf::ws63::init(hisi_rf_core::wifi::RadioConfig, hisi_rf_ws63::composition::Resources<hisi_rf_ws63::profile::SelectedProfile>, &'static hisi_rf::ws63::Storage) -> core::result::Result<hisi_rf::ws63::IncrementalRadioController, hisi_rf_ws63::composition::InitError>
 pub fn hisi_rf::ws63::init_incremental_after_blocking_bootstrap(hisi_rf_core::wifi::RadioConfig, hisi_rf_ws63::composition::Resources<hisi_rf_ws63::profile::SelectedProfile>, &'static hisi_rf::ws63::Storage) -> core::result::Result<hisi_rf::ws63::IncrementalRadioController, hisi_rf_ws63::composition::InitError>
 pub macro hisi_rf::declare_radio_storage!

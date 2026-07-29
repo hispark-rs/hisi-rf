@@ -123,8 +123,34 @@ pub mod ws63 {
         }
     }
 
+    #[cfg(any(
+        not(feature = "incremental-backend-experiment"),
+        feature = "incremental-embassy-wait"
+    ))]
     const SELECTED_RESOURCE_REPORT: ResourceReport =
         hisi_rf_ws63::resource_report::<SelectedProfile, EVENT_CAPACITY>();
+
+    /// Capture the complete public diagnostic view from task-split Wi-Fi handles.
+    #[cfg(any(
+        not(feature = "incremental-backend-experiment"),
+        feature = "incremental-embassy-wait"
+    ))]
+    pub fn diagnostics(
+        controller: &crate::WifiController,
+        device: &WifiDevice,
+    ) -> RadioDiagnosticsSnapshot {
+        #[cfg(not(feature = "incremental-backend-experiment"))]
+        {
+            RadioDiagnosticsSnapshot::blocking(controller, device, SELECTED_RESOURCE_REPORT)
+        }
+        #[cfg(all(
+            feature = "incremental-backend-experiment",
+            feature = "incremental-embassy-wait"
+        ))]
+        {
+            RadioDiagnosticsSnapshot::incremental(controller, device, SELECTED_RESOURCE_REPORT)
+        }
+    }
 
     impl Default for Storage {
         fn default() -> Self {
@@ -223,11 +249,18 @@ pub mod ws63 {
         /// Capture all public blocking-profile diagnostics in one secret-free view.
         #[cfg(not(feature = "incremental-backend-experiment"))]
         pub fn diagnostics(&self) -> RadioDiagnosticsSnapshot {
-            RadioDiagnosticsSnapshot::blocking(
-                &self.controller,
-                &self.device,
-                SELECTED_RESOURCE_REPORT,
-            )
+            diagnostics(&self.controller, &self.device)
+        }
+    }
+
+    #[cfg(all(
+        feature = "incremental-backend-experiment",
+        feature = "incremental-embassy-wait"
+    ))]
+    impl WifiParts {
+        /// Capture all public incremental-profile diagnostics after task split.
+        pub fn diagnostics(&self) -> RadioDiagnosticsSnapshot {
+            diagnostics(&self.controller, &self.device)
         }
     }
 
@@ -251,6 +284,10 @@ pub mod ws63 {
         any(feature = "wpa2-personal", feature = "wpa3-personal")
     ))]
     /// Incremental WS63 controller for the selected public profile.
+    #[cfg_attr(
+        not(feature = "incremental-embassy-wait"),
+        allow(dead_code, reason = "split is enabled by incremental-embassy-wait")
+    )]
     pub struct IncrementalRadioController(
         hisi_rf_ws63::IncrementalRadioController<SelectedProfile, EVENT_CAPACITY>,
     );
@@ -334,13 +371,7 @@ pub mod ws63 {
     impl IncrementalRadioParts {
         /// Capture runner, wait, event, backend, L2, and resource diagnostics.
         pub fn diagnostics(&self) -> RadioDiagnosticsSnapshot {
-            RadioDiagnosticsSnapshot::incremental(
-                &self.wifi.controller,
-                &self.wifi.device,
-                self.runner.diagnostics(),
-                self.runner.wait_diagnostics(),
-                SELECTED_RESOURCE_REPORT,
-            )
+            self.wifi.diagnostics()
         }
     }
 

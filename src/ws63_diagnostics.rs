@@ -2,13 +2,13 @@
 
 #[cfg(feature = "incremental-backend-experiment")]
 use crate::IncrementalRunnerDiagnostics;
-use crate::{BlockingRunnerDiagnostics, DIAGNOSTIC_SCHEMA, EventDiagnostics};
+use crate::{BlockingRunnerDiagnostics, EventDiagnostics};
 #[cfg(feature = "incremental-embassy-wait")]
 use hisi_rf_ws63::Ws63IncrementalWaitDiagnostics;
 use hisi_rf_ws63::{BlockingBackendMetrics, DhcpDiagnostics, ResourceReport, RxQueueDiagnostics};
 
 /// Versioned schema for a complete public WS63 radio diagnostic snapshot.
-pub const RADIO_DIAGNOSTICS_SCHEMA: &str = "hisi-rf-radio-diagnostics/v1";
+pub const RADIO_DIAGNOSTICS_SCHEMA: &str = "hisi-rf-radio-diagnostics/v2";
 
 /// Runner counters selected by the active facade profile.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -78,6 +78,8 @@ pub struct RadioDiagnosticsSnapshot {
     pub resources: ResourceReport,
     /// Control/event runner counters.
     pub runner: RunnerDiagnosticsSnapshot,
+    /// Shared command-channel and blocking-runner migration counters.
+    pub control: BlockingRunnerDiagnostics,
     /// Explicit wait-bridge counters, inactive for the blocking profile.
     pub wait: WaitDiagnosticsSnapshot,
     /// Public event queue occupancy and loss counters.
@@ -99,9 +101,10 @@ impl RadioDiagnosticsSnapshot {
     ) -> Self {
         Self {
             schema: RADIO_DIAGNOSTICS_SCHEMA,
-            error_schema: DIAGNOSTIC_SCHEMA,
+            error_schema: crate::DIAGNOSTIC_SCHEMA,
             resources,
             runner: RunnerDiagnosticsSnapshot::Blocking(controller.blocking_runner_diagnostics()),
+            control: controller.blocking_runner_diagnostics(),
             wait: WaitDiagnosticsSnapshot::default(),
             events: controller.event_diagnostics(),
             blocking_calls: hisi_rf_ws63::blocking_backend_metrics(),
@@ -117,16 +120,17 @@ impl RadioDiagnosticsSnapshot {
     pub(crate) fn incremental(
         controller: &crate::WifiController,
         device: &hisi_rf_ws63::WifiDevice,
-        runner: IncrementalRunnerDiagnostics,
-        wait: Ws63IncrementalWaitDiagnostics,
         resources: ResourceReport,
     ) -> Self {
         Self {
             schema: RADIO_DIAGNOSTICS_SCHEMA,
-            error_schema: DIAGNOSTIC_SCHEMA,
+            error_schema: crate::DIAGNOSTIC_SCHEMA,
             resources,
-            runner: RunnerDiagnosticsSnapshot::Incremental(runner),
-            wait: wait.into(),
+            runner: RunnerDiagnosticsSnapshot::Incremental(
+                controller.incremental_runner_diagnostics(),
+            ),
+            control: controller.blocking_runner_diagnostics(),
+            wait: hisi_rf_ws63::incremental_wait_diagnostics().into(),
             events: controller.event_diagnostics(),
             blocking_calls: hisi_rf_ws63::blocking_backend_metrics(),
             rx_queue: device.rx_queue_diagnostics(),
@@ -141,8 +145,8 @@ mod tests {
 
     #[test]
     fn schema_references_existing_error_and_resource_truth() {
-        assert_eq!(RADIO_DIAGNOSTICS_SCHEMA, "hisi-rf-radio-diagnostics/v1");
-        assert_eq!(DIAGNOSTIC_SCHEMA, "hisi-rf-error/v3");
+        assert_eq!(RADIO_DIAGNOSTICS_SCHEMA, "hisi-rf-radio-diagnostics/v2");
+        assert_eq!(crate::DIAGNOSTIC_SCHEMA, "hisi-rf-error/v3");
         let report = hisi_rf_ws63::resource_report::<
             hisi_rf_ws63::SelectedProfile,
             { crate::EVENT_CAPACITY },
