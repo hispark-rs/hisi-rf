@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.64] - 2026-07-30
+
+### Changed
+
+- Advance the aggregate WS63 diagnostics schema to
+  `hisi-rf-radio-diagnostics/v6`. The data-path snapshot now includes
+  secret-free WLMAC filter command, station-identity match, and
+  BSSID-programmed evidence.
+- Update the exact WS63 backend dependency to `hisi-rf-ws63
+  0.1.0-alpha.53`.
+
 ## [0.1.0-alpha.63] - 2026-07-29
 
 ### Added
