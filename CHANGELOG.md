@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   vendor bridge, DMAC completion, host RX, MAC receive-engine, and radio IRQ
   progress while remaining allocation-free and secret-redacted.
 
+### Added
+
+- Added the explicit `ws63-data-path-diagnostics` feature for bounded HIL
+  investigations. Normal application profiles do not enable the vendor entry
+  point instrumentation.
+
 ## [0.1.0-alpha.57] - 2026-07-29
 
 ### Fixed

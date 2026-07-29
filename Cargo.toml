@@ -27,6 +27,10 @@ hisi-riscv-rt = { version = "0.5.7", default-features = false, features = [
 [features]
 default = []
 chip-ws63 = ["dep:hisi-rf-ws63"]
+# Diagnostic-only WS63 packet-path instrumentation. This is intentionally
+# separate from application profiles because it wraps vendor entry points and
+# is used for bounded HIL investigations, not normal firmware.
+ws63-data-path-diagnostics = ["chip-ws63", "hisi-rf-ws63/rf-eloop-diag"]
 incremental-backend-experiment = [
     "hisi-rf-core/incremental-backend-experiment",
     "hisi-rf-ws63?/incremental-backend-experiment",
