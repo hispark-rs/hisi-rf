@@ -7,7 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.59] - 2026-07-29
+
+### Fixed
+
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.48`, making the v4 data-path
+  diagnostics and `ws63-data-path-diagnostics` feature independently
+  buildable from crates.io.
+
 ## [0.1.0-alpha.58] - 2026-07-29
+
+### Known issue
+
+- This version was published before its required `hisi-rf-ws63` diagnostic
+  surface. Complete Wi-Fi profiles do not build independently; use
+  `0.1.0-alpha.59` or newer.
 
 ### Changed
 
