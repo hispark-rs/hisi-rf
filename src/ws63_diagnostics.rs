@@ -6,12 +6,12 @@ use crate::{BlockingRunnerDiagnostics, EventDiagnostics};
 #[cfg(feature = "incremental-embassy-wait")]
 use hisi_rf_ws63::Ws63IncrementalWaitDiagnostics;
 use hisi_rf_ws63::{
-    BlockingBackendMetrics, DataPathDiagnostics, DhcpDiagnostics, ResourceReport,
-    RxQueueDiagnostics, ScanDiagnostics,
+    BlockingBackendMetrics, DataPathDiagnostics, DhcpDiagnostics, L2ProtocolDiagnostics,
+    ResourceReport, RxQueueDiagnostics, ScanDiagnostics,
 };
 
 /// Versioned schema for a complete public WS63 radio diagnostic snapshot.
-pub const RADIO_DIAGNOSTICS_SCHEMA: &str = "hisi-rf-radio-diagnostics/v7";
+pub const RADIO_DIAGNOSTICS_SCHEMA: &str = "hisi-rf-radio-diagnostics/v8";
 
 /// Runner counters selected by the active facade profile.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -95,6 +95,8 @@ pub struct RadioDiagnosticsSnapshot {
     pub rx_queue: RxQueueDiagnostics,
     /// DHCP packets observed at the Rust-visible L2 seam.
     pub dhcp: DhcpDiagnostics,
+    /// Ethernet protocol classes observed at the Rust-visible L2 seam.
+    pub l2_protocol: L2ProtocolDiagnostics,
     /// Aggregate frame progress and radio interrupt dispatch counters.
     pub data_path: DataPathDiagnostics,
 }
@@ -118,6 +120,7 @@ impl RadioDiagnosticsSnapshot {
             scan: hisi_rf_ws63::upstream_supplicant_scan_diagnostics(),
             rx_queue: device.rx_queue_diagnostics(),
             dhcp: device.dhcp_diagnostics(),
+            l2_protocol: device.l2_protocol_diagnostics(),
             data_path: device.data_path_diagnostics(),
         }
     }
@@ -145,6 +148,7 @@ impl RadioDiagnosticsSnapshot {
             scan: hisi_rf_ws63::upstream_supplicant_scan_diagnostics(),
             rx_queue: device.rx_queue_diagnostics(),
             dhcp: device.dhcp_diagnostics(),
+            l2_protocol: device.l2_protocol_diagnostics(),
             data_path: device.data_path_diagnostics(),
         }
     }
@@ -156,7 +160,7 @@ mod tests {
 
     #[test]
     fn schema_references_existing_error_and_resource_truth() {
-        assert_eq!(RADIO_DIAGNOSTICS_SCHEMA, "hisi-rf-radio-diagnostics/v7");
+        assert_eq!(RADIO_DIAGNOSTICS_SCHEMA, "hisi-rf-radio-diagnostics/v8");
         assert_eq!(crate::DIAGNOSTIC_SCHEMA, "hisi-rf-error/v3");
         let report = hisi_rf_ws63::resource_report::<
             hisi_rf_ws63::SelectedProfile,

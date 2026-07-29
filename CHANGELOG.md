@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Advance the aggregate WS63 diagnostics schema to
+  `hisi-rf-radio-diagnostics/v8`. Snapshots now include bounded ARP and IPv4
+  transmit/receive class counters from the Rust-visible L2 seam.
+- Update the exact WS63 backend dependency to `hisi-rf-ws63
+  0.1.0-alpha.57`.
+
 ## [0.1.0-alpha.65] - 2026-07-30
 
 ### Changed
