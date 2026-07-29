@@ -84,6 +84,8 @@ pub use hisi_rf::ws63::Resources
 pub use hisi_rf::ws63::ResourcesBuilder
 pub use hisi_rf::ws63::RfHeapMetrics
 pub use hisi_rf::ws63::SELECTED_RF_ARENA_BYTES
+pub use hisi_rf::ws63::SELECTED_RUNTIME_ARENA_BYTES
+pub use hisi_rf::ws63::SELECTED_TASK_STACK_ARENA_BYTES
 pub use hisi_rf::ws63::SelectedProfile
 pub use hisi_rf::ws63::WifiDevice
 pub use hisi_rf::ws63::WifiRxToken
