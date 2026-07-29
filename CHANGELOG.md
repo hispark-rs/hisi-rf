@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Advanced the unified aggregate diagnostic schema to
+  `hisi-rf-radio-diagnostics/v4`. The data-path member now covers smoltcp,
+  vendor bridge, DMAC completion, host RX, MAC receive-engine, and radio IRQ
+  progress while remaining allocation-free and secret-redacted.
+
 ## [0.1.0-alpha.57] - 2026-07-29
 
 ### Fixed
