@@ -50,6 +50,27 @@ fn check_opaque_ws63_composition(controller: hisi_rf::ws63::RadioController) {
     }
 }
 
+#[cfg(not(feature = "incremental-contract"))]
+#[allow(dead_code)]
+fn check_unified_blocking_diagnostics(parts: &hisi_rf::ws63::WifiParts) {
+    let snapshot: hisi_rf::ws63::RadioDiagnosticsSnapshot = parts.diagnostics();
+    let runner = match snapshot.runner {
+        hisi_rf::ws63::RunnerDiagnosticsSnapshot::Blocking(runner) => runner,
+    };
+    let _secret_free_contract = (
+        snapshot.schema,
+        snapshot.error_schema,
+        snapshot.resources.schema,
+        snapshot.resources.profile_revision,
+        runner.run_once_calls,
+        snapshot.wait.active,
+        snapshot.events.dropped,
+        snapshot.blocking_calls.connect.calls,
+        snapshot.rx_queue.dropped,
+        snapshot.dhcp.client_packets,
+    );
+}
+
 hisi_rf::ws63::declare_radio_storage!(static RADIO_STORAGE);
 
 #[cfg(feature = "incremental-contract")]
@@ -120,10 +141,20 @@ fn check_ws63_incremental_facade(radio: hisi_rf::ws63::IncrementalRadioControlle
     let runner_diagnostics: hisi_rf::IncrementalRunnerDiagnostics = parts.runner.diagnostics();
     let wait_diagnostics: hisi_rf::ws63::Ws63IncrementalWaitDiagnostics =
         parts.runner.wait_diagnostics();
+    let snapshot: hisi_rf::ws63::RadioDiagnosticsSnapshot = parts.diagnostics();
+    let snapshot_runner = match snapshot.runner {
+        hisi_rf::ws63::RunnerDiagnosticsSnapshot::Incremental(runner) => runner,
+        hisi_rf::ws63::RunnerDiagnosticsSnapshot::Blocking(_) => unreachable!(),
+    };
     let _observability_contract = (
         runner_diagnostics.wait_ready_completions,
         wait_diagnostics.backend_signals,
         wait_diagnostics.ready_polls,
+        snapshot_runner.operations_completed,
+        snapshot.wait.backend_signals,
+        snapshot.events.dropped,
+        snapshot.blocking_calls.connect.calls,
+        snapshot.resources.caller_owned_bytes,
     );
 }
 
