@@ -17,19 +17,13 @@ if [ "$actual_version" != "$EXPECTED_VERSION" ]; then
     exit 1
 fi
 
-host="$(rustc -vV | sed -n 's/^host: //p')"
-if [ -z "$host" ]; then
-    echo "ERROR: rustc did not report a host target" >&2
-    exit 1
-fi
-
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
 generate() {
     local profile="$1"
     local output="$2"
-    CARGO_BUILD_TARGET="$host" cargo public-api -sss --color=never \
+    cargo public-api -sss --color=never \
         --features "chip-ws63,$profile,incremental-embassy-wait" \
         > "$output"
     if [ ! -s "$output" ]; then
