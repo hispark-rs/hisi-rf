@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.65] - 2026-07-30
+
+### Changed
+
+- Advance the aggregate WS63 diagnostics schema to
+  `hisi-rf-radio-diagnostics/v7`. Scan operation snapshots now include
+  secret-free native callback, bounded queue, and vendor-driver completion
+  state for timeout attribution.
+- Update the exact WS63 backend dependency to `hisi-rf-ws63
+  0.1.0-alpha.56`.
+
 ## [0.1.0-alpha.64] - 2026-07-30
 
 ### Changed
@@ -744,7 +755,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.64...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.65...HEAD
+[0.1.0-alpha.65]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.64...v0.1.0-alpha.65
 [0.1.0-alpha.64]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.63...v0.1.0-alpha.64
 [0.1.0-alpha.55]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.54...v0.1.0-alpha.55
 [0.1.0-alpha.54]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.53...v0.1.0-alpha.54
