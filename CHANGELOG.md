@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.62] - 2026-07-29
+
+### Changed
+
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.51` and `hisi-hal` to
+  `0.7.0-alpha.4`. Bounded data-path diagnostics now read the audited WLMAC
+  receive counters through PAC/HAL instead of the blocking mask-ROM helper.
+
 ## [0.1.0-alpha.61] - 2026-07-29
 
 ### Changed
