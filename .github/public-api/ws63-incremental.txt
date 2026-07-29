@@ -132,6 +132,7 @@ pub hisi_rf::ws63::RadioDiagnosticsSnapshot::events: hisi_rf_core::wifi::EventDi
 pub hisi_rf::ws63::RadioDiagnosticsSnapshot::resources: hisi_rf_ws63::profile::ResourceReport
 pub hisi_rf::ws63::RadioDiagnosticsSnapshot::runner: hisi_rf::ws63::RunnerDiagnosticsSnapshot
 pub hisi_rf::ws63::RadioDiagnosticsSnapshot::rx_queue: hisi_rf_ws63::netif_smoltcp::RxQueueDiagnostics
+pub hisi_rf::ws63::RadioDiagnosticsSnapshot::scan: hisi_rf_ws63::ScanDiagnostics
 pub hisi_rf::ws63::RadioDiagnosticsSnapshot::schema: &'static str
 pub hisi_rf::ws63::RadioDiagnosticsSnapshot::wait: hisi_rf::ws63::WaitDiagnosticsSnapshot
 pub struct hisi_rf::ws63::RadioStorage
