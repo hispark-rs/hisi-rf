@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.67] - 2026-07-30
+
+### Changed
+
+- Update the exact WS63 backend dependency to `hisi-rf-ws63
+  0.1.0-alpha.58`.
+- Expose the selected profile's scheduler stack-arena requirement so
+  applications can install caller-owned `hisi-rtos::SchedulerStorage` without
+  importing the chip backend.
+
 ## [0.1.0-alpha.66] - 2026-07-30
 
 ### Changed
