@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.68] - 2026-07-30
+
+### Changed
+
+- Update the exact WS63 backend dependency to `hisi-rf-ws63
+  0.1.0-alpha.59`.
+- Expose `SELECTED_RUNTIME_ARENA_BYTES`, which includes task stacks,
+  allocator metadata and the HIL-derived synchronization-object headroom.
+
 ## [0.1.0-alpha.67] - 2026-07-30
 
 ### Changed

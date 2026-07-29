@@ -79,6 +79,8 @@ pub mod ws63 {
         RADIO_DIAGNOSTICS_SCHEMA, RadioDiagnosticsSnapshot, RunnerDiagnosticsSnapshot,
         WaitDiagnosticsSnapshot,
     };
+    #[allow(deprecated)]
+    pub use hisi_rf_ws63::SELECTED_TASK_STACK_ARENA_BYTES;
     pub use hisi_rf_ws63::declare_radio_arena;
     #[cfg(all(
         feature = "smoltcp",
@@ -91,7 +93,7 @@ pub mod ws63 {
         InitErrorKind, InstalledRadioArena, L2ProtocolDiagnostics, MissingCrypto, MissingPke,
         PkeNotRequired, PkeReady, RadioArena, RadioArenaStorage, ResourceReport, Resources,
         ResourcesBuilder, RfHeapMetrics, RxQueueDiagnostics, SELECTED_RF_ARENA_BYTES,
-        SELECTED_TASK_STACK_ARENA_BYTES, ScanDiagnostics, SelectedProfile, WifiDevice, WifiRxToken,
+        SELECTED_RUNTIME_ARENA_BYTES, ScanDiagnostics, SelectedProfile, WifiDevice, WifiRxToken,
         WifiTxToken, WifiWpa2Smoltcp, WifiWpa3Smoltcp, association_timing_diagnostics,
         blocking_backend_metrics, rf_heap_metrics,
     };
