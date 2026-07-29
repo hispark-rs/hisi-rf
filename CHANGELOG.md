@@ -13,10 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Advance the aggregate WS63 diagnostics schema to
   `hisi-rf-radio-diagnostics/v6`. The data-path snapshot now includes
-  secret-free WLMAC filter command, station-identity match, and
-  BSSID-programmed evidence.
+  the packed WLMAC receive-filter control, station-identity match, and
+  BSSID-programmed evidence. Station addresses are decoded in network byte
+  order, matching the WS63 hardware register contract.
 - Update the exact WS63 backend dependency to `hisi-rf-ws63
-  0.1.0-alpha.53`.
+  0.1.0-alpha.55` and the target-only HAL development dependency to
+  `hisi-hal 0.7.0-alpha.6`.
 
 ## [0.1.0-alpha.63] - 2026-07-29
 
@@ -742,7 +744,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.55...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.64...HEAD
+[0.1.0-alpha.64]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.63...v0.1.0-alpha.64
 [0.1.0-alpha.55]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.54...v0.1.0-alpha.55
 [0.1.0-alpha.54]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.53...v0.1.0-alpha.54
 [0.1.0-alpha.53]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.52...v0.1.0-alpha.53

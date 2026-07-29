@@ -12,10 +12,10 @@ categories = ["embedded", "no-std", "network-programming"]
 
 [dependencies]
 hisi-rf-core = "=0.1.0-alpha.19"
-hisi-rf-ws63 = { version = "=0.1.0-alpha.53", optional = true, default-features = false }
+hisi-rf-ws63 = { version = "=0.1.0-alpha.55", optional = true, default-features = false }
 
 [target.'cfg(target_arch = "riscv32")'.dev-dependencies]
-hisi-hal = { version = "0.7.0-alpha.4", features = ["chip-ws63", "unstable"] }
+hisi-hal = { version = "0.7.0-alpha.6", features = ["chip-ws63", "unstable"] }
 hisi-riscv-rt = { version = "0.5.7", default-features = false, features = [
     "chip-ws63",
     "bundled-memory-x",
