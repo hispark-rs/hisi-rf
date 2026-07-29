@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.63] - 2026-07-29
+
+### Added
+
+- Added the hidden `ws63-station-pm-diagnostics` feature, forwarding the
+  backend's explicit station power-save A/B without changing production
+  profiles or the aggregate diagnostics schema.
+- Updated the exact WS63 backend dependency to `hisi-rf-ws63
+  0.1.0-alpha.52`.
+
 ## [0.1.0-alpha.62] - 2026-07-29
 
 ### Changed

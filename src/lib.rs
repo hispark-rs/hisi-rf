@@ -94,6 +94,11 @@ pub mod ws63 {
         WifiTxToken, WifiWpa2Smoltcp, WifiWpa3Smoltcp, association_timing_diagnostics,
         blocking_backend_metrics, rf_heap_metrics,
     };
+    #[cfg(feature = "ws63-station-pm-diagnostics")]
+    #[doc(hidden)]
+    pub use hisi_rf_ws63::{
+        StationPowerSaveDiagnosticError, disable_station_power_save_for_diagnostics,
+    };
 
     /// Implementation details used only by the facade storage macro.
     #[doc(hidden)]
