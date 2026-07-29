@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.60] - 2026-07-29
+
+### Changed
+
+- Advanced the aggregate diagnostic schema to
+  `hisi-rf-radio-diagnostics/v5`. Data-path snapshots now state which vendor
+  stages are instrumented, so an unavailable DMAC completion counter cannot be
+  mistaken for a measured zero.
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.49`; the narrow packet diagnostic
+  profile uses only bounded atomic counters and does not call ROM statistics
+  helpers from aggregate snapshots.
+
 ## [0.1.0-alpha.59] - 2026-07-29
 
 ### Fixed

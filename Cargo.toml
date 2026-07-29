@@ -1,6 +1,6 @@
 [package]
 name = "hisi-rf"
-version = "0.1.0-alpha.59"
+version = "0.1.0-alpha.60"
 edition = "2024"
 rust-version = "1.91"
 authors = ["sanchuanhehe"]
@@ -12,7 +12,7 @@ categories = ["embedded", "no-std", "network-programming"]
 
 [dependencies]
 hisi-rf-core = "=0.1.0-alpha.19"
-hisi-rf-ws63 = { version = "=0.1.0-alpha.48", optional = true, default-features = false }
+hisi-rf-ws63 = { version = "=0.1.0-alpha.49", optional = true, default-features = false }
 
 [target.'cfg(target_arch = "riscv32")'.dev-dependencies]
 hisi-hal = { version = "0.7.0-alpha.3", features = ["chip-ws63", "unstable"] }
@@ -28,9 +28,9 @@ hisi-riscv-rt = { version = "0.5.7", default-features = false, features = [
 default = []
 chip-ws63 = ["dep:hisi-rf-ws63"]
 # Diagnostic-only WS63 packet-path instrumentation. This is intentionally
-# separate from application profiles because it wraps vendor entry points and
-# is used for bounded HIL investigations, not normal firmware.
-ws63-data-path-diagnostics = ["chip-ws63", "hisi-rf-ws63/rf-eloop-diag"]
+# separate from application profiles and is used for bounded HIL
+# investigations, not normal firmware.
+ws63-data-path-diagnostics = ["chip-ws63", "hisi-rf-ws63/data-path-diag"]
 incremental-backend-experiment = [
     "hisi-rf-core/incremental-backend-experiment",
     "hisi-rf-ws63?/incremental-backend-experiment",

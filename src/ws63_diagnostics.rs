@@ -11,7 +11,7 @@ use hisi_rf_ws63::{
 };
 
 /// Versioned schema for a complete public WS63 radio diagnostic snapshot.
-pub const RADIO_DIAGNOSTICS_SCHEMA: &str = "hisi-rf-radio-diagnostics/v4";
+pub const RADIO_DIAGNOSTICS_SCHEMA: &str = "hisi-rf-radio-diagnostics/v5";
 
 /// Runner counters selected by the active facade profile.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -152,7 +152,7 @@ mod tests {
 
     #[test]
     fn schema_references_existing_error_and_resource_truth() {
-        assert_eq!(RADIO_DIAGNOSTICS_SCHEMA, "hisi-rf-radio-diagnostics/v4");
+        assert_eq!(RADIO_DIAGNOSTICS_SCHEMA, "hisi-rf-radio-diagnostics/v5");
         assert_eq!(crate::DIAGNOSTIC_SCHEMA, "hisi-rf-error/v3");
         let report = hisi_rf_ws63::resource_report::<
             hisi_rf_ws63::SelectedProfile,
