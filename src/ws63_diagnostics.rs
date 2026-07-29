@@ -5,10 +5,13 @@ use crate::IncrementalRunnerDiagnostics;
 use crate::{BlockingRunnerDiagnostics, EventDiagnostics};
 #[cfg(feature = "incremental-embassy-wait")]
 use hisi_rf_ws63::Ws63IncrementalWaitDiagnostics;
-use hisi_rf_ws63::{BlockingBackendMetrics, DhcpDiagnostics, ResourceReport, RxQueueDiagnostics};
+use hisi_rf_ws63::{
+    BlockingBackendMetrics, DataPathDiagnostics, DhcpDiagnostics, ResourceReport,
+    RxQueueDiagnostics,
+};
 
 /// Versioned schema for a complete public WS63 radio diagnostic snapshot.
-pub const RADIO_DIAGNOSTICS_SCHEMA: &str = "hisi-rf-radio-diagnostics/v2";
+pub const RADIO_DIAGNOSTICS_SCHEMA: &str = "hisi-rf-radio-diagnostics/v3";
 
 /// Runner counters selected by the active facade profile.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -90,6 +93,8 @@ pub struct RadioDiagnosticsSnapshot {
     pub rx_queue: RxQueueDiagnostics,
     /// DHCP packets observed at the Rust-visible L2 seam.
     pub dhcp: DhcpDiagnostics,
+    /// Aggregate frame progress and radio interrupt dispatch counters.
+    pub data_path: DataPathDiagnostics,
 }
 
 impl RadioDiagnosticsSnapshot {
@@ -110,6 +115,7 @@ impl RadioDiagnosticsSnapshot {
             blocking_calls: hisi_rf_ws63::blocking_backend_metrics(),
             rx_queue: device.rx_queue_diagnostics(),
             dhcp: device.dhcp_diagnostics(),
+            data_path: device.data_path_diagnostics(),
         }
     }
 
@@ -135,6 +141,7 @@ impl RadioDiagnosticsSnapshot {
             blocking_calls: hisi_rf_ws63::blocking_backend_metrics(),
             rx_queue: device.rx_queue_diagnostics(),
             dhcp: device.dhcp_diagnostics(),
+            data_path: device.data_path_diagnostics(),
         }
     }
 }
@@ -145,7 +152,7 @@ mod tests {
 
     #[test]
     fn schema_references_existing_error_and_resource_truth() {
-        assert_eq!(RADIO_DIAGNOSTICS_SCHEMA, "hisi-rf-radio-diagnostics/v2");
+        assert_eq!(RADIO_DIAGNOSTICS_SCHEMA, "hisi-rf-radio-diagnostics/v3");
         assert_eq!(crate::DIAGNOSTIC_SCHEMA, "hisi-rf-error/v3");
         let report = hisi_rf_ws63::resource_report::<
             hisi_rf_ws63::SelectedProfile,

@@ -125,6 +125,7 @@ pub fn hisi_rf::ws63::RadioController::start_runner(self) -> core::result::Resul
 pub struct hisi_rf::ws63::RadioDiagnosticsSnapshot
 pub hisi_rf::ws63::RadioDiagnosticsSnapshot::blocking_calls: hisi_rf_ws63::blocking_diagnostics::BlockingBackendMetrics
 pub hisi_rf::ws63::RadioDiagnosticsSnapshot::control: hisi_rf_core::wifi::BlockingRunnerDiagnostics
+pub hisi_rf::ws63::RadioDiagnosticsSnapshot::data_path: hisi_rf_ws63::composition::DataPathDiagnostics
 pub hisi_rf::ws63::RadioDiagnosticsSnapshot::dhcp: hisi_rf_ws63::netif_smoltcp::DhcpDiagnostics
 pub hisi_rf::ws63::RadioDiagnosticsSnapshot::error_schema: &'static str
 pub hisi_rf::ws63::RadioDiagnosticsSnapshot::events: hisi_rf_core::wifi::EventDiagnostics
