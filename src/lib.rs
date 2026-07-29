@@ -87,9 +87,9 @@ pub mod ws63 {
     pub use hisi_rf_ws63::{
         ArenaAdmissionError, AssociationIoctlMetrics, AssociationTimingDiagnostics,
         BlockingBackendMetrics, BlockingBootstrapMetrics, BlockingOperationMetrics, BootstrapStage,
-        BootstrapStageMetrics, CryptoReady, DhcpDiagnostics, InitError, InitErrorKind,
-        InstalledRadioArena, MissingCrypto, MissingPke, PkeNotRequired, PkeReady, RadioArena,
-        RadioArenaStorage, ResourceReport, Resources, ResourcesBuilder, RfHeapMetrics,
+        BootstrapStageMetrics, CryptoReady, DataPathDiagnostics, DhcpDiagnostics, InitError,
+        InitErrorKind, InstalledRadioArena, MissingCrypto, MissingPke, PkeNotRequired, PkeReady,
+        RadioArena, RadioArenaStorage, ResourceReport, Resources, ResourcesBuilder, RfHeapMetrics,
         RxQueueDiagnostics, SELECTED_RF_ARENA_BYTES, SelectedProfile, WifiDevice, WifiRxToken,
         WifiTxToken, WifiWpa2Smoltcp, WifiWpa3Smoltcp, association_timing_diagnostics,
         blocking_backend_metrics, rf_heap_metrics,
@@ -473,6 +473,7 @@ mod tests {
         let _: TestInit = super::ws63::init;
         let _: Option<super::IncrementalRunnerDiagnostics> = None;
         let _: Option<super::ws63::DhcpDiagnostics> = None;
+        let _: Option<super::ws63::DataPathDiagnostics> = None;
         let _: Option<super::ws63::RxQueueDiagnostics> = None;
         let _: Option<super::ws63::AssociationTimingDiagnostics> = None;
     }
