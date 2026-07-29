@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.56] - 2026-07-29
+
+### Added
+
+- Added `RadioDiagnosticsSnapshot` as the facade-owned, allocation-free,
+  secret-redacted view of runner, wait bridge, event queue, blocking backend,
+  L2/DHCP, and resource metrics.
+- Added `WifiParts::diagnostics()` for the blocking profile and
+  `IncrementalRadioParts::diagnostics()` for the bounded incremental profile,
+  eliminating application-side assembly through process-global mutable state.
+
+### Changed
+
+- Updated to `hisi-rf-ws63 0.1.0-alpha.46` for storage-independent resource
+  metadata. The aggregate schema references `hisi-rf-error/v3` and
+  `hisi-rf-resource-report/v6` rather than copying their classifications.
+
 ## [0.1.0-alpha.55] - 2026-07-29
 
 ### Changed

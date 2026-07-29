@@ -95,12 +95,17 @@ pub use hisi_rf::ws63::association_timing_diagnostics
 pub use hisi_rf::ws63::declare_radio_arena
 pub use hisi_rf::ws63::rf_heap_metrics
 pub macro hisi_rf::ws63::declare_radio_storage!
+pub enum hisi_rf::ws63::RunnerDiagnosticsSnapshot
+pub hisi_rf::ws63::RunnerDiagnosticsSnapshot::Blocking(hisi_rf_core::wifi::BlockingRunnerDiagnostics)
+pub hisi_rf::ws63::RunnerDiagnosticsSnapshot::Incremental(hisi_rf_core::incremental::facade::IncrementalRunnerDiagnostics)
 pub struct hisi_rf::ws63::IncrementalRadioController(_)
 impl hisi_rf::ws63::IncrementalRadioController
 pub fn hisi_rf::ws63::IncrementalRadioController::split(self, hisi_rf_core::incremental::WorkBudget) -> hisi_rf::ws63::IncrementalRadioParts
 pub struct hisi_rf::ws63::IncrementalRadioParts
 pub hisi_rf::ws63::IncrementalRadioParts::runner: hisi_rf::ws63::IncrementalRadioRunner
 pub hisi_rf::ws63::IncrementalRadioParts::wifi: hisi_rf::ws63::WifiParts
+impl hisi_rf::ws63::IncrementalRadioParts
+pub fn hisi_rf::ws63::IncrementalRadioParts::diagnostics(&self) -> hisi_rf::ws63::RadioDiagnosticsSnapshot
 pub struct hisi_rf::ws63::IncrementalRadioRunner(_)
 impl hisi_rf::ws63::IncrementalRadioRunner
 pub fn hisi_rf::ws63::IncrementalRadioRunner::diagnostics(&self) -> hisi_rf_core::incremental::facade::IncrementalRunnerDiagnostics
@@ -117,6 +122,16 @@ pub fn hisi_rf::ws63::InstalledRadioStorage::into_init_parts(self) -> (&'static 
 pub struct hisi_rf::ws63::RadioController(_)
 impl hisi_rf::ws63::RadioController
 pub fn hisi_rf::ws63::RadioController::start_runner(self) -> core::result::Result<hisi_rf::ws63::WifiParts, hisi_rf_ws63::composition::InitError>
+pub struct hisi_rf::ws63::RadioDiagnosticsSnapshot
+pub hisi_rf::ws63::RadioDiagnosticsSnapshot::blocking_calls: hisi_rf_ws63::blocking_diagnostics::BlockingBackendMetrics
+pub hisi_rf::ws63::RadioDiagnosticsSnapshot::dhcp: hisi_rf_ws63::netif_smoltcp::DhcpDiagnostics
+pub hisi_rf::ws63::RadioDiagnosticsSnapshot::error_schema: &'static str
+pub hisi_rf::ws63::RadioDiagnosticsSnapshot::events: hisi_rf_core::wifi::EventDiagnostics
+pub hisi_rf::ws63::RadioDiagnosticsSnapshot::resources: hisi_rf_ws63::profile::ResourceReport
+pub hisi_rf::ws63::RadioDiagnosticsSnapshot::runner: hisi_rf::ws63::RunnerDiagnosticsSnapshot
+pub hisi_rf::ws63::RadioDiagnosticsSnapshot::rx_queue: hisi_rf_ws63::netif_smoltcp::RxQueueDiagnostics
+pub hisi_rf::ws63::RadioDiagnosticsSnapshot::schema: &'static str
+pub hisi_rf::ws63::RadioDiagnosticsSnapshot::wait: hisi_rf::ws63::WaitDiagnosticsSnapshot
 pub struct hisi_rf::ws63::RadioStorage
 impl hisi_rf::ws63::RadioStorage
 pub fn hisi_rf::ws63::RadioStorage::install(&'static self) -> core::result::Result<hisi_rf::ws63::InstalledRadioStorage, hisi_rf_ws63::profile::ArenaAdmissionError>
@@ -127,10 +142,22 @@ pub const fn hisi_rf::ws63::Storage::new() -> Self
 pub const fn hisi_rf::ws63::Storage::report(&self) -> hisi_rf_ws63::profile::ResourceReport
 impl core::default::Default for hisi_rf::ws63::Storage
 pub fn hisi_rf::ws63::Storage::default() -> Self
+pub struct hisi_rf::ws63::WaitDiagnosticsSnapshot
+pub hisi_rf::ws63::WaitDiagnosticsSnapshot::active: bool
+pub hisi_rf::ws63::WaitDiagnosticsSnapshot::backend_signals: u32
+pub hisi_rf::ws63::WaitDiagnosticsSnapshot::l2_rx_signals: u32
+pub hisi_rf::ws63::WaitDiagnosticsSnapshot::pending_polls: u32
+pub hisi_rf::ws63::WaitDiagnosticsSnapshot::poll_calls: u32
+pub hisi_rf::ws63::WaitDiagnosticsSnapshot::ready_polls: u32
+pub hisi_rf::ws63::WaitDiagnosticsSnapshot::timer_ready_polls: u32
+pub hisi_rf::ws63::WaitDiagnosticsSnapshot::waker_notifications: u32
+impl core::convert::From<hisi_rf_ws63::incremental_wait::Ws63IncrementalWaitDiagnostics> for hisi_rf::ws63::WaitDiagnosticsSnapshot
+pub fn hisi_rf::ws63::WaitDiagnosticsSnapshot::from(hisi_rf_ws63::incremental_wait::Ws63IncrementalWaitDiagnostics) -> Self
 pub struct hisi_rf::ws63::WifiParts
 pub hisi_rf::ws63::WifiParts::controller: hisi_rf::WifiController
 pub hisi_rf::ws63::WifiParts::device: hisi_rf_ws63::composition::WifiDevice
 pub const hisi_rf::ws63::EVENT_CAPACITY: usize
+pub const hisi_rf::ws63::RADIO_DIAGNOSTICS_SCHEMA: &str
 pub fn hisi_rf::ws63::init(hisi_rf_core::wifi::RadioConfig, hisi_rf_ws63::composition::Resources<hisi_rf_ws63::profile::SelectedProfile>, &'static hisi_rf::ws63::Storage) -> core::result::Result<hisi_rf::ws63::IncrementalRadioController, hisi_rf_ws63::composition::InitError>
 pub fn hisi_rf::ws63::init_incremental_after_blocking_bootstrap(hisi_rf_core::wifi::RadioConfig, hisi_rf_ws63::composition::Resources<hisi_rf_ws63::profile::SelectedProfile>, &'static hisi_rf::ws63::Storage) -> core::result::Result<hisi_rf::ws63::IncrementalRadioController, hisi_rf_ws63::composition::InitError>
 pub macro hisi_rf::declare_radio_storage!

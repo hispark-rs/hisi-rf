@@ -6,6 +6,13 @@
 
 #![no_std]
 
+#[cfg(all(
+    feature = "chip-ws63",
+    feature = "smoltcp",
+    any(feature = "wpa2-personal", feature = "wpa3-personal")
+))]
+mod ws63_diagnostics;
+
 #[cfg(not(feature = "chip-ws63"))]
 compile_error!("select exactly one chip feature, for example `chip-ws63`");
 
@@ -68,6 +75,10 @@ pub type IncrementalRadioRunner<B> = hisi_rf_core::IncrementalRadioRunner<B, EVE
 ))]
 pub mod ws63 {
     pub use crate::declare_radio_storage;
+    pub use crate::ws63_diagnostics::{
+        RADIO_DIAGNOSTICS_SCHEMA, RadioDiagnosticsSnapshot, RunnerDiagnosticsSnapshot,
+        WaitDiagnosticsSnapshot,
+    };
     pub use hisi_rf_ws63::declare_radio_arena;
     #[cfg(all(
         feature = "smoltcp",
@@ -111,6 +122,9 @@ pub mod ws63 {
             self.inner.report()
         }
     }
+
+    const SELECTED_RESOURCE_REPORT: ResourceReport =
+        hisi_rf_ws63::resource_report::<SelectedProfile, EVENT_CAPACITY>();
 
     impl Default for Storage {
         fn default() -> Self {
@@ -203,6 +217,18 @@ pub mod ws63 {
         pub controller: crate::WifiController,
         /// Opaque WS63 L2 device.
         pub device: WifiDevice,
+    }
+
+    impl WifiParts {
+        /// Capture all public blocking-profile diagnostics in one secret-free view.
+        #[cfg(not(feature = "incremental-backend-experiment"))]
+        pub fn diagnostics(&self) -> RadioDiagnosticsSnapshot {
+            RadioDiagnosticsSnapshot::blocking(
+                &self.controller,
+                &self.device,
+                SELECTED_RESOURCE_REPORT,
+            )
+        }
     }
 
     #[cfg(all(
@@ -298,6 +324,24 @@ pub mod ws63 {
         pub wifi: WifiParts,
         /// Bounded incremental runner.
         pub runner: IncrementalRadioRunner,
+    }
+
+    #[cfg(all(
+        feature = "incremental-embassy-wait",
+        feature = "smoltcp",
+        any(feature = "wpa2-personal", feature = "wpa3-personal")
+    ))]
+    impl IncrementalRadioParts {
+        /// Capture runner, wait, event, backend, L2, and resource diagnostics.
+        pub fn diagnostics(&self) -> RadioDiagnosticsSnapshot {
+            RadioDiagnosticsSnapshot::incremental(
+                &self.wifi.controller,
+                &self.wifi.device,
+                self.runner.diagnostics(),
+                self.runner.wait_diagnostics(),
+                SELECTED_RESOURCE_REPORT,
+            )
+        }
     }
 
     #[cfg(all(
