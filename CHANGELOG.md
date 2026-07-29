@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.61] - 2026-07-29
+
+### Changed
+
+- Updated `hisi-rf-ws63` to `0.1.0-alpha.50`. The v5 aggregate data-path
+  snapshot now reports bounded DMAC TX-completion and RX-prepare call counters
+  under capability bits 3 and 4 without changing the public diagnostic schema.
+
 ## [0.1.0-alpha.60] - 2026-07-29
 
 ### Changed
