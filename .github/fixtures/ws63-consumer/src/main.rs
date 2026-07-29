@@ -63,11 +63,33 @@ fn check_unified_blocking_diagnostics(parts: &hisi_rf::ws63::WifiParts) {
         snapshot.resources.schema,
         snapshot.resources.profile_revision,
         runner.run_once_calls,
+        snapshot.control.command_queue_pending,
         snapshot.wait.active,
         snapshot.events.dropped,
         snapshot.blocking_calls.connect.calls,
         snapshot.rx_queue.dropped,
         snapshot.dhcp.client_packets,
+    );
+}
+
+#[cfg(feature = "incremental-contract")]
+#[allow(dead_code)]
+fn check_task_split_diagnostics(
+    controller: &hisi_rf::WifiController,
+    device: &hisi_rf::ws63::WifiDevice,
+) {
+    let snapshot: hisi_rf::ws63::RadioDiagnosticsSnapshot =
+        hisi_rf::ws63::diagnostics(controller, device);
+    let runner = match snapshot.runner {
+        hisi_rf::ws63::RunnerDiagnosticsSnapshot::Incremental(runner) => runner,
+        hisi_rf::ws63::RunnerDiagnosticsSnapshot::Blocking(_) => unreachable!(),
+    };
+    let _task_split_contract = (
+        runner.run_once_calls,
+        snapshot.control.run_once_calls,
+        snapshot.wait.poll_calls,
+        snapshot.events.high_water,
+        snapshot.resources.caller_owned_bytes,
     );
 }
 
@@ -151,6 +173,7 @@ fn check_ws63_incremental_facade(radio: hisi_rf::ws63::IncrementalRadioControlle
         wait_diagnostics.backend_signals,
         wait_diagnostics.ready_polls,
         snapshot_runner.operations_completed,
+        snapshot.control.run_once_calls,
         snapshot.wait.backend_signals,
         snapshot.events.dropped,
         snapshot.blocking_calls.connect.calls,
