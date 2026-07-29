@@ -91,8 +91,9 @@ pub mod ws63 {
         InitErrorKind, InstalledRadioArena, L2ProtocolDiagnostics, MissingCrypto, MissingPke,
         PkeNotRequired, PkeReady, RadioArena, RadioArenaStorage, ResourceReport, Resources,
         ResourcesBuilder, RfHeapMetrics, RxQueueDiagnostics, SELECTED_RF_ARENA_BYTES,
-        ScanDiagnostics, SelectedProfile, WifiDevice, WifiRxToken, WifiTxToken, WifiWpa2Smoltcp,
-        WifiWpa3Smoltcp, association_timing_diagnostics, blocking_backend_metrics, rf_heap_metrics,
+        SELECTED_TASK_STACK_ARENA_BYTES, ScanDiagnostics, SelectedProfile, WifiDevice, WifiRxToken,
+        WifiTxToken, WifiWpa2Smoltcp, WifiWpa3Smoltcp, association_timing_diagnostics,
+        blocking_backend_metrics, rf_heap_metrics,
     };
     #[cfg(feature = "ws63-station-pm-diagnostics")]
     #[doc(hidden)]
