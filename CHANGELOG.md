@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.55] - 2026-07-29
+
+### Changed
+
+- Updated to `hisi-rf-core 0.1.0-alpha.18` and `hisi-rf-ws63
+  0.1.0-alpha.45`.
+- Station MAC and immutable L2 capability access now belongs to the selected
+  profile's `WifiDevice`; the WS63 facade no longer exposes a process-global
+  station MAC function.
+
 ## [0.1.0-alpha.54] - 2026-07-29
 
 ### Added

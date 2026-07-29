@@ -48,7 +48,7 @@ let resources = build_resources(arena);
 let mut wifi = hisi_rf::ws63::init(config, resources, control)?
     .start_runner()?;
 let scan = wifi.controller.scan(scan_config, &mut results).await?;
-let station_mac = hisi_rf::ws63::station_mac_address()
+let station_mac = wifi.device.station_mac_address()
     .ok_or("station netif has not been initialized")?;
 ```
 

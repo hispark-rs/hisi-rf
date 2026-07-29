@@ -62,6 +62,7 @@ pub use hisi_rf::WifiBackend
 pub use hisi_rf::WifiConfig
 pub use hisi_rf::WifiDevice
 pub use hisi_rf::WifiEvent
+pub use hisi_rf::WifiL2Capabilities
 pub use hisi_rf::WorkBudget
 pub use hisi_rf::WorkReport
 pub mod hisi_rf::ws63
@@ -93,7 +94,6 @@ pub use hisi_rf::ws63::Ws63IncrementalWaitDiagnostics
 pub use hisi_rf::ws63::association_timing_diagnostics
 pub use hisi_rf::ws63::declare_radio_arena
 pub use hisi_rf::ws63::rf_heap_metrics
-pub use hisi_rf::ws63::station_mac_address
 pub macro hisi_rf::ws63::declare_radio_storage!
 pub struct hisi_rf::ws63::IncrementalRadioController(_)
 impl hisi_rf::ws63::IncrementalRadioController

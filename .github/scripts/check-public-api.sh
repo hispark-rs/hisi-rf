@@ -29,10 +29,13 @@ trap 'rm -rf "$tmp"' EXIT
 generate() {
     local profile="$1"
     local output="$2"
-    cargo public-api -sss --color=never \
-        --target "$host" \
+    CARGO_BUILD_TARGET="$host" cargo public-api -sss --color=never \
         --features "chip-ws63,$profile,incremental-embassy-wait" \
         > "$output"
+    if [ ! -s "$output" ]; then
+        echo "ERROR: cargo-public-api produced an empty API snapshot" >&2
+        exit 1
+    fi
 }
 
 cd "$ROOT"

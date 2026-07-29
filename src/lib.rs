@@ -26,7 +26,7 @@ pub use hisi_rf_core::{
     DiagnosticTrace, DiagnosticTraceEntry, DiagnosticTraceKind, Error, EventDiagnostics,
     ManagementFrameProtection, OperationTimeout, Passphrase, PersonalSecurity, RadioConfig,
     RecoveryAction, SaePwe, ScanConfig, ScanOutcome, ScanResult, Security, Ssid, StationConfig,
-    WifiBackend, WifiConfig, WifiDevice, WifiEvent,
+    WifiBackend, WifiConfig, WifiDevice, WifiEvent, WifiL2Capabilities,
 };
 /// Event capacity selected by the public WS63 application profiles.
 pub const EVENT_CAPACITY: usize = 8;
@@ -81,7 +81,7 @@ pub mod ws63 {
         RadioArenaStorage, ResourceReport, Resources, ResourcesBuilder, RfHeapMetrics,
         RxQueueDiagnostics, SELECTED_RF_ARENA_BYTES, SelectedProfile, WifiDevice, WifiRxToken,
         WifiTxToken, WifiWpa2Smoltcp, WifiWpa3Smoltcp, association_timing_diagnostics,
-        blocking_backend_metrics, rf_heap_metrics, station_mac_address,
+        blocking_backend_metrics, rf_heap_metrics,
     };
 
     /// Implementation details used only by the facade storage macro.
