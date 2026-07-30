@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.70] - 2026-07-30
+
+### Changed
+
+- Update the exact WS63 backend dependency to `hisi-rf-ws63
+  0.1.0-alpha.60`.
+- Expose the repeated-silicon runtime resource calibration result through the
+  existing resource report: WPA2 is calibrated; WPA3 remains uncalibrated
+  until it completes its own evidence matrix.
+
 ## [0.1.0-alpha.69] - 2026-07-30
 
 ### Fixed

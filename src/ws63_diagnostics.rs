@@ -167,6 +167,10 @@ mod tests {
             { crate::EVENT_CAPACITY },
         >();
         assert_eq!(report.schema, "hisi-rf-resource-report/v8");
+        #[cfg(feature = "wpa2-personal")]
+        assert!(report.runtime_resources_calibrated);
+        #[cfg(feature = "wpa3-personal")]
+        assert!(!report.runtime_resources_calibrated);
     }
 
     #[cfg(feature = "incremental-embassy-wait")]
