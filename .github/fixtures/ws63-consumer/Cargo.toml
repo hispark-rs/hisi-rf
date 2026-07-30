@@ -15,7 +15,7 @@ incremental-contract = [
 ]
 
 [dependencies]
-hisi-rf = { version = "=0.1.0-alpha.67", features = ["chip-ws63"] }
+hisi-rf = { version = "=0.1.0-alpha.68", features = ["chip-ws63"] }
 hisi-hal = { version = "0.7.0-alpha.3", features = ["chip-ws63", "unstable"] }
 hisi-riscv-rt = { version = "0.5.7", default-features = false, features = [
     "chip-ws63",
