@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.69] - 2026-07-30
+
+### Fixed
+
+- Track the WS63 resource-report v8 schema in the public diagnostics contract.
+- Exercise the complete WPA2 facade in host tests so feature-gated diagnostics
+  cannot silently lose test coverage.
+
 ## [0.1.0-alpha.68] - 2026-07-30
 
 ### Changed
@@ -784,7 +792,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.65...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.69...HEAD
+[0.1.0-alpha.69]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.68...v0.1.0-alpha.69
+[0.1.0-alpha.68]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.67...v0.1.0-alpha.68
+[0.1.0-alpha.67]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.66...v0.1.0-alpha.67
+[0.1.0-alpha.66]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.65...v0.1.0-alpha.66
 [0.1.0-alpha.65]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.64...v0.1.0-alpha.65
 [0.1.0-alpha.64]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.63...v0.1.0-alpha.64
 [0.1.0-alpha.55]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.54...v0.1.0-alpha.55

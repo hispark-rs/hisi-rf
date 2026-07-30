@@ -166,7 +166,7 @@ mod tests {
             hisi_rf_ws63::SelectedProfile,
             { crate::EVENT_CAPACITY },
         >();
-        assert_eq!(report.schema, "hisi-rf-resource-report/v6");
+        assert_eq!(report.schema, "hisi-rf-resource-report/v8");
     }
 
     #[cfg(feature = "incremental-embassy-wait")]

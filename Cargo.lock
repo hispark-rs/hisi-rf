@@ -500,7 +500,7 @@ dependencies = [
 
 [[package]]
 name = "hisi-rf"
-version = "0.1.0-alpha.68"
+version = "0.1.0-alpha.69"
 dependencies = [
  "hisi-hal",
  "hisi-rf-core",
