@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.73] - 2026-08-03
+
+### Fixed
+
+- Update the exact WS63 backend dependency to `hisi-rf-ws63
+  0.1.0-alpha.63`, which accounts for the budgeted worker's control state in
+  the complete SRAM envelope and reserves its 8 KiB stack separately from the
+  seven 24 KiB vendor stacks.
+
 ## [0.1.0-alpha.72] - 2026-08-03
 
 ### Changed
@@ -821,7 +830,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.72...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.73...HEAD
+[0.1.0-alpha.73]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.72...v0.1.0-alpha.73
 [0.1.0-alpha.72]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.71...v0.1.0-alpha.72
 [0.1.0-alpha.71]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.70...v0.1.0-alpha.71
 [0.1.0-alpha.70]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.69...v0.1.0-alpha.70
