@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.72] - 2026-08-03
+
+### Changed
+
+- Update the exact WS63 backend dependency to `hisi-rf-ws63
+  0.1.0-alpha.62`. The opt-in incremental Embassy path now moves synchronous
+  vendor work into a caller-owned RTOS worker with an explicit periodic CPU
+  quota; the existing direct backend remains the default until repeated HIL
+  calibrates the worker profile.
+
 ## [0.1.0-alpha.71] - 2026-08-02
 
 ### Fixed
@@ -811,7 +821,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.71...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.72...HEAD
+[0.1.0-alpha.72]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.71...v0.1.0-alpha.72
 [0.1.0-alpha.71]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.70...v0.1.0-alpha.71
 [0.1.0-alpha.70]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.69...v0.1.0-alpha.70
 [0.1.0-alpha.69]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.68...v0.1.0-alpha.69
