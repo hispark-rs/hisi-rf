@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.74] - 2026-08-03
+
+### Fixed
+
+- Update the exact WS63 backend dependency to `hisi-rf-ws63
+  0.1.0-alpha.64`. The incremental composition now keeps its Rust worker slot
+  separate from the seven-slot vendor bootstrap admission, avoiding a false
+  `8 required, 7 available` initialization failure on silicon.
+
 ## [0.1.0-alpha.73] - 2026-08-03
 
 ### Fixed
@@ -830,7 +839,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.73...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.74...HEAD
+[0.1.0-alpha.74]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.73...v0.1.0-alpha.74
 [0.1.0-alpha.73]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.72...v0.1.0-alpha.73
 [0.1.0-alpha.72]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.71...v0.1.0-alpha.72
 [0.1.0-alpha.71]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.70...v0.1.0-alpha.71
