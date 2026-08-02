@@ -15,11 +15,11 @@ dependencies = [
 
 [[package]]
 name = "ar_archive_writer"
-version = "0.5.2"
+version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4087686b4b0a3427190bae57a1d9a478dbb2d40c5dc1bd6e2b6d797913bdd348"
+checksum = "73cd58deff2140a0a8eae87e417bd01db68a33e148aa93d1e8cd837e55e312b6"
 dependencies = [
- "object",
+ "object 0.39.1",
 ]
 
 [[package]]
@@ -500,7 +500,7 @@ dependencies = [
 
 [[package]]
 name = "hisi-rf"
-version = "0.1.0-alpha.70"
+version = "0.1.0-alpha.71"
 dependencies = [
  "hisi-hal",
  "hisi-rf-core",
@@ -510,9 +510,9 @@ dependencies = [
 
 [[package]]
 name = "hisi-rf-core"
-version = "0.1.0-alpha.19"
+version = "0.1.0-alpha.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b27d23daabe30201521d83cbfdac3945126379d0f17003551da7a2e96e9face"
+checksum = "3119b879f2b0a346ab4e101054151b55ceb84a7cd73aafc185a07ce485de8bfe"
 dependencies = [
  "embassy-sync",
  "portable-atomic",
@@ -536,9 +536,9 @@ dependencies = [
 
 [[package]]
 name = "hisi-rf-ws63"
-version = "0.1.0-alpha.60"
+version = "0.1.0-alpha.61"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2150f4236dff9afa9833c870c6ba29af47367bc8210904dccc54286b13fa326"
+checksum = "2705b4bb4d2a4890cc47d8dde84c3007d40d0ad368f23ca171dafd1c1a4fd702"
 dependencies = [
  "ar_archive_writer",
  "critical-section",
@@ -552,7 +552,7 @@ dependencies = [
  "hisi-rf-core",
  "hisi-rf-rtos-driver",
  "hisi-storage",
- "object",
+ "object 0.37.3",
  "portable-atomic",
  "smoltcp",
  "static_cell",
@@ -721,6 +721,15 @@ dependencies = [
  "crc32fast",
  "hashbrown 0.15.5",
  "indexmap",
+ "memchr",
+]
+
+[[package]]
+name = "object"
+version = "0.39.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2e5a6c098c7a3b6547378093f5cc30bc54fd361ce711e05293a5cc589562739b"
+dependencies = [
  "memchr",
 ]
 
@@ -1125,7 +1134,7 @@ checksum = "e13276cb442ce837fee466b560f797a6c879174eafd7d4264d13ab67e5b9eb9b"
 dependencies = [
  "hisi-rf-link",
  "hisi-rom-sys-ws63",
- "object",
+ "object 0.37.3",
  "serde",
  "sha2",
  "toml",

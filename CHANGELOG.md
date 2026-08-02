@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.71] - 2026-08-02
+
+### Fixed
+
+- Update the exact core and WS63 backend dependencies so incremental radio
+  operations remain owned after a synchronous backend turn exceeds its elapsed
+  time grant. The overrun is reported as budget exhaustion while later
+  completion events remain attributable to the active operation.
+
 ## [0.1.0-alpha.70] - 2026-07-30
 
 ### Changed
