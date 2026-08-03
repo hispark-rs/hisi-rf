@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.81] - 2026-08-03
+
+### Added
+
+- Add a mutually exclusive `profile-wifi-wpa3-softap` facade profile backed
+  by the pinned upstream hostapd SAE authenticator and typed WS63 PKE resource.
+
+### Fixed
+
+- Update the exact WS63 backend dependency to `hisi-rf-ws63
+  0.1.0-alpha.69` so the public dependency graph selects one radio sys crate.
+
 ## [0.1.0-alpha.80] - 2026-08-03
 
 ### Fixed

@@ -23,6 +23,8 @@ jobs:
         run: cargo check -Zbuild-std=core --locked --target riscv32imfc-unknown-none-elf --features chip-ws63
       - name: Check WS63 WPA2 SoftAP composition
         run: cargo check -Zbuild-std=core,alloc --locked --target riscv32imfc-unknown-none-elf --features chip-ws63,profile-wifi-wpa2-softap
+      - name: Check WS63 WPA3 SoftAP composition
+        run: cargo check -Zbuild-std=core,alloc --locked --target riscv32imfc-unknown-none-elf --features chip-ws63,profile-wifi-wpa3-softap
       - name: Check WS63 WPA2 incremental composition
         run: cargo check -Zbuild-std=core --locked --target riscv32imfc-unknown-none-elf --features chip-ws63,profile-wifi-wpa2-smoltcp,incremental-backend-experiment
       - name: Check WS63 WPA2 incremental Embassy wait composition
@@ -67,6 +69,14 @@ jobs:
             exit 1
           fi
           grep -E "select either the (WS63 SoftAP profile or one station profile|AP authenticator or STA supplicant target archive)" "${log}"
+      - name: Reject conflicting SoftAP security profiles
+        run: |
+          log="${RUNNER_TEMP}/hisi-rf-softap-conflict.log"
+          if cargo check --locked --features chip-ws63,profile-wifi-wpa2-softap,profile-wifi-wpa3-softap 2>"${log}"; then
+            echo "hisi-rf unexpectedly accepted conflicting SoftAP security profiles" >&2
+            exit 1
+          fi
+          grep -E "select exactly one (WS63 SoftAP|AP authenticator) security profile" "${log}"
       - name: Package the current published chip backend
         run: cargo package --locked --features chip-ws63
 
