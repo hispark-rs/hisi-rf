@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.79] - 2026-08-03
+
+### Added
+
+- Add the mutually exclusive `profile-wifi-wpa2-softap` composition and expose
+  the WS63 caller-owned AP resources through `hisi_rf::ws63`, so applications
+  no longer depend directly on the chip backend crate.
+
 ## [0.1.0-alpha.78] - 2026-08-03
 
 ### Fixed

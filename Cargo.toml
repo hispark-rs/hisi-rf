@@ -1,6 +1,6 @@
 [package]
 name = "hisi-rf"
-version = "0.1.0-alpha.78"
+version = "0.1.0-alpha.79"
 edition = "2024"
 rust-version = "1.91"
 authors = ["sanchuanhehe"]
@@ -53,6 +53,12 @@ wpa3-personal = ["wifi", "hisi-rf-ws63?/wpa3-personal"]
 # composition. The chip remains explicit so one profile never guesses hardware.
 profile-wifi-wpa2-smoltcp = ["wifi", "smoltcp", "wpa2-personal"]
 profile-wifi-wpa3-smoltcp = ["wifi", "smoltcp", "wpa3-personal"]
+# Native upstream hostapd WPA2 SoftAP composition. This role is intentionally
+# exclusive with station profiles because the target archives cannot coexist.
+profile-wifi-wpa2-softap = [
+    "smoltcp",
+    "hisi-rf-ws63/upstream-authenticator-wpa2",
+]
 
 [lints.rust]
 unsafe_op_in_unsafe_fn = "deny"

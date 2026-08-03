@@ -21,6 +21,8 @@ jobs:
       - run: cargo clippy --locked --all-targets --features chip-ws63,profile-wifi-wpa2-smoltcp -- -D warnings
       - name: Check feature-minimal WS63 composition
         run: cargo check -Zbuild-std=core --locked --target riscv32imfc-unknown-none-elf --features chip-ws63
+      - name: Check WS63 WPA2 SoftAP composition
+        run: cargo check -Zbuild-std=core,alloc --locked --target riscv32imfc-unknown-none-elf --features chip-ws63,profile-wifi-wpa2-softap
       - name: Check WS63 WPA2 incremental composition
         run: cargo check -Zbuild-std=core --locked --target riscv32imfc-unknown-none-elf --features chip-ws63,profile-wifi-wpa2-smoltcp,incremental-backend-experiment
       - name: Check WS63 WPA2 incremental Embassy wait composition
@@ -57,6 +59,14 @@ jobs:
             exit 1
           fi
           grep -E "select exactly one (WS63 )?Personal( security)? profile" "${log}"
+      - name: Reject mixed AP and STA target roles
+        run: |
+          log="${RUNNER_TEMP}/hisi-rf-role-conflict.log"
+          if cargo check --locked --features chip-ws63,profile-wifi-wpa2-softap,profile-wifi-wpa2-smoltcp 2>"${log}"; then
+            echo "hisi-rf unexpectedly accepted AP and STA target roles together" >&2
+            exit 1
+          fi
+          grep -F "select either the WS63 SoftAP profile or one station profile" "${log}"
       - name: Package the current published chip backend
         run: cargo package --locked --features chip-ws63
 

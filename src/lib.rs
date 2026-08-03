@@ -20,6 +20,12 @@ compile_error!("select exactly one chip feature, for example `chip-ws63`");
 compile_error!("select exactly one Personal security profile");
 
 #[cfg(all(
+    feature = "profile-wifi-wpa2-softap",
+    any(feature = "wpa2-personal", feature = "wpa3-personal")
+))]
+compile_error!("select either the WS63 SoftAP profile or one station profile");
+
+#[cfg(all(
     any(feature = "wpa2-personal", feature = "wpa3-personal"),
     not(feature = "smoltcp")
 ))]
@@ -48,6 +54,21 @@ pub type RadioRunner<B> = hisi_rf_core::RadioRunner<B, EVENT_CAPACITY>;
 pub type WifiController = hisi_rf_core::WifiController<EVENT_CAPACITY>;
 /// Wi-Fi control and data-plane parts for the selected public profile.
 pub type WifiParts<D> = hisi_rf_core::WifiParts<D, EVENT_CAPACITY>;
+
+/// WS63 WPA2 SoftAP composition selected through the public facade.
+///
+/// This module is mutually exclusive with the station-oriented `ws63` module
+/// below because each firmware image contains exactly one hostap target role.
+#[cfg(all(feature = "chip-ws63", feature = "profile-wifi-wpa2-softap"))]
+pub mod ws63 {
+    pub use hisi_rf_ws63::{
+        ACCESS_POINT_ARENA_BYTES, AccessPoint, AccessPointArenaStorage, AccessPointConfig,
+        AccessPointControlStorage, AccessPointDiagnostics, AccessPointInitError,
+        AccessPointNetworkDevice, AccessPointResources, AccessPointStorage,
+        InstalledAccessPointStorage, NativeAuthenticatorError, declare_access_point_storage,
+        init_access_point,
+    };
+}
 
 #[cfg(feature = "incremental-backend-experiment")]
 pub use hisi_rf_core::{
