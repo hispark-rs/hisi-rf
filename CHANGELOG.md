@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.76] - 2026-08-03
+
+### Fixed
+
+- Include the caller-owned RTOS scheduler arena in the plain-Cargo firmware
+  fixture so the final ELF proves the complete generated shared-arena report.
+- Update the exact WS63 backend and core dependencies for structured, atomic
+  resource admission.
+
 ## [0.1.0-alpha.75] - 2026-08-03
 
 ### Fixed

@@ -8,6 +8,12 @@ use hisi_riscv_rt::entry;
 hisi_rf::ws63::declare_radio_storage!(static RADIO_STORAGE);
 
 #[cfg(target_arch = "riscv32")]
+#[used]
+#[unsafe(link_section = ".hisi.shared-arena")]
+static RTOS_ARENA: hisi_rtos::SchedulerArena<{ hisi_rf::ws63::SELECTED_RUNTIME_ARENA_BYTES }> =
+    hisi_rtos::SchedulerArena::new();
+
+#[cfg(target_arch = "riscv32")]
 #[entry]
 fn main() -> ! {
     let peripherals = unsafe { hisi_hal::peripherals::Peripherals::steal() };
