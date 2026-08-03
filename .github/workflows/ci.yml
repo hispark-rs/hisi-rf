@@ -66,7 +66,7 @@ jobs:
             echo "hisi-rf unexpectedly accepted AP and STA target roles together" >&2
             exit 1
           fi
-          grep -F "select either the WS63 SoftAP profile or one station profile" "${log}"
+          grep -E "select either the (WS63 SoftAP profile or one station profile|AP authenticator or STA supplicant target archive)" "${log}"
       - name: Package the current published chip backend
         run: cargo package --locked --features chip-ws63
 
