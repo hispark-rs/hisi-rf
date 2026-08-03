@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.80] - 2026-08-03
+
+### Fixed
+
+- Complete the WS63 SoftAP facade by re-exporting its L2 network-device
+  diagnostics, so applications do not need a direct `hisi-rf-ws63`
+  dependency for AP traffic evidence.
+
 ## [0.1.0-alpha.79] - 2026-08-03
 
 ### Added

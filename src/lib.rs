@@ -66,7 +66,7 @@ pub mod ws63 {
         AccessPointControlStorage, AccessPointDiagnostics, AccessPointInitError,
         AccessPointNetworkDevice, AccessPointResources, AccessPointStorage,
         InstalledAccessPointStorage, NativeAuthenticatorError, declare_access_point_storage,
-        init_access_point,
+        init_access_point, netif, netif_smoltcp,
     };
 }
 
