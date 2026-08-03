@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.78] - 2026-08-03
+
+### Fixed
+
+- Update the exact WS63 backend dependency to `hisi-rf-ws63
+  0.1.0-alpha.68`, including the published SoftAP integration feature and the
+  shared STA/AP radio-arena resource contract.
+
 ## [0.1.0-alpha.77] - 2026-08-03
 
 ### Added
