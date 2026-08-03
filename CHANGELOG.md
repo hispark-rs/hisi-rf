@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.75] - 2026-08-03
+
+### Fixed
+
+- Re-export the selected profile's minimum task-stack setting and update the
+  exact WS63 backend dependency to `hisi-rf-ws63 0.1.0-alpha.65`. Applications
+  can now configure the RTOS for the 8 KiB incremental worker without reducing
+  the seven vendor tasks' explicit 24 KiB reservations.
+
 ## [0.1.0-alpha.74] - 2026-08-03
 
 ### Fixed
