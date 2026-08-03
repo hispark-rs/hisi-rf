@@ -82,6 +82,9 @@ pub mod ws63 {
     #[allow(deprecated)]
     pub use hisi_rf_ws63::SELECTED_TASK_STACK_ARENA_BYTES;
     pub use hisi_rf_ws63::declare_radio_arena;
+    #[cfg(target_arch = "riscv32")]
+    #[doc(hidden)]
+    pub use hisi_rf_ws63::upstream_supplicant_driver_event_diagnostic_snapshot;
     #[cfg(all(
         feature = "smoltcp",
         any(feature = "wpa2-personal", feature = "wpa3-personal")
@@ -104,7 +107,6 @@ pub mod ws63 {
     };
     #[doc(hidden)]
     pub use hisi_rf_ws63::{
-        upstream_supplicant_driver_event_diagnostic_snapshot,
         upstream_supplicant_eapol_diagnostic_snapshot,
         upstream_supplicant_event_diagnostic_snapshot,
     };
