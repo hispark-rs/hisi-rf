@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.77] - 2026-08-03
+
+### Added
+
+- Re-export the WS63 upstream-supplicant driver-event diagnostic snapshot
+  through the chip-selecting facade.
+
+### Fixed
+
+- Update the exact WS63 backend dependency to `hisi-rf-ws63
+  0.1.0-alpha.67`, including counted incremental wake delivery and the updated
+  radio ABI contract.
+- Keep the target-only low-level driver diagnostic out of host builds so the
+  machine-readable resource-report example remains portable.
+
 ## [0.1.0-alpha.76] - 2026-08-03
 
 ### Fixed
