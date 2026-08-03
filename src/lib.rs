@@ -16,6 +16,17 @@ mod ws63_diagnostics;
 #[cfg(not(feature = "chip-ws63"))]
 compile_error!("select exactly one chip feature, for example `chip-ws63`");
 
+#[cfg(all(
+    feature = "chip-ws63",
+    not(any(
+        feature = "profile-wifi-wpa2-smoltcp",
+        feature = "profile-wifi-wpa3-smoltcp",
+        feature = "profile-wifi-wpa2-softap",
+        feature = "profile-wifi-wpa3-softap"
+    ))
+))]
+compile_error!("select exactly one WS63 named profile, for example `profile-wifi-wpa2-smoltcp`");
+
 #[cfg(all(feature = "wpa2-personal", feature = "wpa3-personal"))]
 compile_error!("select exactly one Personal security profile");
 

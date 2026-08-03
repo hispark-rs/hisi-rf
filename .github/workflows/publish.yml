@@ -34,5 +34,5 @@ jobs:
           DRY: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry-run' || '' }}
         run: |
           set -euo pipefail
-          cargo package --locked --features chip-ws63
-          cargo publish --locked --features chip-ws63 --no-verify $DRY
+          cargo package --locked --features chip-ws63,profile-wifi-wpa2-smoltcp
+          cargo publish --locked --features chip-ws63,profile-wifi-wpa2-smoltcp --no-verify $DRY

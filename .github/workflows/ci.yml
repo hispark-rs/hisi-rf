@@ -19,8 +19,15 @@ jobs:
       - name: Test the complete WS63 WPA2 facade
         run: cargo test --locked --features chip-ws63,profile-wifi-wpa2-smoltcp
       - run: cargo clippy --locked --all-targets --features chip-ws63,profile-wifi-wpa2-smoltcp -- -D warnings
-      - name: Check feature-minimal WS63 composition
-        run: cargo check -Zbuild-std=core --locked --target riscv32imfc-unknown-none-elf --features chip-ws63
+      - name: Reject a missing named profile
+        run: |
+          log="${RUNNER_TEMP}/hisi-rf-missing-profile.log"
+          if cargo check -Zbuild-std=core --locked --target riscv32imfc-unknown-none-elf --features chip-ws63 2>"${log}"; then
+            echo "hisi-rf unexpectedly accepted chip-ws63 without a named profile" >&2
+            exit 1
+          fi
+          grep -F "select exactly one WS63 named profile" "${log}"
+          ! grep -E 'E0428|E0432|E0433|SelectedProfile' "${log}"
       - name: Check WS63 WPA2 SoftAP composition
         run: cargo check -Zbuild-std=core,alloc --locked --target riscv32imfc-unknown-none-elf --features chip-ws63,profile-wifi-wpa2-softap
       - name: Check WS63 WPA3 SoftAP composition
@@ -61,6 +68,7 @@ jobs:
             exit 1
           fi
           grep -E "select exactly one (WS63 )?Personal( security)? profile" "${log}"
+          ! grep -E 'E0428|E0432|E0433|SelectedProfile' "${log}"
       - name: Reject mixed AP and STA target roles
         run: |
           log="${RUNNER_TEMP}/hisi-rf-role-conflict.log"
@@ -78,7 +86,7 @@ jobs:
           fi
           grep -E "select exactly one (WS63 SoftAP|AP authenticator) security profile" "${log}"
       - name: Package the current published chip backend
-        run: cargo package --locked --features chip-ws63
+        run: cargo package --locked --features chip-ws63,profile-wifi-wpa2-smoltcp
 
   consumer-matrix:
     name: Consumer (${{ matrix.os }}, ${{ matrix.profile }})

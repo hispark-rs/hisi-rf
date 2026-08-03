@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.82] - 2026-08-04
+
+### Changed
+
+- Require a complete WS63 named profile whenever `chip-ws63` is selected. A
+  chip-only dependency now fails with an actionable example, and package and
+  publish verification use the complete WPA2-smoltcp composition.
+
 ## [0.1.0-alpha.81] - 2026-08-03
 
 ### Added
