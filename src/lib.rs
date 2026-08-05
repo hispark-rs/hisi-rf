@@ -99,6 +99,15 @@ pub mod ws63 {
         hardware_p256_curve_diagnostic_snapshot, hardware_p256_diagnostic_snapshot,
         hardware_p256_field_diagnostic_snapshot,
     };
+    #[doc(hidden)]
+    pub use hisi_rf_ws63::{
+        osal_queue::{
+            EventDiagnostic as OsalEventDiagnostic, event_diagnostics as osal_event_diagnostics,
+        },
+        osal_wait::{
+            WaitDiagnostic as OsalWaitDiagnostic, wait_diagnostics as osal_wait_diagnostics,
+        },
+    };
 }
 
 #[cfg(feature = "incremental-backend-experiment")]
@@ -159,6 +168,12 @@ pub mod ws63 {
     };
     #[doc(hidden)]
     pub use hisi_rf_ws63::{
+        osal_queue::{
+            EventDiagnostic as OsalEventDiagnostic, event_diagnostics as osal_event_diagnostics,
+        },
+        osal_wait::{
+            WaitDiagnostic as OsalWaitDiagnostic, wait_diagnostics as osal_wait_diagnostics,
+        },
         upstream_supplicant_eapol_diagnostic_snapshot,
         upstream_supplicant_event_diagnostic_snapshot,
     };
