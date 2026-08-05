@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.83] - 2026-08-06
+
+### Changed
+
+- Make both named WS63 station profiles select the bounded incremental runner
+  and Embassy wait bridge automatically. Applications no longer opt into an
+  implementation feature after selecting a complete profile.
+- Update the exact WS63 backend dependency to `hisi-rf-ws63
+  0.1.0-alpha.71` and remove the facade's blocking `WifiBackend`, controller,
+  runner, and migration alias surface. The chip backend retains an explicit
+  `legacy-blocking-backend` oracle for one migration cycle.
+- Keep the public WS63 lifecycle implementation-neutral as `RadioController`,
+  `RadioParts`, and `RadioRunner`; incremental backend type names remain inside
+  the chip composition.
+
 ## [0.1.0-alpha.82] - 2026-08-04
 
 ### Changed

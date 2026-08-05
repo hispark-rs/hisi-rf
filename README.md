@@ -8,16 +8,16 @@ an explicit `chip-*` feature.
 ```toml
 [dependencies]
 hisi-rf = {
-    version = "0.1.0-alpha.52",
+    version = "0.1.0-alpha.83",
     features = ["chip-ws63", "profile-wifi-wpa2-smoltcp"]
 }
 ```
 
-Chip repositories implement `WifiBackend`; applications drive TCP/IP through
-`embassy-net` or the optional `smoltcp::phy::Device` adapter. WS63 applications
-construct uniquely owned resources through `hisi_rf::ws63`; vendor archives,
-ROM symbols, schedulers, TLS, NVS formats, and image packaging remain outside
-the facade API. Application code should prefer the named
+Chip repositories implement the bounded radio backend; applications drive
+TCP/IP through `embassy-net` or the optional `smoltcp::phy::Device` adapter.
+WS63 applications construct uniquely owned resources through `hisi_rf::ws63`;
+vendor archives, ROM symbols, schedulers, TLS, NVS formats, and image packaging
+remain outside the facade API. Application code should prefer the named
 `profile-wifi-wpa2-smoltcp` or `profile-wifi-wpa3-smoltcp` composition. The
 orthogonal `wifi`/`smoltcp`/security features remain available for maintainer
 matrices. An Embassy Net profile will be added only with a working backend.
@@ -39,14 +39,26 @@ builder and lends the bounded control state to radio initialization. This
 temporal split preserves the real linker/runtime boundary without exposing two
 application-owned statics.
 
-The storage-bound controller then starts the mandatory runner and returns only
-the Wi-Fi control/L2 handles:
+The storage-bound controller splits into the Wi-Fi handles and the mandatory
+bounded runner:
 
 ```rust,ignore
 let (control, arena) = RADIO_STORAGE.install()?.into_init_parts();
 let resources = build_resources(arena);
-let mut wifi = hisi_rf::ws63::init(config, resources, control)?
-    .start_runner()?;
+let controller = hisi_rf::ws63::init(config, resources, control)?;
+let parts = controller.split(
+    hisi_rf::WorkBudget::try_new(8, 100_000).expect("non-zero work budget")
+);
+let hisi_rf::ws63::RadioParts { mut wifi, mut runner } = parts;
+
+// The application executor keeps this future alive for the radio lifetime.
+async fn run_radio(runner: &mut hisi_rf::ws63::RadioRunner) -> ! {
+    loop {
+        let ready = runner.wait_ready().await.expect("radio wait failed");
+        runner.run_once(ready).expect("radio runner failed");
+    }
+}
+
 let scan = wifi.controller.scan(scan_config, &mut results).await?;
 let station_mac = wifi.device.station_mac_address()
     .ok_or("station netif has not been initialized")?;

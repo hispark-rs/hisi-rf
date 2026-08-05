@@ -59,21 +59,13 @@ pub use hisi_rf_core::{
     DiagnosticTrace, DiagnosticTraceEntry, DiagnosticTraceKind, Error, EventDiagnostics,
     ManagementFrameProtection, OperationTimeout, Passphrase, PersonalSecurity, RadioConfig,
     RecoveryAction, SaePwe, ScanConfig, ScanOutcome, ScanResult, Security, Ssid, StationConfig,
-    WifiBackend, WifiConfig, WifiDevice, WifiEvent, WifiL2Capabilities,
+    WifiConfig, WifiDevice, WifiEvent, WifiL2Capabilities,
 };
 /// Event capacity selected by the public WS63 application profiles.
 pub const EVENT_CAPACITY: usize = 8;
 
-/// Chip-neutral controller for the selected public profile.
-pub type RadioController<B, D> = hisi_rf_core::RadioController<B, D, EVENT_CAPACITY>;
-/// Chip-neutral parts for the selected public profile.
-pub type RadioParts<B, D> = hisi_rf_core::RadioParts<B, D, EVENT_CAPACITY>;
-/// Chip-neutral runner for the selected public profile.
-pub type RadioRunner<B> = hisi_rf_core::RadioRunner<B, EVENT_CAPACITY>;
 /// Wi-Fi controller for the selected public profile.
 pub type WifiController = hisi_rf_core::WifiController<EVENT_CAPACITY>;
-/// Wi-Fi control and data-plane parts for the selected public profile.
-pub type WifiParts<D> = hisi_rf_core::WifiParts<D, EVENT_CAPACITY>;
 
 /// WS63 SoftAP composition selected through the public facade.
 ///
@@ -306,20 +298,6 @@ pub mod ws63 {
         }
     }
 
-    /// WS63 controller for the selected public profile.
-    pub struct RadioController(hisi_rf_ws63::RadioController<SelectedProfile, EVENT_CAPACITY>);
-
-    impl RadioController {
-        /// Start the mandatory backend runner and return fixed-profile Wi-Fi parts.
-        pub fn start_runner(self) -> Result<WifiParts, InitError> {
-            let parts = self.0.start_runner()?;
-            Ok(WifiParts {
-                controller: parts.controller,
-                device: parts.device,
-            })
-        }
-    }
-
     /// WS63 Wi-Fi parts for the selected public profile.
     pub struct WifiParts {
         /// Async control plane with profile-owned event capacity.
@@ -348,30 +326,16 @@ pub mod ws63 {
     }
 
     #[cfg(all(
-        not(feature = "incremental-backend-experiment"),
-        feature = "smoltcp",
-        any(feature = "wpa2-personal", feature = "wpa3-personal")
-    ))]
-    /// Initialize the selected WS63 public profile.
-    pub fn init(
-        config: crate::RadioConfig,
-        resources: Resources<SelectedProfile>,
-        storage: &'static Storage,
-    ) -> Result<RadioController, InitError> {
-        hisi_rf_ws63::init(config, resources, &storage.inner).map(RadioController)
-    }
-
-    #[cfg(all(
         feature = "incremental-backend-experiment",
         feature = "smoltcp",
         any(feature = "wpa2-personal", feature = "wpa3-personal")
     ))]
-    /// Incremental WS63 controller for the selected public profile.
+    /// WS63 controller for the selected public profile.
     #[cfg_attr(
         not(feature = "incremental-embassy-wait"),
         allow(dead_code, reason = "split is enabled by incremental-embassy-wait")
     )]
-    pub struct IncrementalRadioController(
+    pub struct RadioController(
         hisi_rf_ws63::IncrementalRadioController<SelectedProfile, EVENT_CAPACITY>,
     );
 
@@ -380,16 +344,16 @@ pub mod ws63 {
         feature = "smoltcp",
         any(feature = "wpa2-personal", feature = "wpa3-personal")
     ))]
-    impl IncrementalRadioController {
+    impl RadioController {
         /// Split into fixed-profile Wi-Fi parts and a bounded runner.
-        pub fn split(self, budget: crate::WorkBudget) -> IncrementalRadioParts {
+        pub fn split(self, budget: crate::WorkBudget) -> RadioParts {
             let parts = self.0.split(budget);
-            IncrementalRadioParts {
+            RadioParts {
                 wifi: WifiParts {
                     controller: parts.wifi.controller,
                     device: parts.wifi.device,
                 },
-                runner: IncrementalRadioRunner(parts.runner),
+                runner: RadioRunner(parts.runner),
             }
         }
     }
@@ -399,31 +363,13 @@ pub mod ws63 {
         feature = "smoltcp",
         any(feature = "wpa2-personal", feature = "wpa3-personal")
     ))]
-    /// Initialize the selected experimental incremental WS63 profile.
+    /// Initialize the selected bounded WS63 profile.
     pub fn init(
         config: crate::RadioConfig,
         resources: Resources<SelectedProfile>,
         storage: &'static Storage,
-    ) -> Result<IncrementalRadioController, InitError> {
-        hisi_rf_ws63::init_incremental(config, resources, &storage.inner)
-            .map(IncrementalRadioController)
-    }
-
-    /// Migration alias for the selected incremental initialization path.
-    #[cfg(all(
-        feature = "incremental-backend-experiment",
-        feature = "smoltcp",
-        any(feature = "wpa2-personal", feature = "wpa3-personal")
-    ))]
-    #[deprecated(since = "0.1.0-alpha.53", note = "use hisi_rf::ws63::init")]
-    pub fn init_incremental_after_blocking_bootstrap(
-        config: crate::RadioConfig,
-        resources: Resources<SelectedProfile>,
-        storage: &'static Storage,
-    ) -> Result<IncrementalRadioController, InitError> {
-        #[allow(deprecated)]
-        hisi_rf_ws63::init_incremental_after_blocking_bootstrap(config, resources, &storage.inner)
-            .map(IncrementalRadioController)
+    ) -> Result<RadioController, InitError> {
+        hisi_rf_ws63::init_incremental(config, resources, &storage.inner).map(RadioController)
     }
 
     #[cfg(all(
@@ -438,12 +384,12 @@ pub mod ws63 {
         feature = "smoltcp",
         any(feature = "wpa2-personal", feature = "wpa3-personal")
     ))]
-    /// Incremental WS63 parts for the selected public profile.
-    pub struct IncrementalRadioParts {
+    /// WS63 parts for the selected public profile.
+    pub struct RadioParts {
         /// Async Wi-Fi control and data plane.
         pub wifi: WifiParts,
         /// Bounded incremental runner.
-        pub runner: IncrementalRadioRunner,
+        pub runner: RadioRunner,
     }
 
     #[cfg(all(
@@ -451,7 +397,7 @@ pub mod ws63 {
         feature = "smoltcp",
         any(feature = "wpa2-personal", feature = "wpa3-personal")
     ))]
-    impl IncrementalRadioParts {
+    impl RadioParts {
         /// Capture runner, wait, event, backend, L2, and resource diagnostics.
         pub fn diagnostics(&self) -> RadioDiagnosticsSnapshot {
             self.wifi.diagnostics()
@@ -463,15 +409,15 @@ pub mod ws63 {
         feature = "smoltcp",
         any(feature = "wpa2-personal", feature = "wpa3-personal")
     ))]
-    /// Incremental WS63 runner for the selected public profile.
-    pub struct IncrementalRadioRunner(hisi_rf_ws63::IncrementalRadioRunner<EVENT_CAPACITY>);
+    /// Bounded WS63 runner for the selected public profile.
+    pub struct RadioRunner(hisi_rf_ws63::IncrementalRadioRunner<EVENT_CAPACITY>);
 
     #[cfg(all(
         feature = "incremental-embassy-wait",
         feature = "smoltcp",
         any(feature = "wpa2-personal", feature = "wpa3-personal")
     ))]
-    impl IncrementalRadioRunner {
+    impl RadioRunner {
         /// Advance at most one bounded driver action.
         pub fn run_once(
             &mut self,
@@ -544,7 +490,7 @@ macro_rules! declare_radio_storage {
 mod tests {
     type TestProfile = super::ws63::SelectedProfile;
     type TestStorage = super::ws63::Storage;
-    type TestController = super::ws63::IncrementalRadioController;
+    type TestController = super::ws63::RadioController;
     type TestInit = fn(
         super::RadioConfig,
         super::ws63::Resources<TestProfile>,
@@ -552,7 +498,7 @@ mod tests {
     ) -> Result<TestController, super::ws63::InitError>;
 
     #[test]
-    fn facade_exposes_the_explicit_ws63_incremental_lifecycle() {
+    fn facade_exposes_the_bounded_ws63_lifecycle() {
         let _: TestInit = super::ws63::init;
         let _: Option<super::IncrementalRunnerDiagnostics> = None;
         let _: Option<super::ws63::DhcpDiagnostics> = None;
