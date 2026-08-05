@@ -500,9 +500,9 @@ dependencies = [
 
 [[package]]
 name = "hisi-rf"
-version = "0.1.0-alpha.82"
+version = "0.1.0-alpha.83"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "18e4cde1563720ac27fc844d4e5d1cb0e0c2a490e69548fd31ff0219b08edac7"
+checksum = "a8a01af5db0033c069371035075c88843a69718e868dfb2678aa2a2aa8d43e0f"
 dependencies = [
  "hisi-rf-core",
  "hisi-rf-ws63",
@@ -536,9 +536,9 @@ dependencies = [
 
 [[package]]
 name = "hisi-rf-ws63"
-version = "0.1.0-alpha.70"
+version = "0.1.0-alpha.71"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b7489c841b99faf5fff6e66d6d8491a12d006bf14b6e5355393007c91e84cccf"
+checksum = "0e6f6faf3434521fee5631d14b0dfb80c582a1f6cb18cbe8f3cc7411abeea1ba"
 dependencies = [
  "ar_archive_writer",
  "critical-section",
