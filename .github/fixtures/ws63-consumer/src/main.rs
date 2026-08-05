@@ -43,26 +43,24 @@ fn check_ws63_blocking_backend_metrics() {
 
 #[allow(dead_code)]
 fn check_opaque_ws63_composition(controller: hisi_rf::ws63::RadioController) {
-    let result: Result<hisi_rf::ws63::WifiParts, hisi_rf::ws63::InitError> =
-        controller.start_runner();
-    if let Err(error) = result {
-        let _opaque_error_contract = (error.kind(), error.diagnostic());
-    }
+    let budget = hisi_rf::WorkBudget::try_new(4, 100).expect("non-zero work budget");
+    let _parts: hisi_rf::ws63::RadioParts = controller.split(budget);
 }
 
 #[cfg(not(feature = "incremental-contract"))]
 #[allow(dead_code)]
 fn check_unified_blocking_diagnostics(parts: &hisi_rf::ws63::WifiParts) {
     let snapshot: hisi_rf::ws63::RadioDiagnosticsSnapshot = parts.diagnostics();
-    let runner = match snapshot.runner {
-        hisi_rf::ws63::RunnerDiagnosticsSnapshot::Blocking(runner) => runner,
+    let run_once_calls = match snapshot.runner {
+        hisi_rf::ws63::RunnerDiagnosticsSnapshot::Blocking(runner) => runner.run_once_calls,
+        hisi_rf::ws63::RunnerDiagnosticsSnapshot::Incremental(runner) => runner.run_once_calls,
     };
     let _secret_free_contract = (
         snapshot.schema,
         snapshot.error_schema,
         snapshot.resources.schema,
         snapshot.resources.profile_revision,
-        runner.run_once_calls,
+        run_once_calls,
         snapshot.control.command_queue_pending,
         snapshot.wait.active,
         snapshot.events.dropped,
