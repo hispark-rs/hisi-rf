@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.84] - 2026-08-06
+
+### Changed
+
+- Update the exact WS63 backend dependency to `hisi-rf-ws63
+  0.1.0-alpha.72`, preserving the bounded Wi-Fi facade while aligning the
+  dependency graph with the published BLE B0 radio artifact contract.
+
 ## [0.1.0-alpha.83] - 2026-08-06
 
 ### Changed
