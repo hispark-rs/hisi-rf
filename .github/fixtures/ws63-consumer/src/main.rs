@@ -96,6 +96,7 @@ hisi_rf::ws63::declare_radio_storage!(static RADIO_STORAGE);
 #[cfg(feature = "incremental-contract")]
 #[allow(dead_code)]
 fn check_incremental_contract<B: hisi_rf::IncrementalWifiBackend>(backend: B) {
+    let _platform = ExternalWaitPlatform;
     let budget = hisi_rf::WorkBudget::try_new(4, 100).expect("non-zero work budget");
     let _driver = hisi_rf::IncrementalBackendDriver::new(backend, budget);
     let sequence = hisi_rf::CommandSequence::try_from_raw(1).expect("non-zero sequence");
@@ -128,31 +129,7 @@ impl hisi_rf::IncrementalWaitPlatform for ExternalWaitPlatform {
 
 #[cfg(feature = "incremental-contract")]
 #[allow(dead_code)]
-fn check_incremental_facade<B, D>(radio: hisi_rf::RadioController<B, D>)
-where
-    B: hisi_rf::IncrementalWifiBackend,
-{
-    let budget = hisi_rf::WorkBudget::try_new(4, 100).expect("non-zero work budget");
-    let parts = radio.split_incremental(budget);
-    let intent: hisi_rf::IncrementalWaitIntent = parts.runner.wait_intent();
-    let _platform_wait_contract = (
-        intent.sources(),
-        intent.deadline_us(),
-        intent.run_immediately(),
-    );
-    let mut platform = ExternalWaitPlatform;
-    let _wait = parts.runner.wait_ready(&mut platform);
-    let diagnostics: hisi_rf::IncrementalRunnerDiagnostics = parts.runner.diagnostics();
-    let _observability_contract = (
-        diagnostics.run_once_calls,
-        diagnostics.wait_ready_calls,
-        diagnostics.operations_completed,
-    );
-}
-
-#[cfg(feature = "incremental-contract")]
-#[allow(dead_code)]
-fn check_ws63_incremental_facade(radio: hisi_rf::ws63::IncrementalRadioController) {
+fn check_ws63_incremental_facade(radio: hisi_rf::ws63::RadioController) {
     let budget = hisi_rf::WorkBudget::try_new(4, 100).expect("non-zero work budget");
     let mut parts = radio.split(budget);
     {
