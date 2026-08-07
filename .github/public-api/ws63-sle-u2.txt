@@ -31,9 +31,22 @@ pub use hisi_rf::WifiConfig
 pub use hisi_rf::WifiDevice
 pub use hisi_rf::WifiEvent
 pub use hisi_rf::WifiL2Capabilities
+pub use hisi_rf::sle
 pub mod hisi_rf::ws63
 pub macro hisi_rf::ws63::declare_radio_storage!
-pub struct hisi_rf::ws63::BleController
+pub enum hisi_rf::ws63::SleOperation
+pub hisi_rf::ws63::SleOperation::AnnounceRequested
+pub hisi_rf::ws63::SleOperation::SeekRequested
+pub enum hisi_rf::ws63::SleOperationErrorKind
+pub hisi_rf::ws63::SleOperationErrorKind::Enable
+pub hisi_rf::ws63::SleOperationErrorKind::LegacyStage
+pub hisi_rf::ws63::SleOperationErrorKind::SetAnnounceData
+pub hisi_rf::ws63::SleOperationErrorKind::SetAnnounceParameters
+pub hisi_rf::ws63::SleOperationErrorKind::SetSeekParameters
+pub hisi_rf::ws63::SleOperationErrorKind::StartAnnounce
+pub hisi_rf::ws63::SleOperationErrorKind::StartSeek
+pub hisi_rf::ws63::SleOperationErrorKind::UnsupportedConfiguration
+pub hisi_rf::ws63::SleOperationErrorKind::UnsupportedTarget
 pub struct hisi_rf::ws63::InitError
 pub struct hisi_rf::ws63::InstalledRadioStorage
 impl hisi_rf::ws63::InstalledRadioStorage
@@ -43,19 +56,42 @@ pub struct hisi_rf::ws63::RadioController
 impl hisi_rf::ws63::RadioController
 pub fn hisi_rf::ws63::RadioController::split(self) -> hisi_rf::ws63::RadioParts
 pub struct hisi_rf::ws63::RadioParts
-pub hisi_rf::ws63::RadioParts::ble: hisi_rf::ws63::BleController
 pub hisi_rf::ws63::RadioParts::runner: hisi_rf::ws63::RadioRunner
+pub hisi_rf::ws63::RadioParts::sle: hisi_rf::ws63::SleController
 pub struct hisi_rf::ws63::RadioRunner
 impl hisi_rf::ws63::RadioRunner
 pub fn hisi_rf::ws63::RadioRunner::dropped_events(&self) -> u32
+pub fn hisi_rf::ws63::RadioRunner::run_once(&mut self) -> core::result::Result<bool, hisi_rf::ProtocolError>
 pub struct hisi_rf::ws63::RadioStorage
 impl hisi_rf::ws63::RadioStorage
 pub fn hisi_rf::ws63::RadioStorage::install(&'static self) -> core::result::Result<hisi_rf::ws63::InstalledRadioStorage, hisi_rf::ws63::InitError>
 pub struct hisi_rf::ws63::Resources
 impl hisi_rf::ws63::Resources
 pub const fn hisi_rf::ws63::Resources::new(hisi_hal::peripherals::ws63_only::Efuse<'static>, hisi_hal::peripherals::ws63_only::Km<'static>, hisi_hal::peripherals::ws63_only::Spacc<'static>, hisi_hal::peripherals::Trng<'static>) -> Self
+pub struct hisi_rf::ws63::SleController
+impl hisi_rf::ws63::SleController
+pub fn hisi_rf::ws63::SleController::try_start_announce(&mut self, hisi_rf_core::sle::AnnounceConfig) -> core::result::Result<hisi_rf::ProtocolCommandId, hisi_rf::ProtocolBusy<hisi_rf_core::sle::AnnounceConfig>>
+pub fn hisi_rf::ws63::SleController::try_start_seek(&mut self, hisi_rf_core::sle::SeekConfig) -> core::result::Result<hisi_rf::ProtocolCommandId, hisi_rf::ProtocolBusy<hisi_rf_core::sle::SeekConfig>>
+pub fn hisi_rf::ws63::SleController::try_take_completion(&mut self) -> core::result::Result<core::option::Option<hisi_rf::ProtocolCompletion<hisi_rf::ws63::SleOperation, hisi_rf::ws63::SleOperationError>>, hisi_rf::ProtocolError>
+pub struct hisi_rf::ws63::SleOperationError
+impl hisi_rf::ws63::SleOperationError
+pub const fn hisi_rf::ws63::SleOperationError::kind(&self) -> hisi_rf::ws63::SleOperationErrorKind
+pub const fn hisi_rf::ws63::SleOperationError::vendor_status(&self) -> core::option::Option<u32>
 pub const hisi_rf::ws63::RADIO_ARENA_BYTES: usize
 pub fn hisi_rf::ws63::init(hisi_rf::ws63::Resources, hisi_rf::ws63::InstalledRadioStorage) -> core::result::Result<hisi_rf::ws63::RadioController, hisi_rf::ws63::InitError>
 pub macro hisi_rf::declare_radio_storage!
+pub enum hisi_rf::ProtocolError
+pub hisi_rf::ProtocolError::CompletionOwnership
+pub hisi_rf::ProtocolError::StaleCompletion
+pub struct hisi_rf::ProtocolBusy<T>
+impl<T> hisi_rf::ProtocolBusy<T>
+pub fn hisi_rf::ProtocolBusy<T>::into_inner(self) -> T
+pub struct hisi_rf::ProtocolCommandId(_)
+impl hisi_rf::ProtocolCommandId
+pub const fn hisi_rf::ProtocolCommandId::get(self) -> u32
+pub struct hisi_rf::ProtocolCompletion<T, E>
+impl<T, E> hisi_rf::ProtocolCompletion<T, E>
+pub const fn hisi_rf::ProtocolCompletion<T, E>::id(&self) -> hisi_rf::ProtocolCommandId
+pub fn hisi_rf::ProtocolCompletion<T, E>::into_result(self) -> core::result::Result<T, E>
 pub const hisi_rf::EVENT_CAPACITY: usize
 pub type hisi_rf::WifiController = hisi_rf_core::wifi::WifiController<EVENT_CAPACITY>

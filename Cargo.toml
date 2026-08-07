@@ -26,6 +26,9 @@ hisi-riscv-rt = { version = "0.5.8", default-features = false, features = [
 ] }
 hisi-rtos = "=0.1.0-alpha.24"
 
+[target.'cfg(not(target_arch = "riscv32"))'.dev-dependencies]
+critical-section = { version = "1", features = ["std"] }
+
 [features]
 default = []
 chip-ws63 = ["dep:hisi-rf-ws63"]
@@ -76,8 +79,8 @@ profile-wifi-wpa3-softap = [
     "smoltcp",
     "hisi-rf-ws63/upstream-authenticator-wpa3",
 ]
-# U1 composition previews. These establish the facade-owned lifecycle while
-# the U2-U4 typed control/event APIs remain under active development.
+# U2 composition previews. These establish facade-owned typed command
+# submission while asynchronous lifecycle events remain future U4 work.
 profile-ble-dual-role = ["ble"]
 profile-sle-ssap = ["sle"]
 

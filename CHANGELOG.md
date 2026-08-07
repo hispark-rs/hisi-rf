@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add the U2 bounded BLE/SLE control plane: typed advertising, scanning,
+  announce, and seek requests cross a one-command mailbox into the unique
+  `RadioRunner`; backpressure preserves request ownership and completions carry
+  generation-tagged correlation IDs.
+- Map synchronous WS63 host acceptance and rejection into typed operation
+  results without exposing backend stage types or treating acceptance as an
+  on-air lifecycle event.
+- Keep commands queued until the asynchronous BLE/SLE enable callback arrives;
+  readiness observation does not consume the future unsolicited event.
 - Add U1 BLE and SLE composition previews selected by
   `profile-ble-dual-role` and `profile-sle-ssap`. Both keep WS63 stage types,
   blob ABI, and RTOS-driver details behind facade-owned storage, resources,
