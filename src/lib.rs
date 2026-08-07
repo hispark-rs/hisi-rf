@@ -215,6 +215,32 @@ pub mod ws63 {
 
     /// Caller-owned bytes shared by the pinned BLE controller and host tasks.
     pub const RADIO_ARENA_BYTES: usize = hisi_rf_ws63::BLE_B1_ARENA_BYTES;
+    /// Smallest stack admitted by the pinned BLE task inventory.
+    #[cfg(feature = "u2-hil-diagnostics")]
+    #[doc(hidden)]
+    pub const MINIMUM_TASK_STACK_BYTES: usize = hisi_rf_ws63::BLE_B1_MINIMUM_TASK_STACK_BYTES;
+
+    /// Advertising payload used only by the paired U2 facade HIL fixture.
+    #[cfg(feature = "u2-hil-diagnostics")]
+    #[doc(hidden)]
+    pub const U2_HIL_PEER_PAYLOAD: &[u8] = &[
+        2, 0x01, 0x06, 8, 0x09, b'H', b'I', b'S', b'I', b'U', b'2', b'B',
+    ];
+
+    #[cfg(feature = "u2-hil-diagnostics")]
+    #[doc(hidden)]
+    pub use hisi_rf_ws63::set_log_sink;
+
+    /// Facade-owned lifecycle observations for the temporary U2 HIL gate.
+    #[cfg(feature = "u2-hil-diagnostics")]
+    #[doc(hidden)]
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub enum U2HilEvent {
+        AdvertisingStarted,
+        ScanReady,
+        PeerObserved,
+        BackendError { stage: u8, status: u32 },
+    }
 
     #[doc(hidden)]
     pub mod __private {
@@ -601,6 +627,42 @@ pub mod ws63 {
         pub fn run_once(&mut self) -> Result<bool, crate::ProtocolError> {
             run_ble_once(&mut self.receiver, &mut self.inner)
         }
+
+        /// Consume one backend lifecycle event for the temporary U2 HIL gate.
+        #[cfg(feature = "u2-hil-diagnostics")]
+        #[doc(hidden)]
+        pub fn next_hil_event(&mut self) -> Option<U2HilEvent> {
+            while let Some(event) = self.inner.next_event() {
+                use hisi_rf_ws63::BleB2Event as E;
+                let mapped = match event {
+                    E::AdvertisingData { status, .. } if status != 0 => {
+                        Some(U2HilEvent::BackendError { stage: 1, status })
+                    }
+                    E::AdvertisingParameters { status, .. } if status != 0 => {
+                        Some(U2HilEvent::BackendError { stage: 2, status })
+                    }
+                    E::AdvertisingState { status: 1, .. } => Some(U2HilEvent::AdvertisingStarted),
+                    E::ScanParameters { status: 0 } => Some(U2HilEvent::ScanReady),
+                    E::ScanParameters { status } => {
+                        Some(U2HilEvent::BackendError { stage: 3, status })
+                    }
+                    E::ScanResult { data_len, data, .. }
+                        if data[..usize::from(data_len).min(data.len())]
+                            == *U2_HIL_PEER_PAYLOAD =>
+                    {
+                        Some(U2HilEvent::PeerObserved)
+                    }
+                    E::Enabled { status } if status != 0 => {
+                        Some(U2HilEvent::BackendError { stage: 0, status })
+                    }
+                    _ => None,
+                };
+                if mapped.is_some() {
+                    return mapped;
+                }
+            }
+            None
+        }
     }
 
     /// Initialize the BLE-only WS63 composition.
@@ -752,6 +814,30 @@ pub mod ws63 {
 
     /// Caller-owned bytes shared by the pinned SLE controller and host tasks.
     pub const RADIO_ARENA_BYTES: usize = hisi_rf_ws63::SLE_S1_ARENA_BYTES;
+    /// Smallest stack admitted by the pinned SLE task inventory.
+    #[cfg(feature = "u2-hil-diagnostics")]
+    #[doc(hidden)]
+    pub const MINIMUM_TASK_STACK_BYTES: usize = hisi_rf_ws63::SLE_S1_MINIMUM_TASK_STACK_BYTES;
+
+    /// Announce payload used only by the paired U2 facade HIL fixture.
+    #[cfg(feature = "u2-hil-diagnostics")]
+    #[doc(hidden)]
+    pub const U2_HIL_PEER_PAYLOAD: &[u8] = &[1, 1, 1, 3, 2, 0x0b, 0x06];
+
+    #[cfg(feature = "u2-hil-diagnostics")]
+    #[doc(hidden)]
+    pub use hisi_rf_ws63::set_log_sink;
+
+    /// Facade-owned lifecycle observations for the temporary U2 HIL gate.
+    #[cfg(feature = "u2-hil-diagnostics")]
+    #[doc(hidden)]
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub enum U2HilEvent {
+        AnnounceStarted,
+        SeekReady,
+        PeerObserved,
+        BackendError { stage: u8, status: u32 },
+    }
 
     #[doc(hidden)]
     pub mod __private {
@@ -1146,6 +1232,39 @@ pub mod ws63 {
         /// single long-lived radio runner task.
         pub fn run_once(&mut self) -> Result<bool, crate::ProtocolError> {
             run_sle_once(&mut self.receiver, &mut self.inner)
+        }
+
+        /// Consume one backend lifecycle event for the temporary U2 HIL gate.
+        #[cfg(feature = "u2-hil-diagnostics")]
+        #[doc(hidden)]
+        pub fn next_hil_event(&mut self) -> Option<U2HilEvent> {
+            while let Some(event) = self.inner.next_event() {
+                use hisi_rf_ws63::SleS1Event as E;
+                let mapped = match event {
+                    E::AnnounceEnabled { status: 0, .. } => Some(U2HilEvent::AnnounceStarted),
+                    E::AnnounceEnabled { status, .. } => {
+                        Some(U2HilEvent::BackendError { stage: 1, status })
+                    }
+                    E::SeekEnabled { status: 0 } => Some(U2HilEvent::SeekReady),
+                    E::SeekEnabled { status } => {
+                        Some(U2HilEvent::BackendError { stage: 2, status })
+                    }
+                    E::SeekResult { data_len, data, .. }
+                        if data[..usize::from(data_len).min(data.len())]
+                            == *U2_HIL_PEER_PAYLOAD =>
+                    {
+                        Some(U2HilEvent::PeerObserved)
+                    }
+                    E::Enabled { status } if status != 0 => {
+                        Some(U2HilEvent::BackendError { stage: 0, status })
+                    }
+                    _ => None,
+                };
+                if mapped.is_some() {
+                    return mapped;
+                }
+            }
+            None
         }
     }
 

@@ -10,6 +10,26 @@ repository = "https://github.com/hispark-rs/hisi-rf"
 keywords = ["embedded", "no-std", "wifi", "radio", "hisilicon"]
 categories = ["embedded", "no-std", "network-programming"]
 
+[[example]]
+name = "ws63_ble_u2_advertise"
+path = "examples/ws63_ble_u2_advertise.rs"
+required-features = ["chip-ws63", "profile-ble-dual-role", "u2-hil-diagnostics"]
+
+[[example]]
+name = "ws63_ble_u2_scan"
+path = "examples/ws63_ble_u2_scan.rs"
+required-features = ["chip-ws63", "profile-ble-dual-role", "u2-hil-diagnostics"]
+
+[[example]]
+name = "ws63_sle_u2_announce"
+path = "examples/ws63_sle_u2_announce.rs"
+required-features = ["chip-ws63", "profile-sle-ssap", "u2-hil-diagnostics"]
+
+[[example]]
+name = "ws63_sle_u2_seek"
+path = "examples/ws63_sle_u2_seek.rs"
+required-features = ["chip-ws63", "profile-sle-ssap", "u2-hil-diagnostics"]
+
 [dependencies]
 hisi-rf-core = "=0.1.0-alpha.21"
 hisi-rf-ws63 = { version = "=0.1.0-alpha.74", optional = true, default-features = false }
@@ -17,6 +37,8 @@ hisi-hal = { version = "0.7.0-alpha.7", optional = true, features = ["chip-ws63"
 
 [target.'cfg(target_arch = "riscv32")'.dev-dependencies]
 hisi-hal = { version = "0.7.0-alpha.6", features = ["chip-ws63", "unstable"] }
+hisi-panic-handler = { version = "0.1.0", default-features = false, features = ["panic-uart0"] }
+hisi-rf-rtos-driver = "=0.1.0-alpha.19"
 hisi-riscv-rt = { version = "0.5.8", default-features = false, features = [
     "chip-ws63",
     "bundled-memory-x",
@@ -24,7 +46,7 @@ hisi-riscv-rt = { version = "0.5.8", default-features = false, features = [
     "ws63-bgle-32k",
     "ws63-radio-main-stack-32k",
 ] }
-hisi-rtos = "=0.1.0-alpha.24"
+hisi-rtos = { version = "=0.1.0-alpha.24", features = ["chip-ws63"] }
 
 [target.'cfg(not(target_arch = "riscv32"))'.dev-dependencies]
 critical-section = { version = "1", features = ["std"] }
@@ -83,6 +105,10 @@ profile-wifi-wpa3-softap = [
 # submission while asynchronous lifecycle events remain future U4 work.
 profile-ble-dual-role = ["ble"]
 profile-sle-ssap = ["sle"]
+# Maintainer-only facade lifecycle evidence. Normal applications and public API
+# snapshots do not select this migration feature; U4 will define the durable
+# asynchronous event contract.
+u2-hil-diagnostics = []
 
 [lints.rust]
 unsafe_op_in_unsafe_fn = "deny"
