@@ -36,9 +36,11 @@ pub mod hisi_rf::ws63
 pub macro hisi_rf::ws63::declare_radio_storage!
 pub enum hisi_rf::ws63::BleOperation
 pub hisi_rf::ws63::BleOperation::AdvertisingRequested
+pub hisi_rf::ws63::BleOperation::GattServerRegistered(hisi_rf::ws63::GattServerHandle)
 pub hisi_rf::ws63::BleOperation::ScanningRequested
 pub enum hisi_rf::ws63::BleOperationErrorKind
 pub hisi_rf::ws63::BleOperationErrorKind::Enable
+pub hisi_rf::ws63::BleOperationErrorKind::GattDatabase
 pub hisi_rf::ws63::BleOperationErrorKind::SetAdvertisingData
 pub hisi_rf::ws63::BleOperationErrorKind::SetAdvertisingParameters
 pub hisi_rf::ws63::BleOperationErrorKind::SetScanParameters
@@ -48,6 +50,7 @@ pub hisi_rf::ws63::BleOperationErrorKind::UnsupportedConfiguration
 pub hisi_rf::ws63::BleOperationErrorKind::UnsupportedTarget
 pub struct hisi_rf::ws63::BleController
 impl hisi_rf::ws63::BleController
+pub fn hisi_rf::ws63::BleController::try_register_gatt_server(&mut self, hisi_rf_core::ble::GattServerDefinition) -> core::result::Result<hisi_rf::ProtocolCommandId, hisi_rf::ProtocolBusy<hisi_rf_core::ble::GattServerDefinition>>
 pub fn hisi_rf::ws63::BleController::try_start_advertising(&mut self, hisi_rf_core::ble::AdvertisingConfig) -> core::result::Result<hisi_rf::ProtocolCommandId, hisi_rf::ProtocolBusy<hisi_rf_core::ble::AdvertisingConfig>>
 pub fn hisi_rf::ws63::BleController::try_start_scanning(&mut self, hisi_rf_core::ble::ScanConfig) -> core::result::Result<hisi_rf::ProtocolCommandId, hisi_rf::ProtocolBusy<hisi_rf_core::ble::ScanConfig>>
 pub fn hisi_rf::ws63::BleController::try_take_completion(&mut self) -> core::result::Result<core::option::Option<hisi_rf::ProtocolCompletion<hisi_rf::ws63::BleOperation, hisi_rf::ws63::BleOperationError>>, hisi_rf::ProtocolError>
@@ -55,6 +58,7 @@ pub struct hisi_rf::ws63::BleOperationError
 impl hisi_rf::ws63::BleOperationError
 pub const fn hisi_rf::ws63::BleOperationError::kind(&self) -> hisi_rf::ws63::BleOperationErrorKind
 pub const fn hisi_rf::ws63::BleOperationError::vendor_status(&self) -> core::option::Option<u32>
+pub struct hisi_rf::ws63::GattServerHandle
 pub struct hisi_rf::ws63::InitError
 pub struct hisi_rf::ws63::InstalledRadioStorage
 impl hisi_rf::ws63::InstalledRadioStorage

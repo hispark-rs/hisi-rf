@@ -193,13 +193,13 @@ pub mod ws63 {
     };
 }
 
-/// WS63 BLE U2 composition preview.
+/// WS63 BLE U3 composition preview.
 ///
 /// This profile establishes facade-owned storage, initialization, typed GAP
 /// command submission, and runner ownership. The returned completion means the
-/// WS63 host synchronously accepted or rejected the request; later U3/U4 work
-/// adds GATT and asynchronous lifecycle events. Applications must not bypass
-/// this facade to depend on the internal `BleB*` stage API.
+/// WS63 host synchronously accepted or rejected the request. Static typed GATT
+/// registration is supported; asynchronous lifecycle events remain U4 work.
+/// Applications must not bypass this facade to depend on internal stage APIs.
 #[cfg(all(feature = "chip-ws63", feature = "profile-ble-dual-role"))]
 pub mod ws63 {
     pub use crate::declare_radio_storage;
@@ -208,6 +208,7 @@ pub mod ws63 {
     pub enum BleCommand {
         StartAdvertising(crate::ble::AdvertisingConfig),
         StartScanning(crate::ble::ScanConfig),
+        RegisterGattServer(crate::ble::GattServerDefinition),
     }
 
     type BleControlState =
@@ -357,6 +358,8 @@ pub mod ws63 {
         SetScanParameters,
         /// The controller rejected the start-scan request.
         StartScanning,
+        /// The static GATT database could not be registered.
+        GattDatabase,
         /// The selected WS63 profile cannot represent this valid generic config.
         UnsupportedConfiguration,
         /// This operation is unavailable in a host-only build.
@@ -389,6 +392,17 @@ pub mod ws63 {
         AdvertisingRequested,
         /// The WS63 host accepted the start-scan request.
         ScanningRequested,
+        /// The static GATT database was registered and started.
+        GattServerRegistered(GattServerHandle),
+    }
+
+    /// Unforgeable facade handle for one registered static GATT server.
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub struct GattServerHandle {
+        server_id: u8,
+        service_handle: u16,
+        value_handle: u16,
+        ccc_handle: u16,
     }
 
     trait BleBackend {
@@ -401,6 +415,10 @@ pub mod ws63 {
             &mut self,
             config: crate::ble::ScanConfig,
         ) -> Result<(), BleOperationError>;
+        fn register_gatt_server(
+            &mut self,
+            definition: crate::ble::GattServerDefinition,
+        ) -> Result<GattServerHandle, BleOperationError>;
     }
 
     impl BleBackend for hisi_rf_ws63::BleB1Controller {
@@ -427,6 +445,20 @@ pub mod ws63 {
             config: crate::ble::ScanConfig,
         ) -> Result<(), BleOperationError> {
             self.start_scanning_config(config).map_err(map_ble_error)
+        }
+
+        fn register_gatt_server(
+            &mut self,
+            definition: crate::ble::GattServerDefinition,
+        ) -> Result<GattServerHandle, BleOperationError> {
+            self.register_gatt_server_definition(definition)
+                .map(|handles| GattServerHandle {
+                    server_id: handles.server_id,
+                    service_handle: handles.service_handle,
+                    value_handle: handles.value_handle,
+                    ccc_handle: handles.ccc_handle,
+                })
+                .map_err(map_ble_gatt_error)
         }
     }
 
@@ -459,6 +491,34 @@ pub mod ws63 {
         }
     }
 
+    fn map_ble_gatt_error(error: hisi_rf_ws63::BleB3Error) -> BleOperationError {
+        use hisi_rf_ws63::BleB3Error as E;
+        let (kind, vendor_status) = match error {
+            E::UnsupportedDatabase | E::ValueTooLong { .. } => {
+                (BleOperationErrorKind::UnsupportedConfiguration, None)
+            }
+            E::UnsupportedTarget => (BleOperationErrorKind::UnsupportedTarget, None),
+            E::RegisterServer(status)
+            | E::StopScanning(status)
+            | E::AddService(status)
+            | E::AddCharacteristic(status)
+            | E::AddDescriptor(status)
+            | E::StartService(status)
+            | E::RegisterClient(status)
+            | E::Connect(status)
+            | E::NotifyOrIndicate(status)
+            | E::DiscoverService(status)
+            | E::DiscoverCharacteristic(status)
+            | E::DiscoverDescriptor(status)
+            | E::Write(status)
+            | E::Disconnect(status) => (BleOperationErrorKind::GattDatabase, Some(status)),
+        };
+        BleOperationError {
+            kind,
+            vendor_status,
+        }
+    }
+
     fn execute_ble_command(
         backend: &mut impl BleBackend,
         command: BleCommand,
@@ -470,6 +530,9 @@ pub mod ws63 {
             BleCommand::StartScanning(config) => backend
                 .start_scanning(config)
                 .map(|()| BleOperation::ScanningRequested),
+            BleCommand::RegisterGattServer(definition) => backend
+                .register_gatt_server(definition)
+                .map(BleOperation::GattServerRegistered),
         }
     }
 
@@ -551,7 +614,9 @@ pub mod ws63 {
                 .map(crate::ProtocolCommandId)
                 .map_err(|error| match error.into_inner() {
                     BleCommand::StartAdvertising(config) => crate::ProtocolBusy { request: config },
-                    BleCommand::StartScanning(_) => unreachable!(),
+                    BleCommand::StartScanning(_) | BleCommand::RegisterGattServer(_) => {
+                        unreachable!()
+                    }
                 })
         }
 
@@ -569,7 +634,28 @@ pub mod ws63 {
                 .map(crate::ProtocolCommandId)
                 .map_err(|error| match error.into_inner() {
                     BleCommand::StartScanning(config) => crate::ProtocolBusy { request: config },
-                    BleCommand::StartAdvertising(_) => unreachable!(),
+                    BleCommand::StartAdvertising(_) | BleCommand::RegisterGattServer(_) => {
+                        unreachable!()
+                    }
+                })
+        }
+
+        /// Queue registration of one validated static GATT database.
+        pub fn try_register_gatt_server(
+            &mut self,
+            definition: crate::ble::GattServerDefinition,
+        ) -> Result<crate::ProtocolCommandId, crate::ProtocolBusy<crate::ble::GattServerDefinition>>
+        {
+            self.sender
+                .try_submit(BleCommand::RegisterGattServer(definition))
+                .map(crate::ProtocolCommandId)
+                .map_err(|error| match error.into_inner() {
+                    BleCommand::RegisterGattServer(definition) => crate::ProtocolBusy {
+                        request: definition,
+                    },
+                    BleCommand::StartAdvertising(_) | BleCommand::StartScanning(_) => {
+                        unreachable!()
+                    }
                 })
         }
 
@@ -689,6 +775,7 @@ pub mod ws63 {
         struct FakeBackend {
             advertising: usize,
             scanning: usize,
+            gatt_servers: usize,
             ready: bool,
             enable_error: Option<u32>,
             reject_scanning: bool,
@@ -727,6 +814,19 @@ pub mod ws63 {
                     Ok(())
                 }
             }
+
+            fn register_gatt_server(
+                &mut self,
+                _: crate::ble::GattServerDefinition,
+            ) -> Result<GattServerHandle, BleOperationError> {
+                self.gatt_servers += 1;
+                Ok(GattServerHandle {
+                    server_id: 1,
+                    service_handle: 2,
+                    value_handle: 3,
+                    ccc_handle: 4,
+                })
+            }
         }
 
         fn advertising() -> crate::ble::AdvertisingConfig {
@@ -745,6 +845,39 @@ pub mod ws63 {
                 crate::ble::ScanMode::Passive,
                 false,
             )
+        }
+
+        fn gatt_database() -> crate::ble::GattServerDefinition {
+            const CCC: crate::ble::GattDescriptorDefinition =
+                crate::ble::GattDescriptorDefinition::try_new(
+                    crate::ble::GattUuid::Uuid16(0x2902),
+                    crate::ble::GattPermissions::READ.union(crate::ble::GattPermissions::WRITE),
+                    &[0, 0],
+                    2,
+                )
+                .unwrap();
+            const CHARACTERISTIC: crate::ble::GattCharacteristicDefinition =
+                crate::ble::GattCharacteristicDefinition::try_new(
+                    crate::ble::GattUuid::Uuid16(0xcdef),
+                    crate::ble::GattPermissions::READ.union(crate::ble::GattPermissions::WRITE),
+                    crate::ble::GattProperties::READ.union(crate::ble::GattProperties::NOTIFY),
+                    b"U3",
+                    8,
+                    &[CCC],
+                )
+                .unwrap();
+            const SERVICE: crate::ble::GattServiceDefinition =
+                crate::ble::GattServiceDefinition::try_new(
+                    crate::ble::GattUuid::Uuid16(0xabcd),
+                    true,
+                    &[CHARACTERISTIC],
+                )
+                .unwrap();
+            crate::ble::GattServerDefinition::try_new(
+                crate::ble::GattUuid::Uuid16(0xb301),
+                &[SERVICE],
+            )
+            .unwrap()
         }
 
         #[test]
@@ -790,15 +923,43 @@ pub mod ws63 {
             assert_eq!(error.kind(), BleOperationErrorKind::Enable);
             assert_eq!(error.vendor_status(), Some(0x4321));
         }
+
+        #[test]
+        fn typed_gatt_database_crosses_only_the_facade_command_boundary() {
+            let state = Box::leak(Box::new(BleControlState::new()));
+            let (sender, mut receiver) = state.claim().unwrap();
+            let mut controller = BleController { sender };
+            let id = controller
+                .try_register_gatt_server(gatt_database())
+                .unwrap();
+            let mut backend = FakeBackend {
+                ready: true,
+                ..FakeBackend::default()
+            };
+            assert!(run_ble_once(&mut receiver, &mut backend).unwrap());
+            assert_eq!(backend.gatt_servers, 1);
+            let completion = controller.try_take_completion().unwrap().unwrap();
+            assert_eq!(completion.id(), id);
+            assert_eq!(
+                completion.into_result().unwrap(),
+                BleOperation::GattServerRegistered(GattServerHandle {
+                    server_id: 1,
+                    service_handle: 2,
+                    value_handle: 3,
+                    ccc_handle: 4,
+                })
+            );
+        }
     }
 }
 
-/// WS63 SLE U2 composition preview.
+/// WS63 SLE U3 composition preview.
 ///
 /// This profile establishes facade-owned storage, initialization, typed
 /// announce/seek command submission, and runner ownership. The returned
 /// completion means the WS63 host synchronously accepted or rejected the
-/// request; later U3/U4 work adds SSAP and asynchronous lifecycle events.
+/// request. Static typed SSAP registration is supported; asynchronous
+/// lifecycle events remain U4 work.
 #[cfg(all(feature = "chip-ws63", feature = "profile-sle-ssap"))]
 pub mod ws63 {
     pub use crate::declare_radio_storage;
@@ -807,6 +968,7 @@ pub mod ws63 {
     pub enum SleCommand {
         StartAnnounce(crate::sle::AnnounceConfig),
         StartSeek(crate::sle::SeekConfig),
+        RegisterSsapServer(crate::sle::SsapServerDefinition),
     }
 
     type SleControlState =
@@ -958,6 +1120,8 @@ pub mod ws63 {
         UnsupportedTarget,
         /// A legacy stage outside the U2 announce/seek surface rejected a request.
         LegacyStage,
+        /// The static SSAP database could not be registered.
+        SsapDatabase,
     }
 
     /// Fail-closed SLE command rejection with an optional vendor status.
@@ -986,6 +1150,16 @@ pub mod ws63 {
         AnnounceRequested,
         /// The WS63 host accepted the start-seek request.
         SeekRequested,
+        /// The static SSAP database was registered and started.
+        SsapServerRegistered(SsapServerHandle),
+    }
+
+    /// Unforgeable facade handle for one registered static SSAP server.
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub struct SsapServerHandle {
+        server_id: u8,
+        service_handle: u16,
+        property_handle: u16,
     }
 
     trait SleBackend {
@@ -995,6 +1169,10 @@ pub mod ws63 {
             config: crate::sle::AnnounceConfig,
         ) -> Result<(), SleOperationError>;
         fn start_seek(&mut self, config: crate::sle::SeekConfig) -> Result<(), SleOperationError>;
+        fn register_ssap_server(
+            &mut self,
+            definition: crate::sle::SsapServerDefinition,
+        ) -> Result<SsapServerHandle, SleOperationError>;
     }
 
     impl SleBackend for hisi_rf_ws63::SleS1Controller {
@@ -1018,6 +1196,19 @@ pub mod ws63 {
 
         fn start_seek(&mut self, config: crate::sle::SeekConfig) -> Result<(), SleOperationError> {
             self.start_seek_config(config).map_err(map_sle_error)
+        }
+
+        fn register_ssap_server(
+            &mut self,
+            definition: crate::sle::SsapServerDefinition,
+        ) -> Result<SsapServerHandle, SleOperationError> {
+            self.configure_ssap_server_definition(definition)
+                .map(|handles| SsapServerHandle {
+                    server_id: handles.server_id,
+                    service_handle: handles.service_handle,
+                    property_handle: handles.property_handle,
+                })
+                .map_err(map_sle_error)
         }
     }
 
@@ -1054,7 +1245,9 @@ pub mod ws63 {
             | E::DiscoverSsapServices(status)
             | E::ReadSsap(status)
             | E::WriteSsap(status) => (SleOperationErrorKind::LegacyStage, Some(status)),
-            E::SsapValueTooLong { .. } => (SleOperationErrorKind::LegacyStage, None),
+            E::UnsupportedDatabase | E::SsapValueTooLong { .. } => {
+                (SleOperationErrorKind::UnsupportedConfiguration, None)
+            }
         };
         SleOperationError {
             kind,
@@ -1073,6 +1266,9 @@ pub mod ws63 {
             SleCommand::StartSeek(config) => backend
                 .start_seek(config)
                 .map(|()| SleOperation::SeekRequested),
+            SleCommand::RegisterSsapServer(definition) => backend
+                .register_ssap_server(definition)
+                .map(SleOperation::SsapServerRegistered),
         }
     }
 
@@ -1157,7 +1353,7 @@ pub mod ws63 {
                 .map(crate::ProtocolCommandId)
                 .map_err(|error| match error.into_inner() {
                     SleCommand::StartAnnounce(config) => crate::ProtocolBusy { request: config },
-                    SleCommand::StartSeek(_) => unreachable!(),
+                    SleCommand::StartSeek(_) | SleCommand::RegisterSsapServer(_) => unreachable!(),
                 })
         }
 
@@ -1175,7 +1371,26 @@ pub mod ws63 {
                 .map(crate::ProtocolCommandId)
                 .map_err(|error| match error.into_inner() {
                     SleCommand::StartSeek(config) => crate::ProtocolBusy { request: config },
-                    SleCommand::StartAnnounce(_) => unreachable!(),
+                    SleCommand::StartAnnounce(_) | SleCommand::RegisterSsapServer(_) => {
+                        unreachable!()
+                    }
+                })
+        }
+
+        /// Queue registration of one validated static SSAP database.
+        pub fn try_register_ssap_server(
+            &mut self,
+            definition: crate::sle::SsapServerDefinition,
+        ) -> Result<crate::ProtocolCommandId, crate::ProtocolBusy<crate::sle::SsapServerDefinition>>
+        {
+            self.sender
+                .try_submit(SleCommand::RegisterSsapServer(definition))
+                .map(crate::ProtocolCommandId)
+                .map_err(|error| match error.into_inner() {
+                    SleCommand::RegisterSsapServer(definition) => crate::ProtocolBusy {
+                        request: definition,
+                    },
+                    SleCommand::StartAnnounce(_) | SleCommand::StartSeek(_) => unreachable!(),
                 })
         }
 
@@ -1292,6 +1507,7 @@ pub mod ws63 {
         struct FakeBackend {
             announce: usize,
             seek: usize,
+            ssap_servers: usize,
             ready: bool,
             enable_error: Option<u32>,
             reject_seek: bool,
@@ -1327,6 +1543,18 @@ pub mod ws63 {
                     Ok(())
                 }
             }
+
+            fn register_ssap_server(
+                &mut self,
+                _: crate::sle::SsapServerDefinition,
+            ) -> Result<SsapServerHandle, SleOperationError> {
+                self.ssap_servers += 1;
+                Ok(SsapServerHandle {
+                    server_id: 1,
+                    service_handle: 2,
+                    property_handle: 3,
+                })
+            }
         }
 
         fn announce() -> crate::sle::AnnounceConfig {
@@ -1345,6 +1573,38 @@ pub mod ws63 {
                 crate::sle::SeekTiming::try_new(interval, interval).unwrap(),
                 true,
             )
+        }
+
+        fn ssap_database() -> crate::sle::SsapServerDefinition {
+            const DESCRIPTOR: crate::sle::SsapDescriptorDefinition =
+                crate::sle::SsapDescriptorDefinition::try_new(
+                    crate::sle::SsapUuid::Uuid16(0x600d),
+                    crate::sle::SsapPermissions::READ,
+                    b"U3 descriptor",
+                    32,
+                )
+                .unwrap();
+            const PROPERTY: crate::sle::SsapPropertyDefinition =
+                crate::sle::SsapPropertyDefinition::try_new(
+                    crate::sle::SsapUuid::Uuid16(0x600c),
+                    crate::sle::SsapPermissions::READ.union(crate::sle::SsapPermissions::WRITE),
+                    crate::sle::SsapOperations::READ.union(crate::sle::SsapOperations::NOTIFY),
+                    b"U3",
+                    32,
+                    &[DESCRIPTOR],
+                )
+                .unwrap();
+            const SERVICE: crate::sle::SsapServiceDefinition =
+                crate::sle::SsapServiceDefinition::try_new(
+                    crate::sle::SsapUuid::Uuid16(0x600b),
+                    &[PROPERTY],
+                )
+                .unwrap();
+            crate::sle::SsapServerDefinition::try_new(
+                crate::sle::SsapUuid::Uuid16(0x600a),
+                &[SERVICE],
+            )
+            .unwrap()
         }
 
         #[test]
@@ -1389,6 +1649,32 @@ pub mod ws63 {
             let error = completion.into_result().unwrap_err();
             assert_eq!(error.kind(), SleOperationErrorKind::Enable);
             assert_eq!(error.vendor_status(), Some(0x8765));
+        }
+
+        #[test]
+        fn typed_ssap_database_crosses_only_the_facade_command_boundary() {
+            let state = Box::leak(Box::new(SleControlState::new()));
+            let (sender, mut receiver) = state.claim().unwrap();
+            let mut controller = SleController { sender };
+            let id = controller
+                .try_register_ssap_server(ssap_database())
+                .unwrap();
+            let mut backend = FakeBackend {
+                ready: true,
+                ..FakeBackend::default()
+            };
+            assert!(run_sle_once(&mut receiver, &mut backend).unwrap());
+            assert_eq!(backend.ssap_servers, 1);
+            let completion = controller.try_take_completion().unwrap().unwrap();
+            assert_eq!(completion.id(), id);
+            assert_eq!(
+                completion.into_result().unwrap(),
+                SleOperation::SsapServerRegistered(SsapServerHandle {
+                    server_id: 1,
+                    service_handle: 2,
+                    property_handle: 3,
+                })
+            );
         }
     }
 }

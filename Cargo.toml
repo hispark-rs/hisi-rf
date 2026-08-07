@@ -30,6 +30,16 @@ name = "ws63_sle_u2_seek"
 path = "examples/ws63_sle_u2_seek.rs"
 required-features = ["chip-ws63", "profile-sle-ssap", "u2-hil-diagnostics"]
 
+[[example]]
+name = "ws63_ble_u3_gatt_server"
+path = "examples/ws63_ble_u3_gatt_server.rs"
+required-features = ["chip-ws63", "profile-ble-dual-role", "u2-hil-diagnostics"]
+
+[[example]]
+name = "ws63_sle_u3_ssap_server"
+path = "examples/ws63_sle_u3_ssap_server.rs"
+required-features = ["chip-ws63", "profile-sle-ssap", "u2-hil-diagnostics"]
+
 [dependencies]
 hisi-rf-core = "=0.1.0-alpha.21"
 hisi-rf-ws63 = { version = "=0.1.0-alpha.74", optional = true, default-features = false }
@@ -101,8 +111,8 @@ profile-wifi-wpa3-softap = [
     "smoltcp",
     "hisi-rf-ws63/upstream-authenticator-wpa3",
 ]
-# U2 composition previews. These establish facade-owned typed command
-# submission while asynchronous lifecycle events remain future U4 work.
+# U3 composition previews. These add static typed GATT/SSAP databases while
+# asynchronous lifecycle and cancellation remain future U4 work.
 profile-ble-dual-role = ["ble"]
 profile-sle-ssap = ["sle"]
 # Maintainer-only facade lifecycle evidence. Normal applications and public API
