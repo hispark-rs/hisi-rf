@@ -23,7 +23,7 @@ hisi-riscv-rt = { version = "0.5.7", default-features = false, features = [
     "ws63-bgle-32k",
     "ws63-radio-main-stack-32k",
 ] }
-hisi-rtos = "=0.1.0-alpha.19"
+hisi-rtos = "=0.1.0-alpha.24"
 
 [features]
 default = []
