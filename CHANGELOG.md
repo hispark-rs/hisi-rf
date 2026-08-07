@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add U1 BLE and SLE composition previews selected by
+  `profile-ble-dual-role` and `profile-sle-ssap`. Both keep WS63 stage types,
+  blob ABI, and RTOS-driver details behind facade-owned storage, resources,
+  `RadioController`, protocol parts, and `RadioRunner` ownership.
+- Extend the public-API and feature-conflict gates to freeze both migration
+  profiles without claiming the future typed control/event API is complete.
+
 ## [0.1.0-alpha.86] - 2026-08-07
 
 ### Changed

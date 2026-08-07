@@ -42,6 +42,14 @@ jobs:
         run: cargo check -Zbuild-std=core --locked --target riscv32imfc-unknown-none-elf --features chip-ws63,profile-wifi-wpa2-smoltcp
       - name: Check WS63 WPA3 composition
         run: cargo check -Zbuild-std=core --locked --target riscv32imfc-unknown-none-elf --features chip-ws63,profile-wifi-wpa3-smoltcp
+      - name: Check WS63 BLE U1 composition
+        run: cargo check -Zbuild-std=core,alloc --locked --target riscv32imfc-unknown-none-elf --features chip-ws63,profile-ble-dual-role
+      - name: Test WS63 BLE U1 facade ownership
+        run: cargo test --locked --target x86_64-unknown-linux-gnu --test radio_u1_contract --features chip-ws63,profile-ble-dual-role
+      - name: Check WS63 SLE U1 composition
+        run: cargo check -Zbuild-std=core,alloc --locked --target riscv32imfc-unknown-none-elf --features chip-ws63,profile-sle-ssap
+      - name: Test WS63 SLE U1 facade ownership
+        run: cargo test --locked --target x86_64-unknown-linux-gnu --test radio_u1_contract --features chip-ws63,profile-sle-ssap
       - name: Build public facade documentation
         run: cargo doc --locked --features chip-ws63,profile-wifi-wpa2-smoltcp --no-deps
       - name: Check WPA2 dependency and public API boundaries
@@ -85,6 +93,14 @@ jobs:
             exit 1
           fi
           grep -E "select exactly one (WS63 SoftAP|AP authenticator) security profile" "${log}"
+      - name: Reject BLE and SLE profile coexistence before X0 proof
+        run: |
+          log="${RUNNER_TEMP}/hisi-rf-radio-profile-conflict.log"
+          if cargo check --locked --features chip-ws63,profile-ble-dual-role,profile-sle-ssap 2>"${log}"; then
+            echo "hisi-rf unexpectedly accepted unproven BLE/SLE coexistence" >&2
+            exit 1
+          fi
+          grep -E "(the BLE migration profile must be the only selected radio profile|select exactly one standalone WS63 BGLE protocol profile)" "${log}"
       - name: Package the current published chip backend
         run: cargo package --locked --features chip-ws63,profile-wifi-wpa2-smoltcp
 

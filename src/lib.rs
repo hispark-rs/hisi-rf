@@ -22,10 +22,35 @@ compile_error!("select exactly one chip feature, for example `chip-ws63`");
         feature = "profile-wifi-wpa2-smoltcp",
         feature = "profile-wifi-wpa3-smoltcp",
         feature = "profile-wifi-wpa2-softap",
-        feature = "profile-wifi-wpa3-softap"
+        feature = "profile-wifi-wpa3-softap",
+        feature = "profile-ble-dual-role",
+        feature = "profile-sle-ssap"
     ))
 ))]
 compile_error!("select exactly one WS63 named profile, for example `profile-wifi-wpa2-smoltcp`");
+
+#[cfg(all(
+    feature = "profile-ble-dual-role",
+    any(
+        feature = "profile-sle-ssap",
+        feature = "profile-wifi-wpa2-smoltcp",
+        feature = "profile-wifi-wpa3-smoltcp",
+        feature = "profile-wifi-wpa2-softap",
+        feature = "profile-wifi-wpa3-softap"
+    )
+))]
+compile_error!("the BLE migration profile must be the only selected radio profile");
+
+#[cfg(all(
+    feature = "profile-sle-ssap",
+    any(
+        feature = "profile-wifi-wpa2-smoltcp",
+        feature = "profile-wifi-wpa3-smoltcp",
+        feature = "profile-wifi-wpa2-softap",
+        feature = "profile-wifi-wpa3-softap"
+    )
+))]
+compile_error!("the SLE migration profile must be the only selected radio profile");
 
 #[cfg(all(feature = "wpa2-personal", feature = "wpa3-personal"))]
 compile_error!("select exactly one Personal security profile");
@@ -100,6 +125,314 @@ pub mod ws63 {
             WaitDiagnostic as OsalWaitDiagnostic, wait_diagnostics as osal_wait_diagnostics,
         },
     };
+}
+
+/// WS63 BLE U1 composition preview.
+///
+/// This profile establishes facade-owned storage, initialization, protocol
+/// handle, and runner ownership. U2-U4 will add the typed GAP/GATT control and
+/// event contracts; applications must not bypass this facade to depend on the
+/// internal `BleB*` stage API.
+#[cfg(all(feature = "chip-ws63", feature = "profile-ble-dual-role"))]
+pub mod ws63 {
+    pub use crate::declare_radio_storage;
+
+    /// Caller-owned bytes shared by the pinned BLE controller and host tasks.
+    pub const RADIO_ARENA_BYTES: usize = hisi_rf_ws63::BLE_B1_ARENA_BYTES;
+
+    #[doc(hidden)]
+    pub mod __private {
+        pub use hisi_rf_ws63::{BleB1ArenaStorage as ArenaStorage, BleB1ControlStorage};
+    }
+
+    /// Caller-owned BLE composition storage.
+    pub struct RadioStorage {
+        inner: hisi_rf_ws63::BleB1Storage<RADIO_ARENA_BYTES>,
+    }
+
+    impl RadioStorage {
+        /// Join the statically allocated control state and arena.
+        #[doc(hidden)]
+        pub const fn __from_parts(
+            control: &'static __private::BleB1ControlStorage,
+            arena: &'static __private::ArenaStorage<RADIO_ARENA_BYTES>,
+        ) -> Self {
+            Self {
+                inner: hisi_rf_ws63::BleB1Storage::from_parts(control, arena),
+            }
+        }
+
+        /// Claim and install this process-lifetime storage once.
+        pub fn install(&'static self) -> Result<InstalledRadioStorage, InitError> {
+            self.inner
+                .install()
+                .map(|inner| InstalledRadioStorage { inner })
+                .map_err(|_| InitError::new())
+        }
+    }
+
+    /// Installed BLE storage capability.
+    pub struct InstalledRadioStorage {
+        inner: hisi_rf_ws63::InstalledBleB1Storage,
+    }
+
+    impl InstalledRadioStorage {
+        /// Allocate one zeroed runtime object from the installed arena.
+        ///
+        /// # Safety
+        ///
+        /// The pointer must be returned only through [`Self::deallocate`].
+        pub unsafe fn allocate(size: usize) -> *mut u8 {
+            // SAFETY: this facade preserves the backend allocator contract.
+            unsafe { hisi_rf_ws63::InstalledBleB1Storage::allocate(size) }
+        }
+
+        /// Release an allocation from this composition.
+        ///
+        /// # Safety
+        ///
+        /// `pointer` must be null or a live allocation returned by
+        /// [`Self::allocate`] that has not already been released.
+        pub unsafe fn deallocate(pointer: *mut u8) {
+            // SAFETY: the caller upholds the backend deallocation contract.
+            unsafe { hisi_rf_ws63::InstalledBleB1Storage::deallocate(pointer) };
+        }
+    }
+
+    /// Uniquely owned HAL capabilities required by this BLE profile.
+    pub struct Resources {
+        inner: hisi_rf_ws63::BleB1Resources,
+    }
+
+    impl Resources {
+        /// Bind the WS63 eFuse and crypto peripherals to the radio lifecycle.
+        pub const fn new(
+            efuse: hisi_hal::peripherals::Efuse<'static>,
+            km: hisi_hal::peripherals::Km<'static>,
+            spacc: hisi_hal::peripherals::Spacc<'static>,
+            trng: hisi_hal::peripherals::Trng<'static>,
+        ) -> Self {
+            Self {
+                inner: hisi_rf_ws63::BleB1Resources::new(efuse, km, spacc, trng),
+            }
+        }
+    }
+
+    /// Opaque U1 initialization failure.
+    ///
+    /// U6 replaces this preview with the shared actionable error taxonomy.
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub struct InitError {
+        _private: (),
+    }
+
+    impl InitError {
+        const fn new() -> Self {
+            Self { _private: () }
+        }
+    }
+
+    /// Exclusive BLE composition before task ownership is split.
+    pub struct RadioController {
+        inner: hisi_rf_ws63::BleB1Controller,
+    }
+
+    impl RadioController {
+        /// Split the facade into the BLE handle and mandatory runner owner.
+        pub fn split(self) -> RadioParts {
+            RadioParts {
+                ble: BleController { _private: () },
+                runner: RadioRunner { inner: self.inner },
+            }
+        }
+    }
+
+    /// BLE protocol handle reserved for the U2-U4 typed control plane.
+    pub struct BleController {
+        _private: (),
+    }
+
+    /// Parts enabled by the BLE-only compile-time profile.
+    pub struct RadioParts {
+        /// BLE control-plane capability.
+        pub ble: BleController,
+        /// Mandatory owner of the WS63 controller/host runtime.
+        pub runner: RadioRunner,
+    }
+
+    /// Unique process-lifetime owner of the internal BLE stage controller.
+    pub struct RadioRunner {
+        inner: hisi_rf_ws63::BleB1Controller,
+    }
+
+    impl RadioRunner {
+        /// Number of copied vendor events rejected by the bounded backend queue.
+        pub fn dropped_events(&self) -> u32 {
+            self.inner.dropped_events()
+        }
+    }
+
+    /// Initialize the BLE-only WS63 composition.
+    pub fn init(
+        resources: Resources,
+        storage: InstalledRadioStorage,
+    ) -> Result<RadioController, InitError> {
+        hisi_rf_ws63::init_ble_b1(resources.inner, storage.inner)
+            .map(|inner| RadioController { inner })
+            .map_err(|_| InitError::new())
+    }
+}
+
+/// WS63 SLE U1 composition preview.
+///
+/// The runner owns the internal S1-S3 controller while future U2-U4 work adds
+/// chip-neutral announce, seek, connection, and SSAP handles.
+#[cfg(all(feature = "chip-ws63", feature = "profile-sle-ssap"))]
+pub mod ws63 {
+    pub use crate::declare_radio_storage;
+
+    /// Caller-owned bytes shared by the pinned SLE controller and host tasks.
+    pub const RADIO_ARENA_BYTES: usize = hisi_rf_ws63::SLE_S1_ARENA_BYTES;
+
+    #[doc(hidden)]
+    pub mod __private {
+        pub use hisi_rf_ws63::{SleS1ArenaStorage as ArenaStorage, SleS1ControlStorage};
+    }
+
+    /// Caller-owned SLE composition storage.
+    pub struct RadioStorage {
+        inner: hisi_rf_ws63::SleS1Storage<RADIO_ARENA_BYTES>,
+    }
+
+    impl RadioStorage {
+        /// Join the statically allocated control state and arena.
+        #[doc(hidden)]
+        pub const fn __from_parts(
+            control: &'static __private::SleS1ControlStorage,
+            arena: &'static __private::ArenaStorage<RADIO_ARENA_BYTES>,
+        ) -> Self {
+            Self {
+                inner: hisi_rf_ws63::SleS1Storage::from_parts(control, arena),
+            }
+        }
+
+        /// Claim and install this process-lifetime storage once.
+        pub fn install(&'static self) -> Result<InstalledRadioStorage, InitError> {
+            self.inner
+                .install()
+                .map(|inner| InstalledRadioStorage { inner })
+                .map_err(|_| InitError::new())
+        }
+    }
+
+    /// Installed SLE storage capability.
+    pub struct InstalledRadioStorage {
+        inner: hisi_rf_ws63::InstalledSleS1Storage,
+    }
+
+    impl InstalledRadioStorage {
+        /// Allocate one zeroed runtime object from the installed arena.
+        ///
+        /// # Safety
+        ///
+        /// The pointer must be returned only through [`Self::deallocate`].
+        pub unsafe fn allocate(size: usize) -> *mut u8 {
+            // SAFETY: this facade preserves the backend allocator contract.
+            unsafe { hisi_rf_ws63::InstalledSleS1Storage::allocate(size) }
+        }
+
+        /// Release an allocation from this composition.
+        ///
+        /// # Safety
+        ///
+        /// `pointer` must be null or a live allocation returned by
+        /// [`Self::allocate`] that has not already been released.
+        pub unsafe fn deallocate(pointer: *mut u8) {
+            // SAFETY: the caller upholds the backend deallocation contract.
+            unsafe { hisi_rf_ws63::InstalledSleS1Storage::deallocate(pointer) };
+        }
+    }
+
+    /// Uniquely owned HAL capabilities required by this SLE profile.
+    pub struct Resources {
+        inner: hisi_rf_ws63::SleS1Resources,
+    }
+
+    impl Resources {
+        /// Bind the WS63 eFuse and crypto peripherals to the radio lifecycle.
+        pub const fn new(
+            efuse: hisi_hal::peripherals::Efuse<'static>,
+            km: hisi_hal::peripherals::Km<'static>,
+            spacc: hisi_hal::peripherals::Spacc<'static>,
+            trng: hisi_hal::peripherals::Trng<'static>,
+        ) -> Self {
+            Self {
+                inner: hisi_rf_ws63::SleS1Resources::new(efuse, km, spacc, trng),
+            }
+        }
+    }
+
+    /// Opaque U1 initialization failure pending the U6 error taxonomy.
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub struct InitError {
+        _private: (),
+    }
+
+    impl InitError {
+        const fn new() -> Self {
+            Self { _private: () }
+        }
+    }
+
+    /// Exclusive SLE composition before task ownership is split.
+    pub struct RadioController {
+        inner: hisi_rf_ws63::SleS1Controller,
+    }
+
+    impl RadioController {
+        /// Split the facade into the SLE handle and mandatory runner owner.
+        pub fn split(self) -> RadioParts {
+            RadioParts {
+                sle: SleController { _private: () },
+                runner: RadioRunner { inner: self.inner },
+            }
+        }
+    }
+
+    /// SLE protocol handle reserved for the U2-U4 typed control plane.
+    pub struct SleController {
+        _private: (),
+    }
+
+    /// Parts enabled by the SLE-only compile-time profile.
+    pub struct RadioParts {
+        /// SLE control-plane capability.
+        pub sle: SleController,
+        /// Mandatory owner of the WS63 controller/host runtime.
+        pub runner: RadioRunner,
+    }
+
+    /// Unique process-lifetime owner of the internal SLE stage controller.
+    pub struct RadioRunner {
+        inner: hisi_rf_ws63::SleS1Controller,
+    }
+
+    impl RadioRunner {
+        /// Number of copied vendor events rejected by the bounded backend queue.
+        pub fn dropped_events(&self) -> u32 {
+            self.inner.dropped_events()
+        }
+    }
+
+    /// Initialize the SLE-only WS63 composition.
+    pub fn init(
+        resources: Resources,
+        storage: InstalledRadioStorage,
+    ) -> Result<RadioController, InitError> {
+        hisi_rf_ws63::init_sle_s1(resources.inner, storage.inner)
+            .map(|inner| RadioController { inner })
+            .map_err(|_| InitError::new())
+    }
 }
 
 #[cfg(feature = "incremental-backend-experiment")]
@@ -475,6 +808,42 @@ macro_rules! declare_radio_storage {
             static ARENA: $crate::ws63::__private::RadioArenaStorage<
                 { $crate::ws63::SELECTED_RF_ARENA_BYTES },
             > = $crate::ws63::__private::RadioArenaStorage::new();
+            $crate::ws63::RadioStorage::__from_parts(&CONTROL, &ARENA)
+        };
+    };
+}
+
+/// Declare caller-owned storage for the BLE U1 migration profile.
+#[cfg(all(feature = "chip-ws63", feature = "profile-ble-dual-role"))]
+#[macro_export]
+macro_rules! declare_radio_storage {
+    ($(#[$meta:meta])* $vis:vis static $name:ident) => {
+        $(#[$meta])*
+        $vis static $name: $crate::ws63::RadioStorage = {
+            static CONTROL: $crate::ws63::__private::BleB1ControlStorage =
+                $crate::ws63::__private::BleB1ControlStorage::new();
+            #[cfg_attr(target_arch = "riscv32", unsafe(link_section = ".hisi.shared-arena"))]
+            static ARENA: $crate::ws63::__private::ArenaStorage<
+                { $crate::ws63::RADIO_ARENA_BYTES },
+            > = $crate::ws63::__private::ArenaStorage::new();
+            $crate::ws63::RadioStorage::__from_parts(&CONTROL, &ARENA)
+        };
+    };
+}
+
+/// Declare caller-owned storage for the SLE U1 migration profile.
+#[cfg(all(feature = "chip-ws63", feature = "profile-sle-ssap"))]
+#[macro_export]
+macro_rules! declare_radio_storage {
+    ($(#[$meta:meta])* $vis:vis static $name:ident) => {
+        $(#[$meta])*
+        $vis static $name: $crate::ws63::RadioStorage = {
+            static CONTROL: $crate::ws63::__private::SleS1ControlStorage =
+                $crate::ws63::__private::SleS1ControlStorage::new();
+            #[cfg_attr(target_arch = "riscv32", unsafe(link_section = ".hisi.shared-arena"))]
+            static ARENA: $crate::ws63::__private::ArenaStorage<
+                { $crate::ws63::RADIO_ARENA_BYTES },
+            > = $crate::ws63::__private::ArenaStorage::new();
             $crate::ws63::RadioStorage::__from_parts(&CONTROL, &ARENA)
         };
     };

@@ -22,6 +22,24 @@ remain outside the facade API. Application code should prefer the named
 orthogonal `wifi`/`smoltcp`/security features remain available for maintainer
 matrices. An Embassy Net profile will be added only with a working backend.
 
+BLE and SLE currently expose U1 composition previews through
+`profile-ble-dual-role` and `profile-sle-ssap`. Both profiles use the same
+facade-owned lifecycle shape:
+
+```rust,ignore
+hisi_rf::declare_radio_storage!(static RADIO_STORAGE);
+
+let installed = RADIO_STORAGE.install()?;
+let controller = hisi_rf::ws63::init(resources, installed)?;
+let parts = controller.split();
+let _protocol = parts.ble; // `parts.sle` for `profile-sle-ssap`
+let runner = parts.runner;
+```
+
+These profiles deliberately provide ownership and initialization only. Their
+typed GAP/GATT/SSAP commands and event streams are not stable yet; applications
+must not bypass the facade and name the internal `BleB*` or `SleS*` stage API.
+
 The profile owns its bounded state and crypto DMA scratch through explicit
 application storage:
 

@@ -1,0 +1,61 @@
+pub mod hisi_rf
+pub use hisi_rf::BackendError
+pub use hisi_rf::BackendErrorClass
+pub use hisi_rf::BackendTimeout
+pub use hisi_rf::BlockingRunnerDiagnostics
+pub use hisi_rf::ConnectionInfo
+pub use hisi_rf::DIAGNOSTIC_SCHEMA
+pub use hisi_rf::DIAGNOSTIC_TRACE_CAPACITY
+pub use hisi_rf::Diagnostic
+pub use hisi_rf::DiagnosticCode
+pub use hisi_rf::DiagnosticStage
+pub use hisi_rf::DiagnosticTrace
+pub use hisi_rf::DiagnosticTraceEntry
+pub use hisi_rf::DiagnosticTraceKind
+pub use hisi_rf::Error
+pub use hisi_rf::EventDiagnostics
+pub use hisi_rf::ManagementFrameProtection
+pub use hisi_rf::OperationTimeout
+pub use hisi_rf::Passphrase
+pub use hisi_rf::PersonalSecurity
+pub use hisi_rf::RadioConfig
+pub use hisi_rf::RecoveryAction
+pub use hisi_rf::SaePwe
+pub use hisi_rf::ScanConfig
+pub use hisi_rf::ScanOutcome
+pub use hisi_rf::ScanResult
+pub use hisi_rf::Security
+pub use hisi_rf::Ssid
+pub use hisi_rf::StationConfig
+pub use hisi_rf::WifiConfig
+pub use hisi_rf::WifiDevice
+pub use hisi_rf::WifiEvent
+pub use hisi_rf::WifiL2Capabilities
+pub mod hisi_rf::ws63
+pub macro hisi_rf::ws63::declare_radio_storage!
+pub struct hisi_rf::ws63::InitError
+pub struct hisi_rf::ws63::InstalledRadioStorage
+impl hisi_rf::ws63::InstalledRadioStorage
+pub unsafe fn hisi_rf::ws63::InstalledRadioStorage::allocate(usize) -> *mut u8
+pub unsafe fn hisi_rf::ws63::InstalledRadioStorage::deallocate(*mut u8)
+pub struct hisi_rf::ws63::RadioController
+impl hisi_rf::ws63::RadioController
+pub fn hisi_rf::ws63::RadioController::split(self) -> hisi_rf::ws63::RadioParts
+pub struct hisi_rf::ws63::RadioParts
+pub hisi_rf::ws63::RadioParts::runner: hisi_rf::ws63::RadioRunner
+pub hisi_rf::ws63::RadioParts::sle: hisi_rf::ws63::SleController
+pub struct hisi_rf::ws63::RadioRunner
+impl hisi_rf::ws63::RadioRunner
+pub fn hisi_rf::ws63::RadioRunner::dropped_events(&self) -> u32
+pub struct hisi_rf::ws63::RadioStorage
+impl hisi_rf::ws63::RadioStorage
+pub fn hisi_rf::ws63::RadioStorage::install(&'static self) -> core::result::Result<hisi_rf::ws63::InstalledRadioStorage, hisi_rf::ws63::InitError>
+pub struct hisi_rf::ws63::Resources
+impl hisi_rf::ws63::Resources
+pub const fn hisi_rf::ws63::Resources::new(hisi_hal::peripherals::ws63_only::Efuse<'static>, hisi_hal::peripherals::ws63_only::Km<'static>, hisi_hal::peripherals::ws63_only::Spacc<'static>, hisi_hal::peripherals::Trng<'static>) -> Self
+pub struct hisi_rf::ws63::SleController
+pub const hisi_rf::ws63::RADIO_ARENA_BYTES: usize
+pub fn hisi_rf::ws63::init(hisi_rf::ws63::Resources, hisi_rf::ws63::InstalledRadioStorage) -> core::result::Result<hisi_rf::ws63::RadioController, hisi_rf::ws63::InitError>
+pub macro hisi_rf::declare_radio_storage!
+pub const hisi_rf::EVENT_CAPACITY: usize
+pub type hisi_rf::WifiController = hisi_rf_core::wifi::WifiController<EVENT_CAPACITY>

@@ -13,6 +13,7 @@ categories = ["embedded", "no-std", "network-programming"]
 [dependencies]
 hisi-rf-core = "=0.1.0-alpha.21"
 hisi-rf-ws63 = { version = "=0.1.0-alpha.74", optional = true, default-features = false }
+hisi-hal = { version = "0.7.0-alpha.7", optional = true, features = ["chip-ws63", "unstable"] }
 
 [target.'cfg(target_arch = "riscv32")'.dev-dependencies]
 hisi-hal = { version = "0.7.0-alpha.6", features = ["chip-ws63", "unstable"] }
@@ -28,6 +29,8 @@ hisi-rtos = "=0.1.0-alpha.24"
 [features]
 default = []
 chip-ws63 = ["dep:hisi-rf-ws63"]
+ble = ["hisi-rf-ws63?/ble-init", "dep:hisi-hal"]
+sle = ["hisi-rf-ws63?/sle-init", "dep:hisi-hal"]
 # Diagnostic-only WS63 packet-path instrumentation. This is intentionally
 # separate from application profiles and is used for bounded HIL
 # investigations, not normal firmware.
@@ -73,6 +76,10 @@ profile-wifi-wpa3-softap = [
     "smoltcp",
     "hisi-rf-ws63/upstream-authenticator-wpa3",
 ]
+# U1 composition previews. These establish the facade-owned lifecycle while
+# the U2-U4 typed control/event APIs remain under active development.
+profile-ble-dual-role = ["ble"]
+profile-sle-ssap = ["sle"]
 
 [lints.rust]
 unsafe_op_in_unsafe_fn = "deny"
