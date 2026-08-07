@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.86] - 2026-08-07
+
+### Changed
+
+- Update the exact WS63 backend dependency to `hisi-rf-ws63
+  0.1.0-alpha.74` and the firmware fixture runtime to `hisi-riscv-rt 0.5.8`,
+  carrying the independently published BLE B1 link closure through the public
+  facade without exposing a premature BLE user API.
+
 ## [0.1.0-alpha.85] - 2026-08-06
 
 ### Changed
