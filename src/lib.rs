@@ -239,6 +239,10 @@ pub mod ws63 {
         StartAdvertising(crate::ble::AdvertisingConfig),
         StartScanning(crate::ble::ScanConfig),
         RegisterGattServer(crate::ble::GattServerDefinition),
+        ConfigureSecurity(crate::ble::SecurityConfig),
+        Pair(crate::ble::BluetoothAddress),
+        QueryPairingState(crate::ble::BluetoothAddress),
+        RemoveBond(crate::ble::BluetoothAddress),
     }
 
     type BleControlState =
@@ -417,6 +421,18 @@ pub mod ws63 {
         StaleLifecycle,
         /// The static GATT database could not be registered.
         GattDatabase,
+        /// The BLE host rejected the typed security policy.
+        ConfigureSecurity,
+        /// The BLE host rejected a pairing request.
+        Pair,
+        /// Link authentication failed after pairing was accepted.
+        Authentication,
+        /// The BLE host could not report the peer pairing state.
+        QueryPairingState,
+        /// The BLE host could not remove the stored peer relationship.
+        RemoveBond,
+        /// The BLE host returned an unreviewed pairing-state value.
+        UnknownPairingState,
         /// The selected WS63 profile cannot represent this valid generic config.
         UnsupportedConfiguration,
         /// This operation is unavailable in a host-only build.
@@ -451,6 +467,14 @@ pub mod ws63 {
         ScanningRequested,
         /// The static GATT database was registered and started.
         GattServerRegistered(GattServerHandle),
+        /// The typed BLE security policy was accepted.
+        SecurityConfigured,
+        /// Pairing was accepted for asynchronous processing.
+        PairingRequested,
+        /// Current state of the requested peer relationship.
+        PairingState(crate::ble::PairingState),
+        /// The stored peer relationship was removed.
+        BondRemoved,
     }
 
     /// Active advertising ownership returned by the BLE event plane.
@@ -534,6 +558,22 @@ pub mod ws63 {
             /// Unique active scan capability.
             scanner: Scanner,
         },
+        /// Pairing reached a terminal result for the copied peer identity.
+        PairingComplete {
+            /// Validated peer address copied from the vendor callback.
+            peer: crate::ble::BluetoothAddress,
+            /// Success or the exact backend status mapped to the pairing stage.
+            result: Result<(), BleOperationError>,
+        },
+        /// Authentication completed without exposing long-term key bytes.
+        AuthenticationComplete {
+            /// Validated peer address copied from the vendor callback.
+            peer: crate::ble::BluetoothAddress,
+            /// Whether the backend reported bond material for internal storage.
+            key_material_present: bool,
+            /// Success or the exact backend status mapped to the authentication stage.
+            result: Result<(), BleOperationError>,
+        },
         /// An asynchronous callback reported a backend failure.
         BackendError {
             /// Correlated command when the runner still owns its lifecycle.
@@ -611,6 +651,19 @@ pub mod ws63 {
             &mut self,
             definition: crate::ble::GattServerDefinition,
         ) -> Result<GattServerHandle, BleOperationError>;
+        fn configure_security(
+            &mut self,
+            config: crate::ble::SecurityConfig,
+        ) -> Result<(), BleOperationError>;
+        fn pair(&mut self, peer: crate::ble::BluetoothAddress) -> Result<(), BleOperationError>;
+        fn pairing_state(
+            &mut self,
+            peer: crate::ble::BluetoothAddress,
+        ) -> Result<crate::ble::PairingState, BleOperationError>;
+        fn remove_bond(
+            &mut self,
+            peer: crate::ble::BluetoothAddress,
+        ) -> Result<(), BleOperationError>;
     }
 
     impl BleBackend for hisi_rf_ws63::BleB1Controller {
@@ -659,6 +712,32 @@ pub mod ws63 {
                     ccc_handle: handles.ccc_handle,
                 })
                 .map_err(map_ble_gatt_error)
+        }
+
+        fn configure_security(
+            &mut self,
+            config: crate::ble::SecurityConfig,
+        ) -> Result<(), BleOperationError> {
+            self.configure_security(config)
+                .map_err(map_ble_security_error)
+        }
+
+        fn pair(&mut self, peer: crate::ble::BluetoothAddress) -> Result<(), BleOperationError> {
+            self.pair(peer).map_err(map_ble_security_error)
+        }
+
+        fn pairing_state(
+            &mut self,
+            peer: crate::ble::BluetoothAddress,
+        ) -> Result<crate::ble::PairingState, BleOperationError> {
+            self.pairing_state(peer).map_err(map_ble_security_error)
+        }
+
+        fn remove_bond(
+            &mut self,
+            peer: crate::ble::BluetoothAddress,
+        ) -> Result<(), BleOperationError> {
+            self.remove_bond(peer).map_err(map_ble_security_error)
         }
     }
 
@@ -714,6 +793,24 @@ pub mod ws63 {
             | E::DiscoverDescriptor(status)
             | E::Write(status)
             | E::Disconnect(status) => (BleOperationErrorKind::GattDatabase, Some(status)),
+        };
+        BleOperationError {
+            kind,
+            vendor_status,
+        }
+    }
+
+    fn map_ble_security_error(error: hisi_rf_ws63::BleSecurityError) -> BleOperationError {
+        use hisi_rf_ws63::BleSecurityError as E;
+        let (kind, vendor_status) = match error {
+            E::Configure(status) => (BleOperationErrorKind::ConfigureSecurity, Some(status)),
+            E::Pair(status) => (BleOperationErrorKind::Pair, Some(status)),
+            E::Query(status) => (BleOperationErrorKind::QueryPairingState, Some(status)),
+            E::UnknownPairingState(status) => {
+                (BleOperationErrorKind::UnknownPairingState, Some(status))
+            }
+            E::RemoveBond(status) => (BleOperationErrorKind::RemoveBond, Some(status)),
+            E::UnsupportedTarget => (BleOperationErrorKind::UnsupportedTarget, None),
         };
         BleOperationError {
             kind,
@@ -780,6 +877,18 @@ pub mod ws63 {
                 BleCommand::RegisterGattServer(definition) => backend
                     .register_gatt_server(definition)
                     .map(BleOperation::GattServerRegistered),
+                BleCommand::ConfigureSecurity(config) => backend
+                    .configure_security(config)
+                    .map(|()| BleOperation::SecurityConfigured),
+                BleCommand::Pair(peer) => {
+                    backend.pair(peer).map(|()| BleOperation::PairingRequested)
+                }
+                BleCommand::QueryPairingState(peer) => {
+                    backend.pairing_state(peer).map(BleOperation::PairingState)
+                }
+                BleCommand::RemoveBond(peer) => backend
+                    .remove_bond(peer)
+                    .map(|()| BleOperation::BondRemoved),
             },
             Err(error) => Err(error),
             Ok(false) => unreachable!(),
@@ -864,7 +973,67 @@ pub mod ws63 {
                     status,
                 })
             }
+            hisi_rf_ws63::BleB2Event::PairingComplete {
+                address,
+                address_type,
+                status,
+                ..
+            } => {
+                let Some(peer) = map_ble_peer(address, address_type) else {
+                    return Some(BleEvent::BackendError {
+                        operation: None,
+                        stage: 5,
+                        status: u32::MAX,
+                    });
+                };
+                Some(BleEvent::PairingComplete {
+                    peer,
+                    result: ble_status_result(BleOperationErrorKind::Pair, status),
+                })
+            }
+            hisi_rf_ws63::BleB2Event::AuthenticationComplete {
+                address,
+                address_type,
+                status,
+                key_material_present,
+                ..
+            } => {
+                let Some(peer) = map_ble_peer(address, address_type) else {
+                    return Some(BleEvent::BackendError {
+                        operation: None,
+                        stage: 6,
+                        status: u32::MAX,
+                    });
+                };
+                Some(BleEvent::AuthenticationComplete {
+                    peer,
+                    key_material_present,
+                    result: ble_status_result(BleOperationErrorKind::Authentication, status),
+                })
+            }
             _ => None,
+        }
+    }
+
+    fn map_ble_peer(address: [u8; 6], address_type: u8) -> Option<crate::ble::BluetoothAddress> {
+        match address_type {
+            0 => crate::ble::BluetoothAddress::public(address),
+            1 => crate::ble::BluetoothAddress::random_static(address),
+            _ => None,
+        }
+    }
+
+    fn ble_status_result(
+        kind: BleOperationErrorKind,
+        status: u32,
+    ) -> Result<(), BleOperationError> {
+        if status == 0 {
+            Ok(())
+        } else {
+            Err(BleOperationError {
+                kind,
+                vendor_status: Some(status),
+            })
         }
     }
 
@@ -951,9 +1120,7 @@ pub mod ws63 {
                 .map(crate::ProtocolCommandId)
                 .map_err(|error| match error.into_inner() {
                     BleCommand::StartAdvertising(config) => crate::ProtocolBusy { request: config },
-                    BleCommand::StartScanning(_) | BleCommand::RegisterGattServer(_) => {
-                        unreachable!()
-                    }
+                    _ => unreachable!(),
                 })
         }
 
@@ -971,9 +1138,7 @@ pub mod ws63 {
                 .map(crate::ProtocolCommandId)
                 .map_err(|error| match error.into_inner() {
                     BleCommand::StartScanning(config) => crate::ProtocolBusy { request: config },
-                    BleCommand::StartAdvertising(_) | BleCommand::RegisterGattServer(_) => {
-                        unreachable!()
-                    }
+                    _ => unreachable!(),
                 })
         }
 
@@ -990,9 +1155,69 @@ pub mod ws63 {
                     BleCommand::RegisterGattServer(definition) => crate::ProtocolBusy {
                         request: definition,
                     },
-                    BleCommand::StartAdvertising(_) | BleCommand::StartScanning(_) => {
-                        unreachable!()
+                    _ => unreachable!(),
+                })
+        }
+
+        /// Queue an explicit BLE pairing policy.
+        pub fn try_configure_security(
+            &mut self,
+            config: crate::ble::SecurityConfig,
+        ) -> Result<crate::ProtocolCommandId, crate::ProtocolBusy<crate::ble::SecurityConfig>>
+        {
+            self.sender
+                .try_submit(BleCommand::ConfigureSecurity(config))
+                .map(crate::ProtocolCommandId)
+                .map_err(|error| match error.into_inner() {
+                    BleCommand::ConfigureSecurity(config) => {
+                        crate::ProtocolBusy { request: config }
                     }
+                    _ => unreachable!(),
+                })
+        }
+
+        /// Queue pairing with one validated peer.
+        pub fn try_pair(
+            &mut self,
+            peer: crate::ble::BluetoothAddress,
+        ) -> Result<crate::ProtocolCommandId, crate::ProtocolBusy<crate::ble::BluetoothAddress>>
+        {
+            self.sender
+                .try_submit(BleCommand::Pair(peer))
+                .map(crate::ProtocolCommandId)
+                .map_err(|error| match error.into_inner() {
+                    BleCommand::Pair(peer) => crate::ProtocolBusy { request: peer },
+                    _ => unreachable!(),
+                })
+        }
+
+        /// Queue a pairing-state query for one validated peer.
+        pub fn try_query_pairing_state(
+            &mut self,
+            peer: crate::ble::BluetoothAddress,
+        ) -> Result<crate::ProtocolCommandId, crate::ProtocolBusy<crate::ble::BluetoothAddress>>
+        {
+            self.sender
+                .try_submit(BleCommand::QueryPairingState(peer))
+                .map(crate::ProtocolCommandId)
+                .map_err(|error| match error.into_inner() {
+                    BleCommand::QueryPairingState(peer) => crate::ProtocolBusy { request: peer },
+                    _ => unreachable!(),
+                })
+        }
+
+        /// Queue removal of one stored peer relationship.
+        pub fn try_remove_bond(
+            &mut self,
+            peer: crate::ble::BluetoothAddress,
+        ) -> Result<crate::ProtocolCommandId, crate::ProtocolBusy<crate::ble::BluetoothAddress>>
+        {
+            self.sender
+                .try_submit(BleCommand::RemoveBond(peer))
+                .map(crate::ProtocolCommandId)
+                .map_err(|error| match error.into_inner() {
+                    BleCommand::RemoveBond(peer) => crate::ProtocolBusy { request: peer },
+                    _ => unreachable!(),
                 })
         }
 
@@ -1152,16 +1377,40 @@ pub mod ws63 {
         use std::boxed::Box;
         use std::task::{Context, Poll, Waker};
 
-        #[derive(Default)]
         struct FakeBackend {
             advertising: usize,
             scanning: usize,
             advertising_stops: usize,
             scanning_stops: usize,
             gatt_servers: usize,
+            security_configurations: usize,
+            pairing_requests: usize,
+            pairing_queries: usize,
+            bond_removals: usize,
+            pairing_state: crate::ble::PairingState,
             ready: bool,
             enable_error: Option<u32>,
             reject_scanning: bool,
+        }
+
+        impl Default for FakeBackend {
+            fn default() -> Self {
+                Self {
+                    advertising: 0,
+                    scanning: 0,
+                    advertising_stops: 0,
+                    scanning_stops: 0,
+                    gatt_servers: 0,
+                    security_configurations: 0,
+                    pairing_requests: 0,
+                    pairing_queries: 0,
+                    bond_removals: 0,
+                    pairing_state: crate::ble::PairingState::NotPaired,
+                    ready: false,
+                    enable_error: None,
+                    reject_scanning: false,
+                }
+            }
         }
 
         impl BleBackend for FakeBackend {
@@ -1219,6 +1468,35 @@ pub mod ws63 {
                     value_handle: 3,
                     ccc_handle: 4,
                 })
+            }
+
+            fn configure_security(
+                &mut self,
+                _: crate::ble::SecurityConfig,
+            ) -> Result<(), BleOperationError> {
+                self.security_configurations += 1;
+                Ok(())
+            }
+
+            fn pair(&mut self, _: crate::ble::BluetoothAddress) -> Result<(), BleOperationError> {
+                self.pairing_requests += 1;
+                Ok(())
+            }
+
+            fn pairing_state(
+                &mut self,
+                _: crate::ble::BluetoothAddress,
+            ) -> Result<crate::ble::PairingState, BleOperationError> {
+                self.pairing_queries += 1;
+                Ok(self.pairing_state)
+            }
+
+            fn remove_bond(
+                &mut self,
+                _: crate::ble::BluetoothAddress,
+            ) -> Result<(), BleOperationError> {
+                self.bond_removals += 1;
+                Ok(())
             }
         }
 
@@ -1450,6 +1728,114 @@ pub mod ws63 {
                     ccc_handle: 4,
                 })
             );
+        }
+
+        #[test]
+        fn pairing_commands_and_events_keep_key_material_out_of_the_facade() {
+            let state = Box::leak(Box::new(BleControlState::new()));
+            let (sender, mut receiver) = state.claim().unwrap();
+            let events = Box::leak(Box::new(BleEventState::new()));
+            let (mut producer, consumer) = events.claim().unwrap();
+            let mut controller = BleController {
+                sender,
+                events: consumer,
+            };
+            let mut backend = FakeBackend {
+                ready: true,
+                pairing_state: crate::ble::PairingState::Paired,
+                ..FakeBackend::default()
+            };
+            let mut lifecycles = ble_lifecycles();
+            let peer = crate::ble::BluetoothAddress::public([1, 2, 3, 4, 5, 6]).unwrap();
+            let security = crate::ble::SecurityConfig::new(
+                crate::ble::Bonding::Enabled,
+                crate::ble::IoCapability::NoInputNoOutput,
+                crate::ble::SecurityRequirement::SecureConnectionsAuthenticated,
+            );
+
+            let configure = controller.try_configure_security(security).unwrap();
+            assert!(run_ble_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
+            let completion = controller.try_take_completion().unwrap().unwrap();
+            assert_eq!(completion.id(), configure);
+            assert_eq!(
+                completion.into_result(),
+                Ok(BleOperation::SecurityConfigured)
+            );
+
+            let pair = controller.try_pair(peer).unwrap();
+            assert!(run_ble_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
+            let completion = controller.try_take_completion().unwrap().unwrap();
+            assert_eq!(completion.id(), pair);
+            assert_eq!(completion.into_result(), Ok(BleOperation::PairingRequested));
+
+            let query = controller.try_query_pairing_state(peer).unwrap();
+            assert!(run_ble_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
+            let completion = controller.try_take_completion().unwrap().unwrap();
+            assert_eq!(completion.id(), query);
+            assert_eq!(
+                completion.into_result(),
+                Ok(BleOperation::PairingState(crate::ble::PairingState::Paired))
+            );
+
+            let remove = controller.try_remove_bond(peer).unwrap();
+            assert!(run_ble_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
+            let completion = controller.try_take_completion().unwrap().unwrap();
+            assert_eq!(completion.id(), remove);
+            assert_eq!(completion.into_result(), Ok(BleOperation::BondRemoved));
+            assert_eq!(backend.security_configurations, 1);
+            assert_eq!(backend.pairing_requests, 1);
+            assert_eq!(backend.pairing_queries, 1);
+            assert_eq!(backend.bond_removals, 1);
+
+            producer
+                .try_publish(
+                    map_ble_lifecycle_event(
+                        hisi_rf_ws63::BleB2Event::AuthenticationComplete {
+                            conn_id: 7,
+                            address: peer.bytes(),
+                            address_type: 0,
+                            status: 0,
+                            key_material_present: true,
+                        },
+                        &mut lifecycles,
+                    )
+                    .unwrap(),
+                )
+                .unwrap();
+            let BleEvent::AuthenticationComplete {
+                peer: event_peer,
+                key_material_present,
+                result,
+            } = controller.try_next_event().unwrap()
+            else {
+                panic!("expected authentication completion");
+            };
+            assert_eq!(event_peer, peer);
+            assert!(key_material_present);
+            assert_eq!(result, Ok(()));
+            assert_eq!(
+                controller.event_diagnostics(),
+                crate::ProtocolEventDiagnostics {
+                    accepted: 1,
+                    consumed: 1,
+                    dropped: 0,
+                    pending: 0,
+                    high_water: 1,
+                }
+            );
+
+            assert!(matches!(
+                map_ble_lifecycle_event(
+                    hisi_rf_ws63::BleB2Event::PairingComplete {
+                        conn_id: 7,
+                        address: peer.bytes(),
+                        address_type: 9,
+                        status: 0,
+                    },
+                    &mut lifecycles,
+                ),
+                Some(BleEvent::BackendError { stage: 5, .. })
+            ));
         }
 
         #[test]
