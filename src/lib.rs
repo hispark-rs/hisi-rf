@@ -107,6 +107,35 @@ impl ProtocolCommandId {
     }
 }
 
+/// Conservation snapshot for the public unsolicited-event queue.
+#[cfg(any(feature = "ble", feature = "sle"))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ProtocolEventDiagnostics {
+    /// Events accepted from the radio runner.
+    pub accepted: u32,
+    /// Events consumed by the protocol controller.
+    pub consumed: u32,
+    /// Events rejected because the bounded queue was full.
+    pub dropped: u32,
+    /// Events waiting for the protocol controller.
+    pub pending: usize,
+    /// Largest observed queue occupancy.
+    pub high_water: usize,
+}
+
+#[cfg(any(feature = "ble", feature = "sle"))]
+fn protocol_event_diagnostics(
+    value: hisi_rf_core::control::EventQueueDiagnostics,
+) -> ProtocolEventDiagnostics {
+    ProtocolEventDiagnostics {
+        accepted: value.accepted,
+        consumed: value.consumed,
+        dropped: value.dropped,
+        pending: value.pending,
+        high_water: value.high_water,
+    }
+}
+
 /// Backpressure that preserves ownership of a request the runner did not accept.
 #[cfg(any(feature = "ble", feature = "sle"))]
 #[derive(Debug)]
@@ -193,12 +222,13 @@ pub mod ws63 {
     };
 }
 
-/// WS63 BLE U3 composition preview.
+/// WS63 BLE U4 composition preview.
 ///
 /// This profile establishes facade-owned storage, initialization, typed GAP
 /// command submission, and runner ownership. The returned completion means the
 /// WS63 host synchronously accepted or rejected the request. Static typed GATT
-/// registration is supported; asynchronous lifecycle events remain U4 work.
+/// registration and bounded asynchronous lifecycle events are supported;
+/// cancellation and active lifecycle guards remain experimental U4 work.
 /// Applications must not bypass this facade to depend on internal stage APIs.
 #[cfg(all(feature = "chip-ws63", feature = "profile-ble-dual-role"))]
 pub mod ws63 {
@@ -213,6 +243,7 @@ pub mod ws63 {
 
     type BleControlState =
         hisi_rf_core::control::ControlState<BleCommand, Result<BleOperation, BleOperationError>>;
+    type BleEventState = hisi_rf_core::control::EventState<BleEvent, { crate::EVENT_CAPACITY }>;
 
     /// Caller-owned bytes shared by the pinned BLE controller and host tasks.
     pub const RADIO_ARENA_BYTES: usize = hisi_rf_ws63::BLE_B1_ARENA_BYTES;
@@ -247,12 +278,14 @@ pub mod ws63 {
     pub mod __private {
         pub use hisi_rf_ws63::{BleB1ArenaStorage as ArenaStorage, BleB1ControlStorage};
         pub type ProtocolControlStorage = super::BleControlState;
+        pub type ProtocolEventStorage = super::BleEventState;
     }
 
     /// Caller-owned BLE composition storage.
     pub struct RadioStorage {
         inner: hisi_rf_ws63::BleB1Storage<RADIO_ARENA_BYTES>,
         control: &'static BleControlState,
+        events: &'static BleEventState,
     }
 
     impl RadioStorage {
@@ -262,10 +295,12 @@ pub mod ws63 {
             control: &'static __private::BleB1ControlStorage,
             arena: &'static __private::ArenaStorage<RADIO_ARENA_BYTES>,
             protocol: &'static __private::ProtocolControlStorage,
+            events: &'static __private::ProtocolEventStorage,
         ) -> Self {
             Self {
                 inner: hisi_rf_ws63::BleB1Storage::from_parts(control, arena),
                 control: protocol,
+                events,
             }
         }
 
@@ -276,6 +311,7 @@ pub mod ws63 {
                 .map(|inner| InstalledRadioStorage {
                     inner,
                     control: self.control,
+                    events: self.events,
                 })
                 .map_err(|_| InitError::new())
         }
@@ -285,6 +321,7 @@ pub mod ws63 {
     pub struct InstalledRadioStorage {
         inner: hisi_rf_ws63::InstalledBleB1Storage,
         control: &'static BleControlState,
+        events: &'static BleEventState,
     }
 
     impl InstalledRadioStorage {
@@ -394,6 +431,36 @@ pub mod ws63 {
         ScanningRequested,
         /// The static GATT database was registered and started.
         GattServerRegistered(GattServerHandle),
+    }
+
+    /// Facade-owned BLE lifecycle event copied out of vendor callback context.
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub enum BleEvent {
+        /// Advertising entered the active state for this command generation.
+        AdvertisingStarted {
+            /// Command that requested this advertising lifecycle.
+            operation: crate::ProtocolCommandId,
+        },
+        /// Scanning became active for this command generation.
+        ScanReady {
+            /// Command that requested this scanning lifecycle.
+            operation: crate::ProtocolCommandId,
+        },
+        /// An asynchronous callback reported a backend failure.
+        BackendError {
+            /// Correlated command when the runner still owns its lifecycle.
+            operation: Option<crate::ProtocolCommandId>,
+            /// Stable facade stage identifier.
+            stage: u8,
+            /// Lossless vendor status.
+            status: u32,
+        },
+    }
+
+    #[derive(Default)]
+    struct BleLifecycles {
+        advertising: Option<crate::ProtocolCommandId>,
+        scanning: Option<crate::ProtocolCommandId>,
     }
 
     /// Unforgeable facade handle for one registered static GATT server.
@@ -542,6 +609,7 @@ pub mod ws63 {
             Result<BleOperation, BleOperationError>,
         >,
         backend: &mut impl BleBackend,
+        lifecycles: &mut BleLifecycles,
     ) -> Result<bool, crate::ProtocolError> {
         let readiness = backend.command_ready();
         if matches!(readiness, Ok(false)) {
@@ -551,15 +619,63 @@ pub mod ws63 {
             return Ok(false);
         };
         let id = command.id();
+        let command = command.into_inner();
+        let lifecycle = match &command {
+            BleCommand::StartAdvertising(_) => Some(0),
+            BleCommand::StartScanning(_) => Some(1),
+            BleCommand::RegisterGattServer(_) => None,
+        };
         let result = match readiness {
-            Ok(true) => execute_ble_command(backend, command.into_inner()),
+            Ok(true) => execute_ble_command(backend, command),
             Err(error) => Err(error),
             Ok(false) => unreachable!(),
         };
+        if result.is_ok() {
+            let id = crate::ProtocolCommandId(id);
+            match lifecycle {
+                Some(0) => lifecycles.advertising = Some(id),
+                Some(1) => lifecycles.scanning = Some(id),
+                _ => {}
+            }
+        }
         receiver
             .complete(id, result)
             .map_err(|_| crate::ProtocolError::CompletionOwnership)?;
         Ok(true)
+    }
+
+    fn map_ble_lifecycle_event(
+        event: hisi_rf_ws63::BleB2Event,
+        lifecycles: &BleLifecycles,
+    ) -> Option<BleEvent> {
+        match event {
+            hisi_rf_ws63::BleB2Event::AdvertisingState { status: 1, .. } => lifecycles
+                .advertising
+                .map(|operation| BleEvent::AdvertisingStarted { operation }),
+            hisi_rf_ws63::BleB2Event::AdvertisingState { status, .. } => {
+                Some(BleEvent::BackendError {
+                    operation: lifecycles.advertising,
+                    stage: 1,
+                    status,
+                })
+            }
+            hisi_rf_ws63::BleB2Event::ScanParameters { status: 0 } => lifecycles
+                .scanning
+                .map(|operation| BleEvent::ScanReady { operation }),
+            hisi_rf_ws63::BleB2Event::ScanParameters { status } => Some(BleEvent::BackendError {
+                operation: lifecycles.scanning,
+                stage: 2,
+                status,
+            }),
+            hisi_rf_ws63::BleB2Event::Enabled { status } if status != 0 => {
+                Some(BleEvent::BackendError {
+                    operation: None,
+                    stage: 0,
+                    status,
+                })
+            }
+            _ => None,
+        }
     }
 
     /// Exclusive BLE composition before task ownership is split.
@@ -573,6 +689,8 @@ pub mod ws63 {
             BleCommand,
             Result<BleOperation, BleOperationError>,
         >,
+        event_producer: hisi_rf_core::control::EventProducer<BleEvent, { crate::EVENT_CAPACITY }>,
+        event_consumer: hisi_rf_core::control::EventConsumer<BleEvent, { crate::EVENT_CAPACITY }>,
     }
 
     impl RadioController {
@@ -581,10 +699,13 @@ pub mod ws63 {
             RadioParts {
                 ble: BleController {
                     sender: self.sender,
+                    events: self.event_consumer,
                 },
                 runner: RadioRunner {
                     inner: self.inner,
                     receiver: self.receiver,
+                    events: self.event_producer,
+                    lifecycles: BleLifecycles::default(),
                 },
             }
         }
@@ -596,6 +717,7 @@ pub mod ws63 {
             BleCommand,
             Result<BleOperation, BleOperationError>,
         >,
+        events: hisi_rf_core::control::EventConsumer<BleEvent, { crate::EVENT_CAPACITY }>,
     }
 
     impl BleController {
@@ -679,6 +801,21 @@ pub mod ws63 {
                 })
                 .map_err(|_| crate::ProtocolError::StaleCompletion)
         }
+
+        /// Take the oldest unsolicited lifecycle event without waiting.
+        pub fn try_next_event(&mut self) -> Option<BleEvent> {
+            self.events.try_next_event()
+        }
+
+        /// Wait for the oldest unsolicited lifecycle event.
+        pub async fn next_event(&mut self) -> BleEvent {
+            self.events.next_event().await
+        }
+
+        /// Snapshot public event conservation counters.
+        pub fn event_diagnostics(&self) -> crate::ProtocolEventDiagnostics {
+            crate::protocol_event_diagnostics(self.events.diagnostics())
+        }
     }
 
     /// Parts enabled by the BLE-only compile-time profile.
@@ -696,6 +833,8 @@ pub mod ws63 {
             BleCommand,
             Result<BleOperation, BleOperationError>,
         >,
+        events: hisi_rf_core::control::EventProducer<BleEvent, { crate::EVENT_CAPACITY }>,
+        lifecycles: BleLifecycles,
     }
 
     impl RadioRunner {
@@ -711,7 +850,22 @@ pub mod ws63 {
         /// ownership in both cases. Applications should call this from their
         /// single long-lived radio runner task.
         pub fn run_once(&mut self) -> Result<bool, crate::ProtocolError> {
-            run_ble_once(&mut self.receiver, &mut self.inner)
+            run_ble_once(&mut self.receiver, &mut self.inner, &mut self.lifecycles)
+        }
+
+        /// Copy at most one backend lifecycle event into the public queue.
+        ///
+        /// Command completions and unsolicited events use independent storage;
+        /// a full event queue never consumes a completion.
+        pub fn run_event_once(&mut self) -> bool {
+            let Some(event) = self.inner.next_event() else {
+                return false;
+            };
+            let event = map_ble_lifecycle_event(event, &self.lifecycles);
+            if let Some(event) = event {
+                let _ = self.events.try_publish(event);
+            }
+            true
         }
 
         /// Consume one backend lifecycle event for the temporary U2 HIL gate.
@@ -757,11 +911,14 @@ pub mod ws63 {
         storage: InstalledRadioStorage,
     ) -> Result<RadioController, InitError> {
         let (sender, receiver) = storage.control.claim().ok_or_else(InitError::new)?;
+        let (event_producer, event_consumer) = storage.events.claim().ok_or_else(InitError::new)?;
         hisi_rf_ws63::init_ble_b1(resources.inner, storage.inner)
             .map(|inner| RadioController {
                 inner,
                 sender,
                 receiver,
+                event_producer,
+                event_consumer,
             })
             .map_err(|_| InitError::new())
     }
@@ -884,16 +1041,22 @@ pub mod ws63 {
         fn bounded_controller_and_runner_preserve_ble_command_ownership() {
             let state = Box::leak(Box::new(BleControlState::new()));
             let (sender, mut receiver) = state.claim().unwrap();
-            let mut controller = BleController { sender };
+            let events = Box::leak(Box::new(BleEventState::new()));
+            let (mut producer, consumer) = events.claim().unwrap();
+            let mut controller = BleController {
+                sender,
+                events: consumer,
+            };
+            let mut lifecycles = BleLifecycles::default();
             let id = controller.try_start_advertising(advertising()).unwrap();
             let rejected = controller.try_start_scanning(scanning()).unwrap_err();
             assert_eq!(rejected.into_inner(), scanning());
 
             let mut backend = FakeBackend::default();
-            assert!(!run_ble_once(&mut receiver, &mut backend).unwrap());
+            assert!(!run_ble_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
             assert!(controller.try_take_completion().unwrap().is_none());
             backend.ready = true;
-            assert!(run_ble_once(&mut receiver, &mut backend).unwrap());
+            assert!(run_ble_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
             assert_eq!(backend.advertising, 1);
             assert_eq!(backend.scanning, 0);
             let completion = controller.try_take_completion().unwrap().unwrap();
@@ -902,20 +1065,43 @@ pub mod ws63 {
                 completion.into_result(),
                 Ok(BleOperation::AdvertisingRequested)
             );
+            let event = map_ble_lifecycle_event(
+                hisi_rf_ws63::BleB2Event::AdvertisingState {
+                    adv_id: 0,
+                    status: 1,
+                },
+                &lifecycles,
+            )
+            .unwrap();
+            producer.try_publish(event).unwrap();
+            assert_eq!(
+                controller.try_next_event(),
+                Some(BleEvent::AdvertisingStarted { operation: id })
+            );
+            assert_eq!(
+                controller.event_diagnostics(),
+                crate::ProtocolEventDiagnostics {
+                    accepted: 1,
+                    consumed: 1,
+                    dropped: 0,
+                    pending: 0,
+                    high_water: 1,
+                }
+            );
 
             backend.reject_scanning = true;
             let scan_id = controller.try_start_scanning(scanning()).unwrap();
-            assert!(run_ble_once(&mut receiver, &mut backend).unwrap());
+            assert!(run_ble_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
             let completion = controller.try_take_completion().unwrap().unwrap();
             assert_eq!(completion.id(), scan_id);
             let error = completion.into_result().unwrap_err();
             assert_eq!(error.kind(), BleOperationErrorKind::StartScanning);
             assert_eq!(error.vendor_status(), Some(0x1234));
-            assert!(!run_ble_once(&mut receiver, &mut backend).unwrap());
+            assert!(!run_ble_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
 
             backend.enable_error = Some(0x4321);
             let enable_id = controller.try_start_advertising(advertising()).unwrap();
-            assert!(run_ble_once(&mut receiver, &mut backend).unwrap());
+            assert!(run_ble_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
             assert_eq!(backend.advertising, 1);
             let completion = controller.try_take_completion().unwrap().unwrap();
             assert_eq!(completion.id(), enable_id);
@@ -925,10 +1111,56 @@ pub mod ws63 {
         }
 
         #[test]
+        fn full_ble_event_queue_does_not_consume_command_completion() {
+            let state = Box::leak(Box::new(BleControlState::new()));
+            let (sender, mut receiver) = state.claim().unwrap();
+            let events = Box::leak(Box::new(BleEventState::new()));
+            let (mut producer, consumer) = events.claim().unwrap();
+            let mut controller = BleController {
+                sender,
+                events: consumer,
+            };
+            let event = BleEvent::BackendError {
+                operation: None,
+                stage: 0,
+                status: 1,
+            };
+            for _ in 0..crate::EVENT_CAPACITY {
+                producer.try_publish(event).unwrap();
+            }
+            assert!(producer.try_publish(event).is_err());
+
+            let id = controller.try_start_advertising(advertising()).unwrap();
+            let mut backend = FakeBackend {
+                ready: true,
+                ..FakeBackend::default()
+            };
+            let mut lifecycles = BleLifecycles::default();
+            assert!(run_ble_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
+            let completion = controller.try_take_completion().unwrap().unwrap();
+            assert_eq!(completion.id(), id);
+            assert_eq!(
+                completion.into_result(),
+                Ok(BleOperation::AdvertisingRequested)
+            );
+            assert_eq!(
+                controller.event_diagnostics().pending,
+                crate::EVENT_CAPACITY
+            );
+            assert_eq!(controller.event_diagnostics().dropped, 1);
+        }
+
+        #[test]
         fn typed_gatt_database_crosses_only_the_facade_command_boundary() {
             let state = Box::leak(Box::new(BleControlState::new()));
             let (sender, mut receiver) = state.claim().unwrap();
-            let mut controller = BleController { sender };
+            let events = Box::leak(Box::new(BleEventState::new()));
+            let (_producer, consumer) = events.claim().unwrap();
+            let mut controller = BleController {
+                sender,
+                events: consumer,
+            };
+            let mut lifecycles = BleLifecycles::default();
             let id = controller
                 .try_register_gatt_server(gatt_database())
                 .unwrap();
@@ -936,7 +1168,7 @@ pub mod ws63 {
                 ready: true,
                 ..FakeBackend::default()
             };
-            assert!(run_ble_once(&mut receiver, &mut backend).unwrap());
+            assert!(run_ble_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
             assert_eq!(backend.gatt_servers, 1);
             let completion = controller.try_take_completion().unwrap().unwrap();
             assert_eq!(completion.id(), id);
@@ -953,13 +1185,14 @@ pub mod ws63 {
     }
 }
 
-/// WS63 SLE U3 composition preview.
+/// WS63 SLE U4 composition preview.
 ///
 /// This profile establishes facade-owned storage, initialization, typed
 /// announce/seek command submission, and runner ownership. The returned
 /// completion means the WS63 host synchronously accepted or rejected the
-/// request. Static typed SSAP registration is supported; asynchronous
-/// lifecycle events remain U4 work.
+/// request. Static typed SSAP registration and bounded asynchronous lifecycle
+/// events are supported; cancellation and active guards remain experimental
+/// U4 work.
 #[cfg(all(feature = "chip-ws63", feature = "profile-sle-ssap"))]
 pub mod ws63 {
     pub use crate::declare_radio_storage;
@@ -973,6 +1206,7 @@ pub mod ws63 {
 
     type SleControlState =
         hisi_rf_core::control::ControlState<SleCommand, Result<SleOperation, SleOperationError>>;
+    type SleEventState = hisi_rf_core::control::EventState<SleEvent, { crate::EVENT_CAPACITY }>;
 
     /// Caller-owned bytes shared by the pinned SLE controller and host tasks.
     pub const RADIO_ARENA_BYTES: usize = hisi_rf_ws63::SLE_S1_ARENA_BYTES;
@@ -1005,12 +1239,14 @@ pub mod ws63 {
     pub mod __private {
         pub use hisi_rf_ws63::{SleS1ArenaStorage as ArenaStorage, SleS1ControlStorage};
         pub type ProtocolControlStorage = super::SleControlState;
+        pub type ProtocolEventStorage = super::SleEventState;
     }
 
     /// Caller-owned SLE composition storage.
     pub struct RadioStorage {
         inner: hisi_rf_ws63::SleS1Storage<RADIO_ARENA_BYTES>,
         control: &'static SleControlState,
+        events: &'static SleEventState,
     }
 
     impl RadioStorage {
@@ -1020,10 +1256,12 @@ pub mod ws63 {
             control: &'static __private::SleS1ControlStorage,
             arena: &'static __private::ArenaStorage<RADIO_ARENA_BYTES>,
             protocol: &'static __private::ProtocolControlStorage,
+            events: &'static __private::ProtocolEventStorage,
         ) -> Self {
             Self {
                 inner: hisi_rf_ws63::SleS1Storage::from_parts(control, arena),
                 control: protocol,
+                events,
             }
         }
 
@@ -1034,6 +1272,7 @@ pub mod ws63 {
                 .map(|inner| InstalledRadioStorage {
                     inner,
                     control: self.control,
+                    events: self.events,
                 })
                 .map_err(|_| InitError::new())
         }
@@ -1043,6 +1282,7 @@ pub mod ws63 {
     pub struct InstalledRadioStorage {
         inner: hisi_rf_ws63::InstalledSleS1Storage,
         control: &'static SleControlState,
+        events: &'static SleEventState,
     }
 
     impl InstalledRadioStorage {
@@ -1152,6 +1392,36 @@ pub mod ws63 {
         SeekRequested,
         /// The static SSAP database was registered and started.
         SsapServerRegistered(SsapServerHandle),
+    }
+
+    /// Facade-owned SLE lifecycle event copied out of vendor callback context.
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub enum SleEvent {
+        /// Announcing entered the active state for this command generation.
+        AnnounceStarted {
+            /// Command that requested this announce lifecycle.
+            operation: crate::ProtocolCommandId,
+        },
+        /// Seeking entered the active state for this command generation.
+        SeekReady {
+            /// Command that requested this seek lifecycle.
+            operation: crate::ProtocolCommandId,
+        },
+        /// An asynchronous callback reported a backend failure.
+        BackendError {
+            /// Correlated command when the runner still owns its lifecycle.
+            operation: Option<crate::ProtocolCommandId>,
+            /// Stable facade stage identifier.
+            stage: u8,
+            /// Lossless vendor status.
+            status: u32,
+        },
+    }
+
+    #[derive(Default)]
+    struct SleLifecycles {
+        announce: Option<crate::ProtocolCommandId>,
+        seek: Option<crate::ProtocolCommandId>,
     }
 
     /// Unforgeable facade handle for one registered static SSAP server.
@@ -1278,6 +1548,7 @@ pub mod ws63 {
             Result<SleOperation, SleOperationError>,
         >,
         backend: &mut impl SleBackend,
+        lifecycles: &mut SleLifecycles,
     ) -> Result<bool, crate::ProtocolError> {
         let readiness = backend.command_ready();
         if matches!(readiness, Ok(false)) {
@@ -1287,15 +1558,63 @@ pub mod ws63 {
             return Ok(false);
         };
         let id = command.id();
+        let command = command.into_inner();
+        let lifecycle = match &command {
+            SleCommand::StartAnnounce(_) => Some(0),
+            SleCommand::StartSeek(_) => Some(1),
+            SleCommand::RegisterSsapServer(_) => None,
+        };
         let result = match readiness {
-            Ok(true) => execute_sle_command(backend, command.into_inner()),
+            Ok(true) => execute_sle_command(backend, command),
             Err(error) => Err(error),
             Ok(false) => unreachable!(),
         };
+        if result.is_ok() {
+            let id = crate::ProtocolCommandId(id);
+            match lifecycle {
+                Some(0) => lifecycles.announce = Some(id),
+                Some(1) => lifecycles.seek = Some(id),
+                _ => {}
+            }
+        }
         receiver
             .complete(id, result)
             .map_err(|_| crate::ProtocolError::CompletionOwnership)?;
         Ok(true)
+    }
+
+    fn map_sle_lifecycle_event(
+        event: hisi_rf_ws63::SleS1Event,
+        lifecycles: &SleLifecycles,
+    ) -> Option<SleEvent> {
+        match event {
+            hisi_rf_ws63::SleS1Event::AnnounceEnabled { status: 0, .. } => lifecycles
+                .announce
+                .map(|operation| SleEvent::AnnounceStarted { operation }),
+            hisi_rf_ws63::SleS1Event::AnnounceEnabled { status, .. } => {
+                Some(SleEvent::BackendError {
+                    operation: lifecycles.announce,
+                    stage: 1,
+                    status,
+                })
+            }
+            hisi_rf_ws63::SleS1Event::SeekEnabled { status: 0 } => lifecycles
+                .seek
+                .map(|operation| SleEvent::SeekReady { operation }),
+            hisi_rf_ws63::SleS1Event::SeekEnabled { status } => Some(SleEvent::BackendError {
+                operation: lifecycles.seek,
+                stage: 2,
+                status,
+            }),
+            hisi_rf_ws63::SleS1Event::Enabled { status } if status != 0 => {
+                Some(SleEvent::BackendError {
+                    operation: None,
+                    stage: 0,
+                    status,
+                })
+            }
+            _ => None,
+        }
     }
 
     /// Exclusive SLE composition before task ownership is split.
@@ -1309,6 +1628,8 @@ pub mod ws63 {
             SleCommand,
             Result<SleOperation, SleOperationError>,
         >,
+        event_producer: hisi_rf_core::control::EventProducer<SleEvent, { crate::EVENT_CAPACITY }>,
+        event_consumer: hisi_rf_core::control::EventConsumer<SleEvent, { crate::EVENT_CAPACITY }>,
     }
 
     impl RadioController {
@@ -1317,10 +1638,13 @@ pub mod ws63 {
             RadioParts {
                 sle: SleController {
                     sender: self.sender,
+                    events: self.event_consumer,
                 },
                 runner: RadioRunner {
                     inner: self.inner,
                     receiver: self.receiver,
+                    events: self.event_producer,
+                    lifecycles: SleLifecycles::default(),
                 },
             }
         }
@@ -1332,6 +1656,7 @@ pub mod ws63 {
             SleCommand,
             Result<SleOperation, SleOperationError>,
         >,
+        events: hisi_rf_core::control::EventConsumer<SleEvent, { crate::EVENT_CAPACITY }>,
     }
 
     impl SleController {
@@ -1414,6 +1739,21 @@ pub mod ws63 {
                 })
                 .map_err(|_| crate::ProtocolError::StaleCompletion)
         }
+
+        /// Take the oldest unsolicited lifecycle event without waiting.
+        pub fn try_next_event(&mut self) -> Option<SleEvent> {
+            self.events.try_next_event()
+        }
+
+        /// Wait for the oldest unsolicited lifecycle event.
+        pub async fn next_event(&mut self) -> SleEvent {
+            self.events.next_event().await
+        }
+
+        /// Snapshot public event conservation counters.
+        pub fn event_diagnostics(&self) -> crate::ProtocolEventDiagnostics {
+            crate::protocol_event_diagnostics(self.events.diagnostics())
+        }
     }
 
     /// Parts enabled by the SLE-only compile-time profile.
@@ -1431,6 +1771,8 @@ pub mod ws63 {
             SleCommand,
             Result<SleOperation, SleOperationError>,
         >,
+        events: hisi_rf_core::control::EventProducer<SleEvent, { crate::EVENT_CAPACITY }>,
+        lifecycles: SleLifecycles,
     }
 
     impl RadioRunner {
@@ -1446,7 +1788,19 @@ pub mod ws63 {
         /// ownership in both cases. Applications should call this from their
         /// single long-lived radio runner task.
         pub fn run_once(&mut self) -> Result<bool, crate::ProtocolError> {
-            run_sle_once(&mut self.receiver, &mut self.inner)
+            run_sle_once(&mut self.receiver, &mut self.inner, &mut self.lifecycles)
+        }
+
+        /// Copy at most one backend lifecycle event into the public queue.
+        pub fn run_event_once(&mut self) -> bool {
+            let Some(event) = self.inner.next_event() else {
+                return false;
+            };
+            let event = map_sle_lifecycle_event(event, &self.lifecycles);
+            if let Some(event) = event {
+                let _ = self.events.try_publish(event);
+            }
+            true
         }
 
         /// Consume one backend lifecycle event for the temporary U2 HIL gate.
@@ -1489,11 +1843,14 @@ pub mod ws63 {
         storage: InstalledRadioStorage,
     ) -> Result<RadioController, InitError> {
         let (sender, receiver) = storage.control.claim().ok_or_else(InitError::new)?;
+        let (event_producer, event_consumer) = storage.events.claim().ok_or_else(InitError::new)?;
         hisi_rf_ws63::init_sle_s1(resources.inner, storage.inner)
             .map(|inner| RadioController {
                 inner,
                 sender,
                 receiver,
+                event_producer,
+                event_consumer,
             })
             .map_err(|_| InitError::new())
     }
@@ -1611,16 +1968,22 @@ pub mod ws63 {
         fn bounded_controller_and_runner_preserve_sle_command_ownership() {
             let state = Box::leak(Box::new(SleControlState::new()));
             let (sender, mut receiver) = state.claim().unwrap();
-            let mut controller = SleController { sender };
+            let events = Box::leak(Box::new(SleEventState::new()));
+            let (mut producer, consumer) = events.claim().unwrap();
+            let mut controller = SleController {
+                sender,
+                events: consumer,
+            };
+            let mut lifecycles = SleLifecycles::default();
             let id = controller.try_start_announce(announce()).unwrap();
             let rejected = controller.try_start_seek(seek()).unwrap_err();
             assert_eq!(rejected.into_inner(), seek());
 
             let mut backend = FakeBackend::default();
-            assert!(!run_sle_once(&mut receiver, &mut backend).unwrap());
+            assert!(!run_sle_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
             assert!(controller.try_take_completion().unwrap().is_none());
             backend.ready = true;
-            assert!(run_sle_once(&mut receiver, &mut backend).unwrap());
+            assert!(run_sle_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
             assert_eq!(backend.announce, 1);
             assert_eq!(backend.seek, 0);
             let completion = controller.try_take_completion().unwrap().unwrap();
@@ -1629,20 +1992,43 @@ pub mod ws63 {
                 completion.into_result(),
                 Ok(SleOperation::AnnounceRequested)
             );
+            let event = map_sle_lifecycle_event(
+                hisi_rf_ws63::SleS1Event::AnnounceEnabled {
+                    announce_id: 0,
+                    status: 0,
+                },
+                &lifecycles,
+            )
+            .unwrap();
+            producer.try_publish(event).unwrap();
+            assert_eq!(
+                controller.try_next_event(),
+                Some(SleEvent::AnnounceStarted { operation: id })
+            );
+            assert_eq!(
+                controller.event_diagnostics(),
+                crate::ProtocolEventDiagnostics {
+                    accepted: 1,
+                    consumed: 1,
+                    dropped: 0,
+                    pending: 0,
+                    high_water: 1,
+                }
+            );
 
             backend.reject_seek = true;
             let seek_id = controller.try_start_seek(seek()).unwrap();
-            assert!(run_sle_once(&mut receiver, &mut backend).unwrap());
+            assert!(run_sle_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
             let completion = controller.try_take_completion().unwrap().unwrap();
             assert_eq!(completion.id(), seek_id);
             let error = completion.into_result().unwrap_err();
             assert_eq!(error.kind(), SleOperationErrorKind::StartSeek);
             assert_eq!(error.vendor_status(), Some(0x5678));
-            assert!(!run_sle_once(&mut receiver, &mut backend).unwrap());
+            assert!(!run_sle_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
 
             backend.enable_error = Some(0x8765);
             let enable_id = controller.try_start_announce(announce()).unwrap();
-            assert!(run_sle_once(&mut receiver, &mut backend).unwrap());
+            assert!(run_sle_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
             assert_eq!(backend.announce, 1);
             let completion = controller.try_take_completion().unwrap().unwrap();
             assert_eq!(completion.id(), enable_id);
@@ -1652,10 +2038,56 @@ pub mod ws63 {
         }
 
         #[test]
+        fn full_sle_event_queue_does_not_consume_command_completion() {
+            let state = Box::leak(Box::new(SleControlState::new()));
+            let (sender, mut receiver) = state.claim().unwrap();
+            let events = Box::leak(Box::new(SleEventState::new()));
+            let (mut producer, consumer) = events.claim().unwrap();
+            let mut controller = SleController {
+                sender,
+                events: consumer,
+            };
+            let event = SleEvent::BackendError {
+                operation: None,
+                stage: 0,
+                status: 1,
+            };
+            for _ in 0..crate::EVENT_CAPACITY {
+                producer.try_publish(event).unwrap();
+            }
+            assert!(producer.try_publish(event).is_err());
+
+            let id = controller.try_start_announce(announce()).unwrap();
+            let mut backend = FakeBackend {
+                ready: true,
+                ..FakeBackend::default()
+            };
+            let mut lifecycles = SleLifecycles::default();
+            assert!(run_sle_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
+            let completion = controller.try_take_completion().unwrap().unwrap();
+            assert_eq!(completion.id(), id);
+            assert_eq!(
+                completion.into_result(),
+                Ok(SleOperation::AnnounceRequested)
+            );
+            assert_eq!(
+                controller.event_diagnostics().pending,
+                crate::EVENT_CAPACITY
+            );
+            assert_eq!(controller.event_diagnostics().dropped, 1);
+        }
+
+        #[test]
         fn typed_ssap_database_crosses_only_the_facade_command_boundary() {
             let state = Box::leak(Box::new(SleControlState::new()));
             let (sender, mut receiver) = state.claim().unwrap();
-            let mut controller = SleController { sender };
+            let events = Box::leak(Box::new(SleEventState::new()));
+            let (_producer, consumer) = events.claim().unwrap();
+            let mut controller = SleController {
+                sender,
+                events: consumer,
+            };
+            let mut lifecycles = SleLifecycles::default();
             let id = controller
                 .try_register_ssap_server(ssap_database())
                 .unwrap();
@@ -1663,7 +2095,7 @@ pub mod ws63 {
                 ready: true,
                 ..FakeBackend::default()
             };
-            assert!(run_sle_once(&mut receiver, &mut backend).unwrap());
+            assert!(run_sle_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
             assert_eq!(backend.ssap_servers, 1);
             let completion = controller.try_take_completion().unwrap().unwrap();
             assert_eq!(completion.id(), id);
@@ -2068,11 +2500,13 @@ macro_rules! declare_radio_storage {
                 $crate::ws63::__private::BleB1ControlStorage::new();
             static PROTOCOL: $crate::ws63::__private::ProtocolControlStorage =
                 $crate::ws63::__private::ProtocolControlStorage::new();
+            static EVENTS: $crate::ws63::__private::ProtocolEventStorage =
+                $crate::ws63::__private::ProtocolEventStorage::new();
             #[cfg_attr(target_arch = "riscv32", unsafe(link_section = ".hisi.shared-arena"))]
             static ARENA: $crate::ws63::__private::ArenaStorage<
                 { $crate::ws63::RADIO_ARENA_BYTES },
             > = $crate::ws63::__private::ArenaStorage::new();
-            $crate::ws63::RadioStorage::__from_parts(&CONTROL, &ARENA, &PROTOCOL)
+            $crate::ws63::RadioStorage::__from_parts(&CONTROL, &ARENA, &PROTOCOL, &EVENTS)
         };
     };
 }
@@ -2088,11 +2522,13 @@ macro_rules! declare_radio_storage {
                 $crate::ws63::__private::SleS1ControlStorage::new();
             static PROTOCOL: $crate::ws63::__private::ProtocolControlStorage =
                 $crate::ws63::__private::ProtocolControlStorage::new();
+            static EVENTS: $crate::ws63::__private::ProtocolEventStorage =
+                $crate::ws63::__private::ProtocolEventStorage::new();
             #[cfg_attr(target_arch = "riscv32", unsafe(link_section = ".hisi.shared-arena"))]
             static ARENA: $crate::ws63::__private::ArenaStorage<
                 { $crate::ws63::RADIO_ARENA_BYTES },
             > = $crate::ws63::__private::ArenaStorage::new();
-            $crate::ws63::RadioStorage::__from_parts(&CONTROL, &ARENA, &PROTOCOL)
+            $crate::ws63::RadioStorage::__from_parts(&CONTROL, &ARENA, &PROTOCOL, &EVENTS)
         };
     };
 }

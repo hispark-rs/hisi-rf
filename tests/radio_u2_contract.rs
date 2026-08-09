@@ -17,7 +17,9 @@ fn facade_owns_the_radio_lifecycle() {
     let _ = hisi_rf::ws63::RadioController::split;
     let _ = hisi_rf::ws63::RadioRunner::dropped_events;
     let _ = hisi_rf::ws63::RadioRunner::run_once;
+    let _ = hisi_rf::ws63::RadioRunner::run_event_once;
     assert_type::<hisi_rf::ProtocolCommandId>();
+    assert_type::<hisi_rf::ProtocolEventDiagnostics>();
     assert_type::<hisi_rf::ProtocolError>();
 }
 
@@ -27,11 +29,15 @@ fn ble_profile_exposes_only_the_ble_part() {
     assert_type::<hisi_rf::ws63::BleController>();
     assert_type::<hisi_rf::ws63::BleOperation>();
     assert_type::<hisi_rf::ws63::BleOperationError>();
+    assert_type::<hisi_rf::ws63::BleEvent>();
     assert_type::<hisi_rf::ble::AdvertisingConfig>();
     assert_type::<hisi_rf::ble::ScanConfig>();
     let _ = hisi_rf::ws63::BleController::try_start_advertising;
     let _ = hisi_rf::ws63::BleController::try_start_scanning;
     let _ = hisi_rf::ws63::BleController::try_take_completion;
+    let _ = hisi_rf::ws63::BleController::try_next_event;
+    let _ = hisi_rf::ws63::BleController::next_event;
+    let _ = hisi_rf::ws63::BleController::event_diagnostics;
 }
 
 #[cfg(feature = "profile-sle-ssap")]
@@ -40,9 +46,13 @@ fn sle_profile_exposes_only_the_sle_part() {
     assert_type::<hisi_rf::ws63::SleController>();
     assert_type::<hisi_rf::ws63::SleOperation>();
     assert_type::<hisi_rf::ws63::SleOperationError>();
+    assert_type::<hisi_rf::ws63::SleEvent>();
     assert_type::<hisi_rf::sle::AnnounceConfig>();
     assert_type::<hisi_rf::sle::SeekConfig>();
     let _ = hisi_rf::ws63::SleController::try_start_announce;
     let _ = hisi_rf::ws63::SleController::try_start_seek;
     let _ = hisi_rf::ws63::SleController::try_take_completion;
+    let _ = hisi_rf::ws63::SleController::try_next_event;
+    let _ = hisi_rf::ws63::SleController::next_event;
+    let _ = hisi_rf::ws63::SleController::event_diagnostics;
 }

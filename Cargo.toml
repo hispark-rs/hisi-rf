@@ -111,8 +111,9 @@ profile-wifi-wpa3-softap = [
     "smoltcp",
     "hisi-rf-ws63/upstream-authenticator-wpa3",
 ]
-# U3 composition previews. These add static typed GATT/SSAP databases while
-# asynchronous lifecycle and cancellation remain future U4 work.
+# U4 composition previews. These add bounded lifecycle events on top of the
+# static typed GATT/SSAP databases; cancellation and active guards remain
+# experimental work in the same milestone.
 profile-ble-dual-role = ["ble"]
 profile-sle-ssap = ["sle"]
 # Maintainer-only facade lifecycle evidence. Normal applications and public API

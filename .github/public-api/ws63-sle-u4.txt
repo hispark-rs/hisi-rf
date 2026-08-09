@@ -34,6 +34,15 @@ pub use hisi_rf::WifiL2Capabilities
 pub use hisi_rf::sle
 pub mod hisi_rf::ws63
 pub macro hisi_rf::ws63::declare_radio_storage!
+pub enum hisi_rf::ws63::SleEvent
+pub hisi_rf::ws63::SleEvent::AnnounceStarted
+pub hisi_rf::ws63::SleEvent::AnnounceStarted::operation: hisi_rf::ProtocolCommandId
+pub hisi_rf::ws63::SleEvent::BackendError
+pub hisi_rf::ws63::SleEvent::BackendError::operation: core::option::Option<hisi_rf::ProtocolCommandId>
+pub hisi_rf::ws63::SleEvent::BackendError::stage: u8
+pub hisi_rf::ws63::SleEvent::BackendError::status: u32
+pub hisi_rf::ws63::SleEvent::SeekReady
+pub hisi_rf::ws63::SleEvent::SeekReady::operation: hisi_rf::ProtocolCommandId
 pub enum hisi_rf::ws63::SleOperation
 pub hisi_rf::ws63::SleOperation::AnnounceRequested
 pub hisi_rf::ws63::SleOperation::SeekRequested
@@ -63,6 +72,7 @@ pub hisi_rf::ws63::RadioParts::sle: hisi_rf::ws63::SleController
 pub struct hisi_rf::ws63::RadioRunner
 impl hisi_rf::ws63::RadioRunner
 pub fn hisi_rf::ws63::RadioRunner::dropped_events(&self) -> u32
+pub fn hisi_rf::ws63::RadioRunner::run_event_once(&mut self) -> bool
 pub fn hisi_rf::ws63::RadioRunner::run_once(&mut self) -> core::result::Result<bool, hisi_rf::ProtocolError>
 pub struct hisi_rf::ws63::RadioStorage
 impl hisi_rf::ws63::RadioStorage
@@ -72,6 +82,9 @@ impl hisi_rf::ws63::Resources
 pub const fn hisi_rf::ws63::Resources::new(hisi_hal::peripherals::ws63_only::Efuse<'static>, hisi_hal::peripherals::ws63_only::Km<'static>, hisi_hal::peripherals::ws63_only::Spacc<'static>, hisi_hal::peripherals::Trng<'static>) -> Self
 pub struct hisi_rf::ws63::SleController
 impl hisi_rf::ws63::SleController
+pub fn hisi_rf::ws63::SleController::event_diagnostics(&self) -> hisi_rf::ProtocolEventDiagnostics
+pub async fn hisi_rf::ws63::SleController::next_event(&mut self) -> hisi_rf::ws63::SleEvent
+pub fn hisi_rf::ws63::SleController::try_next_event(&mut self) -> core::option::Option<hisi_rf::ws63::SleEvent>
 pub fn hisi_rf::ws63::SleController::try_register_ssap_server(&mut self, hisi_rf_core::sle::SsapServerDefinition) -> core::result::Result<hisi_rf::ProtocolCommandId, hisi_rf::ProtocolBusy<hisi_rf_core::sle::SsapServerDefinition>>
 pub fn hisi_rf::ws63::SleController::try_start_announce(&mut self, hisi_rf_core::sle::AnnounceConfig) -> core::result::Result<hisi_rf::ProtocolCommandId, hisi_rf::ProtocolBusy<hisi_rf_core::sle::AnnounceConfig>>
 pub fn hisi_rf::ws63::SleController::try_start_seek(&mut self, hisi_rf_core::sle::SeekConfig) -> core::result::Result<hisi_rf::ProtocolCommandId, hisi_rf::ProtocolBusy<hisi_rf_core::sle::SeekConfig>>
@@ -97,5 +110,11 @@ pub struct hisi_rf::ProtocolCompletion<T, E>
 impl<T, E> hisi_rf::ProtocolCompletion<T, E>
 pub const fn hisi_rf::ProtocolCompletion<T, E>::id(&self) -> hisi_rf::ProtocolCommandId
 pub fn hisi_rf::ProtocolCompletion<T, E>::into_result(self) -> core::result::Result<T, E>
+pub struct hisi_rf::ProtocolEventDiagnostics
+pub hisi_rf::ProtocolEventDiagnostics::accepted: u32
+pub hisi_rf::ProtocolEventDiagnostics::consumed: u32
+pub hisi_rf::ProtocolEventDiagnostics::dropped: u32
+pub hisi_rf::ProtocolEventDiagnostics::high_water: usize
+pub hisi_rf::ProtocolEventDiagnostics::pending: usize
 pub const hisi_rf::EVENT_CAPACITY: usize
 pub type hisi_rf::WifiController = hisi_rf_core::wifi::WifiController<EVENT_CAPACITY>

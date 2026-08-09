@@ -3,8 +3,8 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 BASELINE="$ROOT/.github/public-api/ws63-incremental.txt"
-BLE_BASELINE="$ROOT/.github/public-api/ws63-ble-u3.txt"
-SLE_BASELINE="$ROOT/.github/public-api/ws63-sle-u3.txt"
+BLE_BASELINE="$ROOT/.github/public-api/ws63-ble-u4.txt"
+SLE_BASELINE="$ROOT/.github/public-api/ws63-sle-u4.txt"
 EXPECTED_VERSION="cargo-public-api 0.52.0"
 
 if ! cargo public-api --version >/dev/null 2>&1; then
@@ -54,12 +54,12 @@ if ! diff -u "$BASELINE" "$tmp/wpa2.txt"; then
 fi
 
 if ! diff -u "$BLE_BASELINE" "$tmp/ble.txt"; then
-    echo "ERROR: the BLE U3 facade API changed" >&2
+    echo "ERROR: the BLE U4 facade API changed" >&2
     exit 1
 fi
 
 if ! diff -u "$SLE_BASELINE" "$tmp/sle.txt"; then
-    echo "ERROR: the SLE U3 facade API changed" >&2
+    echo "ERROR: the SLE U4 facade API changed" >&2
     exit 1
 fi
 
@@ -69,4 +69,4 @@ if grep -E 'hisi_rf_ws63|ws63_radio_sys|hisi_rf_rtos_driver|BleB[123]|SleS[123]'
     exit 1
 fi
 
-echo "hisi-rf public API matches the Wi-Fi, BLE U3, and SLE U3 facade baselines"
+echo "hisi-rf public API matches the Wi-Fi, BLE U4, and SLE U4 facade baselines"

@@ -34,6 +34,15 @@ pub use hisi_rf::WifiL2Capabilities
 pub use hisi_rf::ble
 pub mod hisi_rf::ws63
 pub macro hisi_rf::ws63::declare_radio_storage!
+pub enum hisi_rf::ws63::BleEvent
+pub hisi_rf::ws63::BleEvent::AdvertisingStarted
+pub hisi_rf::ws63::BleEvent::AdvertisingStarted::operation: hisi_rf::ProtocolCommandId
+pub hisi_rf::ws63::BleEvent::BackendError
+pub hisi_rf::ws63::BleEvent::BackendError::operation: core::option::Option<hisi_rf::ProtocolCommandId>
+pub hisi_rf::ws63::BleEvent::BackendError::stage: u8
+pub hisi_rf::ws63::BleEvent::BackendError::status: u32
+pub hisi_rf::ws63::BleEvent::ScanReady
+pub hisi_rf::ws63::BleEvent::ScanReady::operation: hisi_rf::ProtocolCommandId
 pub enum hisi_rf::ws63::BleOperation
 pub hisi_rf::ws63::BleOperation::AdvertisingRequested
 pub hisi_rf::ws63::BleOperation::GattServerRegistered(hisi_rf::ws63::GattServerHandle)
@@ -50,6 +59,9 @@ pub hisi_rf::ws63::BleOperationErrorKind::UnsupportedConfiguration
 pub hisi_rf::ws63::BleOperationErrorKind::UnsupportedTarget
 pub struct hisi_rf::ws63::BleController
 impl hisi_rf::ws63::BleController
+pub fn hisi_rf::ws63::BleController::event_diagnostics(&self) -> hisi_rf::ProtocolEventDiagnostics
+pub async fn hisi_rf::ws63::BleController::next_event(&mut self) -> hisi_rf::ws63::BleEvent
+pub fn hisi_rf::ws63::BleController::try_next_event(&mut self) -> core::option::Option<hisi_rf::ws63::BleEvent>
 pub fn hisi_rf::ws63::BleController::try_register_gatt_server(&mut self, hisi_rf_core::ble::GattServerDefinition) -> core::result::Result<hisi_rf::ProtocolCommandId, hisi_rf::ProtocolBusy<hisi_rf_core::ble::GattServerDefinition>>
 pub fn hisi_rf::ws63::BleController::try_start_advertising(&mut self, hisi_rf_core::ble::AdvertisingConfig) -> core::result::Result<hisi_rf::ProtocolCommandId, hisi_rf::ProtocolBusy<hisi_rf_core::ble::AdvertisingConfig>>
 pub fn hisi_rf::ws63::BleController::try_start_scanning(&mut self, hisi_rf_core::ble::ScanConfig) -> core::result::Result<hisi_rf::ProtocolCommandId, hisi_rf::ProtocolBusy<hisi_rf_core::ble::ScanConfig>>
@@ -73,6 +85,7 @@ pub hisi_rf::ws63::RadioParts::runner: hisi_rf::ws63::RadioRunner
 pub struct hisi_rf::ws63::RadioRunner
 impl hisi_rf::ws63::RadioRunner
 pub fn hisi_rf::ws63::RadioRunner::dropped_events(&self) -> u32
+pub fn hisi_rf::ws63::RadioRunner::run_event_once(&mut self) -> bool
 pub fn hisi_rf::ws63::RadioRunner::run_once(&mut self) -> core::result::Result<bool, hisi_rf::ProtocolError>
 pub struct hisi_rf::ws63::RadioStorage
 impl hisi_rf::ws63::RadioStorage
@@ -96,5 +109,11 @@ pub struct hisi_rf::ProtocolCompletion<T, E>
 impl<T, E> hisi_rf::ProtocolCompletion<T, E>
 pub const fn hisi_rf::ProtocolCompletion<T, E>::id(&self) -> hisi_rf::ProtocolCommandId
 pub fn hisi_rf::ProtocolCompletion<T, E>::into_result(self) -> core::result::Result<T, E>
+pub struct hisi_rf::ProtocolEventDiagnostics
+pub hisi_rf::ProtocolEventDiagnostics::accepted: u32
+pub hisi_rf::ProtocolEventDiagnostics::consumed: u32
+pub hisi_rf::ProtocolEventDiagnostics::dropped: u32
+pub hisi_rf::ProtocolEventDiagnostics::high_water: usize
+pub hisi_rf::ProtocolEventDiagnostics::pending: usize
 pub const hisi_rf::EVENT_CAPACITY: usize
 pub type hisi_rf::WifiController = hisi_rf_core::wifi::WifiController<EVENT_CAPACITY>
