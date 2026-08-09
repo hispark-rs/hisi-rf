@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add credential-free U4 BLE and SLE lifecycle HIL fixtures. Each fixture
+  exercises explicit async stop, dropped-guard cleanup, generation reuse, and
+  a final explicit stop through the public facade event plane.
+
 ## [0.1.0-alpha.87] - 2026-08-09
 
 ### Added

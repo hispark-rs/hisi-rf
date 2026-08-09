@@ -1,4 +1,6 @@
+use core::future::Future;
 use core::num::{NonZeroU32, NonZeroUsize};
+use core::task::{Context, Poll, Waker};
 
 use hisi_hal::Peripherals;
 use hisi_hal::delay::Delay;
@@ -74,6 +76,21 @@ pub fn run(role: fn(hisi_rf::ws63::RadioParts) -> !) -> ! {
 
 pub fn drive_scheduler() {
     let _ = hisi_rf_rtos_driver::sleep_ms(NonZeroU32::new(10).unwrap());
+}
+
+pub fn wait_with_runner<F, T>(future: F, mut progress: impl FnMut()) -> T
+where
+    F: Future<Output = T>,
+{
+    let mut future = core::pin::pin!(future);
+    let mut context = Context::from_waker(Waker::noop());
+    loop {
+        if let Poll::Ready(result) = future.as_mut().poll(&mut context) {
+            return result;
+        }
+        progress();
+        drive_scheduler();
+    }
 }
 
 pub fn log(bytes: &[u8]) {

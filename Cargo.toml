@@ -31,6 +31,26 @@ path = "examples/ws63_sle_u2_seek.rs"
 required-features = ["chip-ws63", "profile-sle-ssap", "u2-hil-diagnostics"]
 
 [[example]]
+name = "ws63_ble_u4_advertise_lifecycle"
+path = "examples/ws63_ble_u4_advertise_lifecycle.rs"
+required-features = ["chip-ws63", "profile-ble-dual-role", "u2-hil-diagnostics"]
+
+[[example]]
+name = "ws63_ble_u4_scan_lifecycle"
+path = "examples/ws63_ble_u4_scan_lifecycle.rs"
+required-features = ["chip-ws63", "profile-ble-dual-role", "u2-hil-diagnostics"]
+
+[[example]]
+name = "ws63_sle_u4_announce_lifecycle"
+path = "examples/ws63_sle_u4_announce_lifecycle.rs"
+required-features = ["chip-ws63", "profile-sle-ssap", "u2-hil-diagnostics"]
+
+[[example]]
+name = "ws63_sle_u4_seek_lifecycle"
+path = "examples/ws63_sle_u4_seek_lifecycle.rs"
+required-features = ["chip-ws63", "profile-sle-ssap", "u2-hil-diagnostics"]
+
+[[example]]
 name = "ws63_ble_u3_gatt_server"
 path = "examples/ws63_ble_u3_gatt_server.rs"
 required-features = ["chip-ws63", "profile-ble-dual-role", "u2-hil-diagnostics"]
