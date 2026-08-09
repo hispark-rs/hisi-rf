@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   exercises explicit async stop, dropped-guard cleanup, generation reuse, and
   a final explicit stop through the public facade event plane.
 
+### Changed
+
+- Make the WS63 BLE composition resource set explicitly own the PKE peripheral
+  required by the backend's bounded P-256 pairing compatibility path.
+
 ## [0.1.0-alpha.87] - 2026-08-09
 
 ### Added

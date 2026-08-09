@@ -374,10 +374,11 @@ pub mod ws63 {
             efuse: hisi_hal::peripherals::Efuse<'static>,
             km: hisi_hal::peripherals::Km<'static>,
             spacc: hisi_hal::peripherals::Spacc<'static>,
+            pke: hisi_hal::peripherals::Pke<'static>,
             trng: hisi_hal::peripherals::Trng<'static>,
         ) -> Self {
             Self {
-                inner: hisi_rf_ws63::BleB1Resources::new(efuse, km, spacc, trng),
+                inner: hisi_rf_ws63::BleB1Resources::new(efuse, km, spacc, pke, trng),
             }
         }
     }

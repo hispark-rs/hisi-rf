@@ -63,7 +63,7 @@ pub fn run(role: fn(hisi_rf::ws63::RadioParts) -> !) -> ! {
     unsafe { interrupt::enable_global() };
     hisi_rtos::request_reschedule();
 
-    let resources = hisi_rf::ws63::Resources::new(efuse, p.KM, p.SPACC, p.TRNG);
+    let resources = hisi_rf::ws63::Resources::new(efuse, p.KM, p.SPACC, p.PKE, p.TRNG);
     log(b"RFDBG_RADIO_U2_INIT_BEGIN\r\n");
     match hisi_rf::ws63::init(resources, storage) {
         Ok(controller) => {
