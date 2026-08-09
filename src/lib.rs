@@ -228,7 +228,7 @@ pub mod ws63 {
 /// command submission, and runner ownership. The returned completion means the
 /// WS63 host synchronously accepted or rejected the request. Static typed GATT
 /// registration and bounded asynchronous lifecycle events are supported;
-/// cancellation and active lifecycle guards remain experimental U4 work.
+/// generation-tagged cancellation and active lifecycle guards are supported.
 /// Applications must not bypass this facade to depend on internal stage APIs.
 #[cfg(all(feature = "chip-ws63", feature = "profile-ble-dual-role"))]
 pub mod ws63 {
@@ -244,6 +244,7 @@ pub mod ws63 {
     type BleControlState =
         hisi_rf_core::control::ControlState<BleCommand, Result<BleOperation, BleOperationError>>;
     type BleEventState = hisi_rf_core::control::EventState<BleEvent, { crate::EVENT_CAPACITY }>;
+    type BleLifecycleState = hisi_rf_core::control::LifecycleState<BleOperationError>;
 
     /// Caller-owned bytes shared by the pinned BLE controller and host tasks.
     pub const RADIO_ARENA_BYTES: usize = hisi_rf_ws63::BLE_B1_ARENA_BYTES;
@@ -279,6 +280,7 @@ pub mod ws63 {
         pub use hisi_rf_ws63::{BleB1ArenaStorage as ArenaStorage, BleB1ControlStorage};
         pub type ProtocolControlStorage = super::BleControlState;
         pub type ProtocolEventStorage = super::BleEventState;
+        pub type ProtocolLifecycleStorage = super::BleLifecycleState;
     }
 
     /// Caller-owned BLE composition storage.
@@ -286,6 +288,8 @@ pub mod ws63 {
         inner: hisi_rf_ws63::BleB1Storage<RADIO_ARENA_BYTES>,
         control: &'static BleControlState,
         events: &'static BleEventState,
+        advertising: &'static BleLifecycleState,
+        scanning: &'static BleLifecycleState,
     }
 
     impl RadioStorage {
@@ -296,11 +300,15 @@ pub mod ws63 {
             arena: &'static __private::ArenaStorage<RADIO_ARENA_BYTES>,
             protocol: &'static __private::ProtocolControlStorage,
             events: &'static __private::ProtocolEventStorage,
+            advertising: &'static __private::ProtocolLifecycleStorage,
+            scanning: &'static __private::ProtocolLifecycleStorage,
         ) -> Self {
             Self {
                 inner: hisi_rf_ws63::BleB1Storage::from_parts(control, arena),
                 control: protocol,
                 events,
+                advertising,
+                scanning,
             }
         }
 
@@ -312,6 +320,8 @@ pub mod ws63 {
                     inner,
                     control: self.control,
                     events: self.events,
+                    advertising: self.advertising,
+                    scanning: self.scanning,
                 })
                 .map_err(|_| InitError::new())
         }
@@ -322,6 +332,8 @@ pub mod ws63 {
         inner: hisi_rf_ws63::InstalledBleB1Storage,
         control: &'static BleControlState,
         events: &'static BleEventState,
+        advertising: &'static BleLifecycleState,
+        scanning: &'static BleLifecycleState,
     }
 
     impl InstalledRadioStorage {
@@ -395,6 +407,14 @@ pub mod ws63 {
         SetScanParameters,
         /// The controller rejected the start-scan request.
         StartScanning,
+        /// The controller rejected the advertising stop request.
+        StopAdvertising,
+        /// The controller rejected the scan stop request.
+        StopScanning,
+        /// Another generation still owns this lifecycle.
+        LifecycleBusy,
+        /// A late callback or handle no longer names the active generation.
+        StaleLifecycle,
         /// The static GATT database could not be registered.
         GattDatabase,
         /// The selected WS63 profile cannot represent this valid generic config.
@@ -433,18 +453,86 @@ pub mod ws63 {
         GattServerRegistered(GattServerHandle),
     }
 
+    /// Active advertising ownership returned by the BLE event plane.
+    #[must_use = "call stop().await or retain the advertiser; dropping it requests cleanup"]
+    pub struct Advertiser {
+        operation: crate::ProtocolCommandId,
+        inner: hisi_rf_core::control::LifecycleGuard<BleOperationError>,
+    }
+
+    impl Advertiser {
+        /// Command that created this advertising generation.
+        pub const fn operation(&self) -> crate::ProtocolCommandId {
+            self.operation
+        }
+
+        /// Stop advertising and wait for the matching backend callback.
+        pub async fn stop(self) -> Result<(), BleOperationError> {
+            map_ble_stop_result(self.inner.stop().await)
+        }
+    }
+
+    impl core::fmt::Debug for Advertiser {
+        fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+            formatter
+                .debug_struct("Advertiser")
+                .field("operation", &self.operation)
+                .finish_non_exhaustive()
+        }
+    }
+
+    /// Active scan ownership returned by the BLE event plane.
+    #[must_use = "call stop().await or retain the scanner; dropping it requests cleanup"]
+    pub struct Scanner {
+        operation: crate::ProtocolCommandId,
+        inner: hisi_rf_core::control::LifecycleGuard<BleOperationError>,
+    }
+
+    impl Scanner {
+        /// Command that created this scanning generation.
+        pub const fn operation(&self) -> crate::ProtocolCommandId {
+            self.operation
+        }
+
+        /// Stop scanning and wait for the runner's synchronous backend result.
+        pub async fn stop(self) -> Result<(), BleOperationError> {
+            map_ble_stop_result(self.inner.stop().await)
+        }
+    }
+
+    impl core::fmt::Debug for Scanner {
+        fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+            formatter
+                .debug_struct("Scanner")
+                .field("operation", &self.operation)
+                .finish_non_exhaustive()
+        }
+    }
+
+    fn map_ble_stop_result(
+        result: Result<(), hisi_rf_core::control::LifecycleStopError<BleOperationError>>,
+    ) -> Result<(), BleOperationError> {
+        result.map_err(|error| match error {
+            hisi_rf_core::control::LifecycleStopError::Stale => BleOperationError {
+                kind: BleOperationErrorKind::StaleLifecycle,
+                vendor_status: None,
+            },
+            hisi_rf_core::control::LifecycleStopError::Backend(error) => error,
+        })
+    }
+
     /// Facade-owned BLE lifecycle event copied out of vendor callback context.
-    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    #[derive(Debug)]
     pub enum BleEvent {
         /// Advertising entered the active state for this command generation.
         AdvertisingStarted {
-            /// Command that requested this advertising lifecycle.
-            operation: crate::ProtocolCommandId,
+            /// Unique active advertising capability.
+            advertiser: Advertiser,
         },
         /// Scanning became active for this command generation.
         ScanReady {
-            /// Command that requested this scanning lifecycle.
-            operation: crate::ProtocolCommandId,
+            /// Unique active scan capability.
+            scanner: Scanner,
         },
         /// An asynchronous callback reported a backend failure.
         BackendError {
@@ -457,10 +545,45 @@ pub mod ws63 {
         },
     }
 
-    #[derive(Default)]
+    struct BleLifecycle {
+        operation: Option<crate::ProtocolCommandId>,
+        generation: Option<hisi_rf_core::control::LifecycleId>,
+        stopping: Option<hisi_rf_core::control::LifecycleId>,
+        runner: hisi_rf_core::control::LifecycleRunner<BleOperationError>,
+    }
+
     struct BleLifecycles {
-        advertising: Option<crate::ProtocolCommandId>,
-        scanning: Option<crate::ProtocolCommandId>,
+        advertising: BleLifecycle,
+        scanning: BleLifecycle,
+    }
+
+    impl BleLifecycle {
+        fn new(runner: hisi_rf_core::control::LifecycleRunner<BleOperationError>) -> Self {
+            Self {
+                operation: None,
+                generation: None,
+                stopping: None,
+                runner,
+            }
+        }
+
+        fn clear(&mut self) {
+            self.operation = None;
+            self.generation = None;
+            self.stopping = None;
+        }
+    }
+
+    impl BleLifecycles {
+        fn new(
+            advertising: hisi_rf_core::control::LifecycleRunner<BleOperationError>,
+            scanning: hisi_rf_core::control::LifecycleRunner<BleOperationError>,
+        ) -> Self {
+            Self {
+                advertising: BleLifecycle::new(advertising),
+                scanning: BleLifecycle::new(scanning),
+            }
+        }
     }
 
     /// Unforgeable facade handle for one registered static GATT server.
@@ -482,6 +605,8 @@ pub mod ws63 {
             &mut self,
             config: crate::ble::ScanConfig,
         ) -> Result<(), BleOperationError>;
+        fn stop_advertising(&mut self) -> Result<(), BleOperationError>;
+        fn stop_scanning(&mut self) -> Result<(), BleOperationError>;
         fn register_gatt_server(
             &mut self,
             definition: crate::ble::GattServerDefinition,
@@ -512,6 +637,14 @@ pub mod ws63 {
             config: crate::ble::ScanConfig,
         ) -> Result<(), BleOperationError> {
             self.start_scanning_config(config).map_err(map_ble_error)
+        }
+
+        fn stop_advertising(&mut self) -> Result<(), BleOperationError> {
+            self.stop_advertising().map_err(map_ble_error)
+        }
+
+        fn stop_scanning(&mut self) -> Result<(), BleOperationError> {
+            self.stop_scanning().map_err(map_ble_error)
         }
 
         fn register_gatt_server(
@@ -547,6 +680,8 @@ pub mod ws63 {
                 (BleOperationErrorKind::SetScanParameters, Some(status))
             }
             E::StartScanning(status) => (BleOperationErrorKind::StartScanning, Some(status)),
+            E::StopAdvertising(status) => (BleOperationErrorKind::StopAdvertising, Some(status)),
+            E::StopScanning(status) => (BleOperationErrorKind::StopScanning, Some(status)),
             E::DuplicateFilteringUnsupported => {
                 (BleOperationErrorKind::UnsupportedConfiguration, None)
             }
@@ -586,23 +721,6 @@ pub mod ws63 {
         }
     }
 
-    fn execute_ble_command(
-        backend: &mut impl BleBackend,
-        command: BleCommand,
-    ) -> Result<BleOperation, BleOperationError> {
-        match command {
-            BleCommand::StartAdvertising(config) => backend
-                .start_advertising(config)
-                .map(|()| BleOperation::AdvertisingRequested),
-            BleCommand::StartScanning(config) => backend
-                .start_scanning(config)
-                .map(|()| BleOperation::ScanningRequested),
-            BleCommand::RegisterGattServer(definition) => backend
-                .register_gatt_server(definition)
-                .map(BleOperation::GattServerRegistered),
-        }
-    }
-
     fn run_ble_once(
         receiver: &mut hisi_rf_core::control::ControlReceiver<
             BleCommand,
@@ -620,24 +738,52 @@ pub mod ws63 {
         };
         let id = command.id();
         let command = command.into_inner();
-        let lifecycle = match &command {
-            BleCommand::StartAdvertising(_) => Some(0),
-            BleCommand::StartScanning(_) => Some(1),
-            BleCommand::RegisterGattServer(_) => None,
-        };
         let result = match readiness {
-            Ok(true) => execute_ble_command(backend, command),
+            Ok(true) => match command {
+                BleCommand::StartAdvertising(config) => {
+                    match lifecycles.advertising.runner.begin() {
+                        Ok(generation) => match backend.start_advertising(config) {
+                            Ok(()) => {
+                                lifecycles.advertising.operation =
+                                    Some(crate::ProtocolCommandId(id));
+                                lifecycles.advertising.generation = Some(generation);
+                                Ok(BleOperation::AdvertisingRequested)
+                            }
+                            Err(error) => {
+                                let _ = lifecycles.advertising.runner.abort_start(generation);
+                                Err(error)
+                            }
+                        },
+                        Err(_) => Err(BleOperationError {
+                            kind: BleOperationErrorKind::LifecycleBusy,
+                            vendor_status: None,
+                        }),
+                    }
+                }
+                BleCommand::StartScanning(config) => match lifecycles.scanning.runner.begin() {
+                    Ok(generation) => match backend.start_scanning(config) {
+                        Ok(()) => {
+                            lifecycles.scanning.operation = Some(crate::ProtocolCommandId(id));
+                            lifecycles.scanning.generation = Some(generation);
+                            Ok(BleOperation::ScanningRequested)
+                        }
+                        Err(error) => {
+                            let _ = lifecycles.scanning.runner.abort_start(generation);
+                            Err(error)
+                        }
+                    },
+                    Err(_) => Err(BleOperationError {
+                        kind: BleOperationErrorKind::LifecycleBusy,
+                        vendor_status: None,
+                    }),
+                },
+                BleCommand::RegisterGattServer(definition) => backend
+                    .register_gatt_server(definition)
+                    .map(BleOperation::GattServerRegistered),
+            },
             Err(error) => Err(error),
             Ok(false) => unreachable!(),
         };
-        if result.is_ok() {
-            let id = crate::ProtocolCommandId(id);
-            match lifecycle {
-                Some(0) => lifecycles.advertising = Some(id),
-                Some(1) => lifecycles.scanning = Some(id),
-                _ => {}
-            }
-        }
         receiver
             .complete(id, result)
             .map_err(|_| crate::ProtocolError::CompletionOwnership)?;
@@ -646,27 +792,71 @@ pub mod ws63 {
 
     fn map_ble_lifecycle_event(
         event: hisi_rf_ws63::BleB2Event,
-        lifecycles: &BleLifecycles,
+        lifecycles: &mut BleLifecycles,
     ) -> Option<BleEvent> {
         match event {
-            hisi_rf_ws63::BleB2Event::AdvertisingState { status: 1, .. } => lifecycles
-                .advertising
-                .map(|operation| BleEvent::AdvertisingStarted { operation }),
+            hisi_rf_ws63::BleB2Event::AdvertisingState { status: 1, .. } => {
+                let operation = lifecycles.advertising.operation?;
+                let generation = lifecycles.advertising.generation?;
+                lifecycles
+                    .advertising
+                    .runner
+                    .activate(generation)
+                    .ok()
+                    .map(|inner| BleEvent::AdvertisingStarted {
+                        advertiser: Advertiser { operation, inner },
+                    })
+            }
             hisi_rf_ws63::BleB2Event::AdvertisingState { status, .. } => {
+                if let Some(generation) = lifecycles.advertising.generation {
+                    let _ = lifecycles.advertising.runner.abort_start(generation);
+                }
+                let operation = lifecycles.advertising.operation;
+                lifecycles.advertising.clear();
                 Some(BleEvent::BackendError {
-                    operation: lifecycles.advertising,
+                    operation,
                     stage: 1,
                     status,
                 })
             }
-            hisi_rf_ws63::BleB2Event::ScanParameters { status: 0 } => lifecycles
-                .scanning
-                .map(|operation| BleEvent::ScanReady { operation }),
-            hisi_rf_ws63::BleB2Event::ScanParameters { status } => Some(BleEvent::BackendError {
-                operation: lifecycles.scanning,
-                stage: 2,
-                status,
-            }),
+            hisi_rf_ws63::BleB2Event::AdvertisingStopped { status, .. } => {
+                let generation = lifecycles.advertising.stopping.take()?;
+                let result = if status == 0 {
+                    Ok(())
+                } else {
+                    Err(BleOperationError {
+                        kind: BleOperationErrorKind::StopAdvertising,
+                        vendor_status: Some(status),
+                    })
+                };
+                let _ = lifecycles.advertising.runner.finish(generation, result);
+                lifecycles.advertising.clear();
+                None
+            }
+            hisi_rf_ws63::BleB2Event::ScanParameters { status: 0 } => {
+                let operation = lifecycles.scanning.operation?;
+                let generation = lifecycles.scanning.generation?;
+                lifecycles
+                    .scanning
+                    .runner
+                    .activate(generation)
+                    .ok()
+                    .map(|inner| BleEvent::ScanReady {
+                        scanner: Scanner { operation, inner },
+                    })
+            }
+            hisi_rf_ws63::BleB2Event::ScanParameters { status } => {
+                if let Some(generation) = lifecycles.scanning.generation {
+                    let _ = lifecycles.scanning.runner.abort_start(generation);
+                }
+                let operation = lifecycles.scanning.operation;
+                lifecycles.scanning.clear();
+                Some(BleEvent::BackendError {
+                    operation,
+                    stage: 2,
+                    status,
+                })
+            }
             hisi_rf_ws63::BleB2Event::Enabled { status } if status != 0 => {
                 Some(BleEvent::BackendError {
                     operation: None,
@@ -676,6 +866,29 @@ pub mod ws63 {
             }
             _ => None,
         }
+    }
+
+    fn run_ble_cancellation_once(
+        backend: &mut impl BleBackend,
+        lifecycles: &mut BleLifecycles,
+    ) -> bool {
+        if let Some(generation) = lifecycles.advertising.runner.try_take_cancel() {
+            match backend.stop_advertising() {
+                Ok(()) => lifecycles.advertising.stopping = Some(generation),
+                Err(error) => {
+                    let _ = lifecycles.advertising.runner.finish(generation, Err(error));
+                    lifecycles.advertising.clear();
+                }
+            }
+            return true;
+        }
+        if let Some(generation) = lifecycles.scanning.runner.try_take_cancel() {
+            let result = backend.stop_scanning();
+            let _ = lifecycles.scanning.runner.finish(generation, result);
+            lifecycles.scanning.clear();
+            return true;
+        }
+        false
     }
 
     /// Exclusive BLE composition before task ownership is split.
@@ -691,6 +904,8 @@ pub mod ws63 {
         >,
         event_producer: hisi_rf_core::control::EventProducer<BleEvent, { crate::EVENT_CAPACITY }>,
         event_consumer: hisi_rf_core::control::EventConsumer<BleEvent, { crate::EVENT_CAPACITY }>,
+        advertising: hisi_rf_core::control::LifecycleRunner<BleOperationError>,
+        scanning: hisi_rf_core::control::LifecycleRunner<BleOperationError>,
     }
 
     impl RadioController {
@@ -705,7 +920,7 @@ pub mod ws63 {
                     inner: self.inner,
                     receiver: self.receiver,
                     events: self.event_producer,
-                    lifecycles: BleLifecycles::default(),
+                    lifecycles: BleLifecycles::new(self.advertising, self.scanning),
                 },
             }
         }
@@ -850,6 +1065,9 @@ pub mod ws63 {
         /// ownership in both cases. Applications should call this from their
         /// single long-lived radio runner task.
         pub fn run_once(&mut self) -> Result<bool, crate::ProtocolError> {
+            if run_ble_cancellation_once(&mut self.inner, &mut self.lifecycles) {
+                return Ok(true);
+            }
             run_ble_once(&mut self.receiver, &mut self.inner, &mut self.lifecycles)
         }
 
@@ -861,7 +1079,7 @@ pub mod ws63 {
             let Some(event) = self.inner.next_event() else {
                 return false;
             };
-            let event = map_ble_lifecycle_event(event, &self.lifecycles);
+            let event = map_ble_lifecycle_event(event, &mut self.lifecycles);
             if let Some(event) = event {
                 let _ = self.events.try_publish(event);
             }
@@ -912,6 +1130,8 @@ pub mod ws63 {
     ) -> Result<RadioController, InitError> {
         let (sender, receiver) = storage.control.claim().ok_or_else(InitError::new)?;
         let (event_producer, event_consumer) = storage.events.claim().ok_or_else(InitError::new)?;
+        let advertising = storage.advertising.claim().ok_or_else(InitError::new)?;
+        let scanning = storage.scanning.claim().ok_or_else(InitError::new)?;
         hisi_rf_ws63::init_ble_b1(resources.inner, storage.inner)
             .map(|inner| RadioController {
                 inner,
@@ -919,6 +1139,8 @@ pub mod ws63 {
                 receiver,
                 event_producer,
                 event_consumer,
+                advertising,
+                scanning,
             })
             .map_err(|_| InitError::new())
     }
@@ -926,12 +1148,16 @@ pub mod ws63 {
     #[cfg(test)]
     mod tests {
         use super::*;
+        use core::future::Future;
         use std::boxed::Box;
+        use std::task::{Context, Poll, Waker};
 
         #[derive(Default)]
         struct FakeBackend {
             advertising: usize,
             scanning: usize,
+            advertising_stops: usize,
+            scanning_stops: usize,
             gatt_servers: usize,
             ready: bool,
             enable_error: Option<u32>,
@@ -972,6 +1198,16 @@ pub mod ws63 {
                 }
             }
 
+            fn stop_advertising(&mut self) -> Result<(), BleOperationError> {
+                self.advertising_stops += 1;
+                Ok(())
+            }
+
+            fn stop_scanning(&mut self) -> Result<(), BleOperationError> {
+                self.scanning_stops += 1;
+                Ok(())
+            }
+
             fn register_gatt_server(
                 &mut self,
                 _: crate::ble::GattServerDefinition,
@@ -984,6 +1220,16 @@ pub mod ws63 {
                     ccc_handle: 4,
                 })
             }
+        }
+
+        fn ble_lifecycles() -> BleLifecycles {
+            let advertising = Box::leak(Box::new(BleLifecycleState::new()))
+                .claim()
+                .unwrap();
+            let scanning = Box::leak(Box::new(BleLifecycleState::new()))
+                .claim()
+                .unwrap();
+            BleLifecycles::new(advertising, scanning)
         }
 
         fn advertising() -> crate::ble::AdvertisingConfig {
@@ -1047,7 +1293,7 @@ pub mod ws63 {
                 sender,
                 events: consumer,
             };
-            let mut lifecycles = BleLifecycles::default();
+            let mut lifecycles = ble_lifecycles();
             let id = controller.try_start_advertising(advertising()).unwrap();
             let rejected = controller.try_start_scanning(scanning()).unwrap_err();
             assert_eq!(rejected.into_inner(), scanning());
@@ -1070,13 +1316,27 @@ pub mod ws63 {
                     adv_id: 0,
                     status: 1,
                 },
-                &lifecycles,
+                &mut lifecycles,
             )
             .unwrap();
             producer.try_publish(event).unwrap();
-            assert_eq!(
-                controller.try_next_event(),
-                Some(BleEvent::AdvertisingStarted { operation: id })
+            let BleEvent::AdvertisingStarted { advertiser } = controller.try_next_event().unwrap()
+            else {
+                panic!("expected advertising lifecycle guard");
+            };
+            assert_eq!(advertiser.operation(), id);
+            drop(advertiser);
+            assert!(run_ble_cancellation_once(&mut backend, &mut lifecycles));
+            assert_eq!(backend.advertising_stops, 1);
+            assert!(
+                map_ble_lifecycle_event(
+                    hisi_rf_ws63::BleB2Event::AdvertisingStopped {
+                        adv_id: 0,
+                        status: 0,
+                    },
+                    &mut lifecycles,
+                )
+                .is_none()
             );
             assert_eq!(
                 controller.event_diagnostics(),
@@ -1120,22 +1380,31 @@ pub mod ws63 {
                 sender,
                 events: consumer,
             };
-            let event = BleEvent::BackendError {
-                operation: None,
-                stage: 0,
-                status: 1,
-            };
             for _ in 0..crate::EVENT_CAPACITY {
-                producer.try_publish(event).unwrap();
+                producer
+                    .try_publish(BleEvent::BackendError {
+                        operation: None,
+                        stage: 0,
+                        status: 1,
+                    })
+                    .unwrap();
             }
-            assert!(producer.try_publish(event).is_err());
+            assert!(
+                producer
+                    .try_publish(BleEvent::BackendError {
+                        operation: None,
+                        stage: 0,
+                        status: 1,
+                    })
+                    .is_err()
+            );
 
             let id = controller.try_start_advertising(advertising()).unwrap();
             let mut backend = FakeBackend {
                 ready: true,
                 ..FakeBackend::default()
             };
-            let mut lifecycles = BleLifecycles::default();
+            let mut lifecycles = ble_lifecycles();
             assert!(run_ble_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
             let completion = controller.try_take_completion().unwrap().unwrap();
             assert_eq!(completion.id(), id);
@@ -1160,7 +1429,7 @@ pub mod ws63 {
                 sender,
                 events: consumer,
             };
-            let mut lifecycles = BleLifecycles::default();
+            let mut lifecycles = ble_lifecycles();
             let id = controller
                 .try_register_gatt_server(gatt_database())
                 .unwrap();
@@ -1182,6 +1451,163 @@ pub mod ws63 {
                 })
             );
         }
+
+        #[test]
+        fn advertising_guard_rejects_duplicate_start_and_waits_for_stop_callback() {
+            let state = Box::leak(Box::new(BleControlState::new()));
+            let (sender, mut receiver) = state.claim().unwrap();
+            let events = Box::leak(Box::new(BleEventState::new()));
+            let (mut producer, consumer) = events.claim().unwrap();
+            let mut controller = BleController {
+                sender,
+                events: consumer,
+            };
+            let mut backend = FakeBackend {
+                ready: true,
+                ..FakeBackend::default()
+            };
+            let mut lifecycles = ble_lifecycles();
+
+            let first = controller.try_start_advertising(advertising()).unwrap();
+            assert!(run_ble_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
+            assert_eq!(
+                controller
+                    .try_take_completion()
+                    .unwrap()
+                    .unwrap()
+                    .into_result(),
+                Ok(BleOperation::AdvertisingRequested)
+            );
+
+            let duplicate = controller.try_start_advertising(advertising()).unwrap();
+            assert!(run_ble_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
+            let completion = controller.try_take_completion().unwrap().unwrap();
+            assert_eq!(completion.id(), duplicate);
+            assert_eq!(
+                completion.into_result().unwrap_err().kind(),
+                BleOperationErrorKind::LifecycleBusy
+            );
+            assert_eq!(backend.advertising, 1);
+
+            let event = map_ble_lifecycle_event(
+                hisi_rf_ws63::BleB2Event::AdvertisingState {
+                    adv_id: 0,
+                    status: 1,
+                },
+                &mut lifecycles,
+            )
+            .unwrap();
+            producer.try_publish(event).unwrap();
+            let BleEvent::AdvertisingStarted { advertiser } = controller.try_next_event().unwrap()
+            else {
+                panic!("expected advertising lifecycle guard");
+            };
+            assert_eq!(advertiser.operation(), first);
+
+            let mut stop = Box::pin(advertiser.stop());
+            let waker = Waker::noop();
+            let mut context = Context::from_waker(waker);
+            assert!(matches!(stop.as_mut().poll(&mut context), Poll::Pending));
+            assert!(run_ble_cancellation_once(&mut backend, &mut lifecycles));
+            assert_eq!(backend.advertising_stops, 1);
+            assert!(matches!(stop.as_mut().poll(&mut context), Poll::Pending));
+            assert!(
+                map_ble_lifecycle_event(
+                    hisi_rf_ws63::BleB2Event::AdvertisingStopped {
+                        adv_id: 0,
+                        status: 0,
+                    },
+                    &mut lifecycles,
+                )
+                .is_none()
+            );
+            assert!(matches!(
+                stop.as_mut().poll(&mut context),
+                Poll::Ready(Ok(()))
+            ));
+        }
+
+        #[test]
+        fn rejected_active_event_drops_guard_and_requests_cleanup() {
+            let state = Box::leak(Box::new(BleControlState::new()));
+            let (sender, mut receiver) = state.claim().unwrap();
+            let events = Box::leak(Box::new(BleEventState::new()));
+            let (mut producer, consumer) = events.claim().unwrap();
+            let mut controller = BleController {
+                sender,
+                events: consumer,
+            };
+            for _ in 0..crate::EVENT_CAPACITY {
+                producer
+                    .try_publish(BleEvent::BackendError {
+                        operation: None,
+                        stage: 0,
+                        status: 1,
+                    })
+                    .unwrap();
+            }
+            let mut backend = FakeBackend {
+                ready: true,
+                ..FakeBackend::default()
+            };
+            let mut lifecycles = ble_lifecycles();
+            controller.try_start_advertising(advertising()).unwrap();
+            assert!(run_ble_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
+            let _ = controller.try_take_completion().unwrap().unwrap();
+            let event = map_ble_lifecycle_event(
+                hisi_rf_ws63::BleB2Event::AdvertisingState {
+                    adv_id: 0,
+                    status: 1,
+                },
+                &mut lifecycles,
+            )
+            .unwrap();
+            drop(producer.try_publish(event).unwrap_err());
+            assert!(run_ble_cancellation_once(&mut backend, &mut lifecycles));
+            assert_eq!(backend.advertising_stops, 1);
+        }
+
+        #[test]
+        fn scan_guard_stop_completes_after_synchronous_backend_stop() {
+            let state = Box::leak(Box::new(BleControlState::new()));
+            let (sender, mut receiver) = state.claim().unwrap();
+            let events = Box::leak(Box::new(BleEventState::new()));
+            let (mut producer, consumer) = events.claim().unwrap();
+            let mut controller = BleController {
+                sender,
+                events: consumer,
+            };
+            let mut backend = FakeBackend {
+                ready: true,
+                ..FakeBackend::default()
+            };
+            let mut lifecycles = ble_lifecycles();
+            controller.try_start_scanning(scanning()).unwrap();
+            assert!(run_ble_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
+            let _ = controller.try_take_completion().unwrap().unwrap();
+            producer
+                .try_publish(
+                    map_ble_lifecycle_event(
+                        hisi_rf_ws63::BleB2Event::ScanParameters { status: 0 },
+                        &mut lifecycles,
+                    )
+                    .unwrap(),
+                )
+                .unwrap();
+            let BleEvent::ScanReady { scanner } = controller.try_next_event().unwrap() else {
+                panic!("expected scan lifecycle guard");
+            };
+            let mut stop = Box::pin(scanner.stop());
+            let waker = Waker::noop();
+            let mut context = Context::from_waker(waker);
+            assert!(matches!(stop.as_mut().poll(&mut context), Poll::Pending));
+            assert!(run_ble_cancellation_once(&mut backend, &mut lifecycles));
+            assert_eq!(backend.scanning_stops, 1);
+            assert!(matches!(
+                stop.as_mut().poll(&mut context),
+                Poll::Ready(Ok(()))
+            ));
+        }
     }
 }
 
@@ -1191,8 +1617,7 @@ pub mod ws63 {
 /// announce/seek command submission, and runner ownership. The returned
 /// completion means the WS63 host synchronously accepted or rejected the
 /// request. Static typed SSAP registration and bounded asynchronous lifecycle
-/// events are supported; cancellation and active guards remain experimental
-/// U4 work.
+/// events, generation-tagged cancellation, and active guards are supported.
 #[cfg(all(feature = "chip-ws63", feature = "profile-sle-ssap"))]
 pub mod ws63 {
     pub use crate::declare_radio_storage;
@@ -1207,6 +1632,7 @@ pub mod ws63 {
     type SleControlState =
         hisi_rf_core::control::ControlState<SleCommand, Result<SleOperation, SleOperationError>>;
     type SleEventState = hisi_rf_core::control::EventState<SleEvent, { crate::EVENT_CAPACITY }>;
+    type SleLifecycleState = hisi_rf_core::control::LifecycleState<SleOperationError>;
 
     /// Caller-owned bytes shared by the pinned SLE controller and host tasks.
     pub const RADIO_ARENA_BYTES: usize = hisi_rf_ws63::SLE_S1_ARENA_BYTES;
@@ -1240,6 +1666,7 @@ pub mod ws63 {
         pub use hisi_rf_ws63::{SleS1ArenaStorage as ArenaStorage, SleS1ControlStorage};
         pub type ProtocolControlStorage = super::SleControlState;
         pub type ProtocolEventStorage = super::SleEventState;
+        pub type ProtocolLifecycleStorage = super::SleLifecycleState;
     }
 
     /// Caller-owned SLE composition storage.
@@ -1247,6 +1674,8 @@ pub mod ws63 {
         inner: hisi_rf_ws63::SleS1Storage<RADIO_ARENA_BYTES>,
         control: &'static SleControlState,
         events: &'static SleEventState,
+        announce: &'static SleLifecycleState,
+        seek: &'static SleLifecycleState,
     }
 
     impl RadioStorage {
@@ -1257,11 +1686,15 @@ pub mod ws63 {
             arena: &'static __private::ArenaStorage<RADIO_ARENA_BYTES>,
             protocol: &'static __private::ProtocolControlStorage,
             events: &'static __private::ProtocolEventStorage,
+            announce: &'static __private::ProtocolLifecycleStorage,
+            seek: &'static __private::ProtocolLifecycleStorage,
         ) -> Self {
             Self {
                 inner: hisi_rf_ws63::SleS1Storage::from_parts(control, arena),
                 control: protocol,
                 events,
+                announce,
+                seek,
             }
         }
 
@@ -1273,6 +1706,8 @@ pub mod ws63 {
                     inner,
                     control: self.control,
                     events: self.events,
+                    announce: self.announce,
+                    seek: self.seek,
                 })
                 .map_err(|_| InitError::new())
         }
@@ -1283,6 +1718,8 @@ pub mod ws63 {
         inner: hisi_rf_ws63::InstalledSleS1Storage,
         control: &'static SleControlState,
         events: &'static SleEventState,
+        announce: &'static SleLifecycleState,
+        seek: &'static SleLifecycleState,
     }
 
     impl InstalledRadioStorage {
@@ -1354,6 +1791,14 @@ pub mod ws63 {
         SetSeekParameters,
         /// The controller rejected the start-seek request.
         StartSeek,
+        /// The controller rejected the announce stop request.
+        StopAnnounce,
+        /// The controller rejected the seek stop request.
+        StopSeek,
+        /// Another generation still owns this lifecycle.
+        LifecycleBusy,
+        /// A late callback or handle no longer names the active generation.
+        StaleLifecycle,
         /// The selected WS63 profile cannot represent this valid generic config.
         UnsupportedConfiguration,
         /// This operation is unavailable in a host-only build.
@@ -1394,18 +1839,86 @@ pub mod ws63 {
         SsapServerRegistered(SsapServerHandle),
     }
 
+    /// Active announce ownership returned by the SLE event plane.
+    #[must_use = "call stop().await or retain the announcer; dropping it requests cleanup"]
+    pub struct Announcer {
+        operation: crate::ProtocolCommandId,
+        inner: hisi_rf_core::control::LifecycleGuard<SleOperationError>,
+    }
+
+    impl Announcer {
+        /// Command that created this announce generation.
+        pub const fn operation(&self) -> crate::ProtocolCommandId {
+            self.operation
+        }
+
+        /// Stop announcing and wait for the matching backend callback.
+        pub async fn stop(self) -> Result<(), SleOperationError> {
+            map_sle_stop_result(self.inner.stop().await)
+        }
+    }
+
+    impl core::fmt::Debug for Announcer {
+        fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+            formatter
+                .debug_struct("Announcer")
+                .field("operation", &self.operation)
+                .finish_non_exhaustive()
+        }
+    }
+
+    /// Active seek ownership returned by the SLE event plane.
+    #[must_use = "call stop().await or retain the seeker; dropping it requests cleanup"]
+    pub struct Seeker {
+        operation: crate::ProtocolCommandId,
+        inner: hisi_rf_core::control::LifecycleGuard<SleOperationError>,
+    }
+
+    impl Seeker {
+        /// Command that created this seek generation.
+        pub const fn operation(&self) -> crate::ProtocolCommandId {
+            self.operation
+        }
+
+        /// Stop seeking and wait for the matching backend callback.
+        pub async fn stop(self) -> Result<(), SleOperationError> {
+            map_sle_stop_result(self.inner.stop().await)
+        }
+    }
+
+    impl core::fmt::Debug for Seeker {
+        fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+            formatter
+                .debug_struct("Seeker")
+                .field("operation", &self.operation)
+                .finish_non_exhaustive()
+        }
+    }
+
+    fn map_sle_stop_result(
+        result: Result<(), hisi_rf_core::control::LifecycleStopError<SleOperationError>>,
+    ) -> Result<(), SleOperationError> {
+        result.map_err(|error| match error {
+            hisi_rf_core::control::LifecycleStopError::Stale => SleOperationError {
+                kind: SleOperationErrorKind::StaleLifecycle,
+                vendor_status: None,
+            },
+            hisi_rf_core::control::LifecycleStopError::Backend(error) => error,
+        })
+    }
+
     /// Facade-owned SLE lifecycle event copied out of vendor callback context.
-    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    #[derive(Debug)]
     pub enum SleEvent {
         /// Announcing entered the active state for this command generation.
         AnnounceStarted {
-            /// Command that requested this announce lifecycle.
-            operation: crate::ProtocolCommandId,
+            /// Unique active announce capability.
+            announcer: Announcer,
         },
         /// Seeking entered the active state for this command generation.
         SeekReady {
-            /// Command that requested this seek lifecycle.
-            operation: crate::ProtocolCommandId,
+            /// Unique active seek capability.
+            seeker: Seeker,
         },
         /// An asynchronous callback reported a backend failure.
         BackendError {
@@ -1418,10 +1931,45 @@ pub mod ws63 {
         },
     }
 
-    #[derive(Default)]
+    struct SleLifecycle {
+        operation: Option<crate::ProtocolCommandId>,
+        generation: Option<hisi_rf_core::control::LifecycleId>,
+        stopping: Option<hisi_rf_core::control::LifecycleId>,
+        runner: hisi_rf_core::control::LifecycleRunner<SleOperationError>,
+    }
+
     struct SleLifecycles {
-        announce: Option<crate::ProtocolCommandId>,
-        seek: Option<crate::ProtocolCommandId>,
+        announce: SleLifecycle,
+        seek: SleLifecycle,
+    }
+
+    impl SleLifecycle {
+        fn new(runner: hisi_rf_core::control::LifecycleRunner<SleOperationError>) -> Self {
+            Self {
+                operation: None,
+                generation: None,
+                stopping: None,
+                runner,
+            }
+        }
+
+        fn clear(&mut self) {
+            self.operation = None;
+            self.generation = None;
+            self.stopping = None;
+        }
+    }
+
+    impl SleLifecycles {
+        fn new(
+            announce: hisi_rf_core::control::LifecycleRunner<SleOperationError>,
+            seek: hisi_rf_core::control::LifecycleRunner<SleOperationError>,
+        ) -> Self {
+            Self {
+                announce: SleLifecycle::new(announce),
+                seek: SleLifecycle::new(seek),
+            }
+        }
     }
 
     /// Unforgeable facade handle for one registered static SSAP server.
@@ -1439,6 +1987,8 @@ pub mod ws63 {
             config: crate::sle::AnnounceConfig,
         ) -> Result<(), SleOperationError>;
         fn start_seek(&mut self, config: crate::sle::SeekConfig) -> Result<(), SleOperationError>;
+        fn stop_announce(&mut self) -> Result<(), SleOperationError>;
+        fn stop_seek(&mut self) -> Result<(), SleOperationError>;
         fn register_ssap_server(
             &mut self,
             definition: crate::sle::SsapServerDefinition,
@@ -1466,6 +2016,14 @@ pub mod ws63 {
 
         fn start_seek(&mut self, config: crate::sle::SeekConfig) -> Result<(), SleOperationError> {
             self.start_seek_config(config).map_err(map_sle_error)
+        }
+
+        fn stop_announce(&mut self) -> Result<(), SleOperationError> {
+            self.stop_announce().map_err(map_sle_error)
+        }
+
+        fn stop_seek(&mut self) -> Result<(), SleOperationError> {
+            self.stop_seek().map_err(map_sle_error)
         }
 
         fn register_ssap_server(
@@ -1497,9 +2055,10 @@ pub mod ws63 {
                 (SleOperationErrorKind::SetSeekParameters, Some(status))
             }
             E::StartSeek(status) => (SleOperationErrorKind::StartSeek, Some(status)),
+            E::StopAnnounce(status) => (SleOperationErrorKind::StopAnnounce, Some(status)),
+            E::StopSeek(status) => (SleOperationErrorKind::StopSeek, Some(status)),
             E::UnsupportedTarget => (SleOperationErrorKind::UnsupportedTarget, None),
-            E::StopSeek(status)
-            | E::SetLocalAddress(status)
+            E::SetLocalAddress(status)
             | E::SetConnectionParameters(status)
             | E::Connect(status)
             | E::Disconnect(status)
@@ -1525,23 +2084,6 @@ pub mod ws63 {
         }
     }
 
-    fn execute_sle_command(
-        backend: &mut impl SleBackend,
-        command: SleCommand,
-    ) -> Result<SleOperation, SleOperationError> {
-        match command {
-            SleCommand::StartAnnounce(config) => backend
-                .start_announce(config)
-                .map(|()| SleOperation::AnnounceRequested),
-            SleCommand::StartSeek(config) => backend
-                .start_seek(config)
-                .map(|()| SleOperation::SeekRequested),
-            SleCommand::RegisterSsapServer(definition) => backend
-                .register_ssap_server(definition)
-                .map(SleOperation::SsapServerRegistered),
-        }
-    }
-
     fn run_sle_once(
         receiver: &mut hisi_rf_core::control::ControlReceiver<
             SleCommand,
@@ -1559,24 +2101,49 @@ pub mod ws63 {
         };
         let id = command.id();
         let command = command.into_inner();
-        let lifecycle = match &command {
-            SleCommand::StartAnnounce(_) => Some(0),
-            SleCommand::StartSeek(_) => Some(1),
-            SleCommand::RegisterSsapServer(_) => None,
-        };
         let result = match readiness {
-            Ok(true) => execute_sle_command(backend, command),
+            Ok(true) => match command {
+                SleCommand::StartAnnounce(config) => match lifecycles.announce.runner.begin() {
+                    Ok(generation) => match backend.start_announce(config) {
+                        Ok(()) => {
+                            lifecycles.announce.operation = Some(crate::ProtocolCommandId(id));
+                            lifecycles.announce.generation = Some(generation);
+                            Ok(SleOperation::AnnounceRequested)
+                        }
+                        Err(error) => {
+                            let _ = lifecycles.announce.runner.abort_start(generation);
+                            Err(error)
+                        }
+                    },
+                    Err(_) => Err(SleOperationError {
+                        kind: SleOperationErrorKind::LifecycleBusy,
+                        vendor_status: None,
+                    }),
+                },
+                SleCommand::StartSeek(config) => match lifecycles.seek.runner.begin() {
+                    Ok(generation) => match backend.start_seek(config) {
+                        Ok(()) => {
+                            lifecycles.seek.operation = Some(crate::ProtocolCommandId(id));
+                            lifecycles.seek.generation = Some(generation);
+                            Ok(SleOperation::SeekRequested)
+                        }
+                        Err(error) => {
+                            let _ = lifecycles.seek.runner.abort_start(generation);
+                            Err(error)
+                        }
+                    },
+                    Err(_) => Err(SleOperationError {
+                        kind: SleOperationErrorKind::LifecycleBusy,
+                        vendor_status: None,
+                    }),
+                },
+                SleCommand::RegisterSsapServer(definition) => backend
+                    .register_ssap_server(definition)
+                    .map(SleOperation::SsapServerRegistered),
+            },
             Err(error) => Err(error),
             Ok(false) => unreachable!(),
         };
-        if result.is_ok() {
-            let id = crate::ProtocolCommandId(id);
-            match lifecycle {
-                Some(0) => lifecycles.announce = Some(id),
-                Some(1) => lifecycles.seek = Some(id),
-                _ => {}
-            }
-        }
         receiver
             .complete(id, result)
             .map_err(|_| crate::ProtocolError::CompletionOwnership)?;
@@ -1585,27 +2152,85 @@ pub mod ws63 {
 
     fn map_sle_lifecycle_event(
         event: hisi_rf_ws63::SleS1Event,
-        lifecycles: &SleLifecycles,
+        lifecycles: &mut SleLifecycles,
     ) -> Option<SleEvent> {
         match event {
-            hisi_rf_ws63::SleS1Event::AnnounceEnabled { status: 0, .. } => lifecycles
-                .announce
-                .map(|operation| SleEvent::AnnounceStarted { operation }),
+            hisi_rf_ws63::SleS1Event::AnnounceEnabled { status: 0, .. } => {
+                let operation = lifecycles.announce.operation?;
+                let generation = lifecycles.announce.generation?;
+                lifecycles
+                    .announce
+                    .runner
+                    .activate(generation)
+                    .ok()
+                    .map(|inner| SleEvent::AnnounceStarted {
+                        announcer: Announcer { operation, inner },
+                    })
+            }
             hisi_rf_ws63::SleS1Event::AnnounceEnabled { status, .. } => {
+                if let Some(generation) = lifecycles.announce.generation {
+                    let _ = lifecycles.announce.runner.abort_start(generation);
+                }
+                let operation = lifecycles.announce.operation;
+                lifecycles.announce.clear();
                 Some(SleEvent::BackendError {
-                    operation: lifecycles.announce,
+                    operation,
                     stage: 1,
                     status,
                 })
             }
-            hisi_rf_ws63::SleS1Event::SeekEnabled { status: 0 } => lifecycles
-                .seek
-                .map(|operation| SleEvent::SeekReady { operation }),
-            hisi_rf_ws63::SleS1Event::SeekEnabled { status } => Some(SleEvent::BackendError {
-                operation: lifecycles.seek,
-                stage: 2,
-                status,
-            }),
+            hisi_rf_ws63::SleS1Event::AnnounceDisabled { status, .. } => {
+                let generation = lifecycles.announce.stopping.take()?;
+                let result = if status == 0 {
+                    Ok(())
+                } else {
+                    Err(SleOperationError {
+                        kind: SleOperationErrorKind::StopAnnounce,
+                        vendor_status: Some(status),
+                    })
+                };
+                let _ = lifecycles.announce.runner.finish(generation, result);
+                lifecycles.announce.clear();
+                None
+            }
+            hisi_rf_ws63::SleS1Event::SeekEnabled { status: 0 } => {
+                let operation = lifecycles.seek.operation?;
+                let generation = lifecycles.seek.generation?;
+                lifecycles
+                    .seek
+                    .runner
+                    .activate(generation)
+                    .ok()
+                    .map(|inner| SleEvent::SeekReady {
+                        seeker: Seeker { operation, inner },
+                    })
+            }
+            hisi_rf_ws63::SleS1Event::SeekEnabled { status } => {
+                if let Some(generation) = lifecycles.seek.generation {
+                    let _ = lifecycles.seek.runner.abort_start(generation);
+                }
+                let operation = lifecycles.seek.operation;
+                lifecycles.seek.clear();
+                Some(SleEvent::BackendError {
+                    operation,
+                    stage: 2,
+                    status,
+                })
+            }
+            hisi_rf_ws63::SleS1Event::SeekDisabled { status } => {
+                let generation = lifecycles.seek.stopping.take()?;
+                let result = if status == 0 {
+                    Ok(())
+                } else {
+                    Err(SleOperationError {
+                        kind: SleOperationErrorKind::StopSeek,
+                        vendor_status: Some(status),
+                    })
+                };
+                let _ = lifecycles.seek.runner.finish(generation, result);
+                lifecycles.seek.clear();
+                None
+            }
             hisi_rf_ws63::SleS1Event::Enabled { status } if status != 0 => {
                 Some(SleEvent::BackendError {
                     operation: None,
@@ -1615,6 +2240,33 @@ pub mod ws63 {
             }
             _ => None,
         }
+    }
+
+    fn run_sle_cancellation_once(
+        backend: &mut impl SleBackend,
+        lifecycles: &mut SleLifecycles,
+    ) -> bool {
+        if let Some(generation) = lifecycles.announce.runner.try_take_cancel() {
+            match backend.stop_announce() {
+                Ok(()) => lifecycles.announce.stopping = Some(generation),
+                Err(error) => {
+                    let _ = lifecycles.announce.runner.finish(generation, Err(error));
+                    lifecycles.announce.clear();
+                }
+            }
+            return true;
+        }
+        if let Some(generation) = lifecycles.seek.runner.try_take_cancel() {
+            match backend.stop_seek() {
+                Ok(()) => lifecycles.seek.stopping = Some(generation),
+                Err(error) => {
+                    let _ = lifecycles.seek.runner.finish(generation, Err(error));
+                    lifecycles.seek.clear();
+                }
+            }
+            return true;
+        }
+        false
     }
 
     /// Exclusive SLE composition before task ownership is split.
@@ -1630,6 +2282,8 @@ pub mod ws63 {
         >,
         event_producer: hisi_rf_core::control::EventProducer<SleEvent, { crate::EVENT_CAPACITY }>,
         event_consumer: hisi_rf_core::control::EventConsumer<SleEvent, { crate::EVENT_CAPACITY }>,
+        announce: hisi_rf_core::control::LifecycleRunner<SleOperationError>,
+        seek: hisi_rf_core::control::LifecycleRunner<SleOperationError>,
     }
 
     impl RadioController {
@@ -1644,7 +2298,7 @@ pub mod ws63 {
                     inner: self.inner,
                     receiver: self.receiver,
                     events: self.event_producer,
-                    lifecycles: SleLifecycles::default(),
+                    lifecycles: SleLifecycles::new(self.announce, self.seek),
                 },
             }
         }
@@ -1788,6 +2442,9 @@ pub mod ws63 {
         /// ownership in both cases. Applications should call this from their
         /// single long-lived radio runner task.
         pub fn run_once(&mut self) -> Result<bool, crate::ProtocolError> {
+            if run_sle_cancellation_once(&mut self.inner, &mut self.lifecycles) {
+                return Ok(true);
+            }
             run_sle_once(&mut self.receiver, &mut self.inner, &mut self.lifecycles)
         }
 
@@ -1796,7 +2453,7 @@ pub mod ws63 {
             let Some(event) = self.inner.next_event() else {
                 return false;
             };
-            let event = map_sle_lifecycle_event(event, &self.lifecycles);
+            let event = map_sle_lifecycle_event(event, &mut self.lifecycles);
             if let Some(event) = event {
                 let _ = self.events.try_publish(event);
             }
@@ -1844,6 +2501,8 @@ pub mod ws63 {
     ) -> Result<RadioController, InitError> {
         let (sender, receiver) = storage.control.claim().ok_or_else(InitError::new)?;
         let (event_producer, event_consumer) = storage.events.claim().ok_or_else(InitError::new)?;
+        let announce = storage.announce.claim().ok_or_else(InitError::new)?;
+        let seek = storage.seek.claim().ok_or_else(InitError::new)?;
         hisi_rf_ws63::init_sle_s1(resources.inner, storage.inner)
             .map(|inner| RadioController {
                 inner,
@@ -1851,6 +2510,8 @@ pub mod ws63 {
                 receiver,
                 event_producer,
                 event_consumer,
+                announce,
+                seek,
             })
             .map_err(|_| InitError::new())
     }
@@ -1858,12 +2519,16 @@ pub mod ws63 {
     #[cfg(test)]
     mod tests {
         use super::*;
+        use core::future::Future;
         use std::boxed::Box;
+        use std::task::{Context, Poll, Waker};
 
         #[derive(Default)]
         struct FakeBackend {
             announce: usize,
             seek: usize,
+            announce_stops: usize,
+            seek_stops: usize,
             ssap_servers: usize,
             ready: bool,
             enable_error: Option<u32>,
@@ -1901,6 +2566,16 @@ pub mod ws63 {
                 }
             }
 
+            fn stop_announce(&mut self) -> Result<(), SleOperationError> {
+                self.announce_stops += 1;
+                Ok(())
+            }
+
+            fn stop_seek(&mut self) -> Result<(), SleOperationError> {
+                self.seek_stops += 1;
+                Ok(())
+            }
+
             fn register_ssap_server(
                 &mut self,
                 _: crate::sle::SsapServerDefinition,
@@ -1912,6 +2587,16 @@ pub mod ws63 {
                     property_handle: 3,
                 })
             }
+        }
+
+        fn sle_lifecycles() -> SleLifecycles {
+            let announce = Box::leak(Box::new(SleLifecycleState::new()))
+                .claim()
+                .unwrap();
+            let seek = Box::leak(Box::new(SleLifecycleState::new()))
+                .claim()
+                .unwrap();
+            SleLifecycles::new(announce, seek)
         }
 
         fn announce() -> crate::sle::AnnounceConfig {
@@ -1974,7 +2659,7 @@ pub mod ws63 {
                 sender,
                 events: consumer,
             };
-            let mut lifecycles = SleLifecycles::default();
+            let mut lifecycles = sle_lifecycles();
             let id = controller.try_start_announce(announce()).unwrap();
             let rejected = controller.try_start_seek(seek()).unwrap_err();
             assert_eq!(rejected.into_inner(), seek());
@@ -1997,13 +2682,27 @@ pub mod ws63 {
                     announce_id: 0,
                     status: 0,
                 },
-                &lifecycles,
+                &mut lifecycles,
             )
             .unwrap();
             producer.try_publish(event).unwrap();
-            assert_eq!(
-                controller.try_next_event(),
-                Some(SleEvent::AnnounceStarted { operation: id })
+            let SleEvent::AnnounceStarted { announcer } = controller.try_next_event().unwrap()
+            else {
+                panic!("expected announce lifecycle guard");
+            };
+            assert_eq!(announcer.operation(), id);
+            drop(announcer);
+            assert!(run_sle_cancellation_once(&mut backend, &mut lifecycles));
+            assert_eq!(backend.announce_stops, 1);
+            assert!(
+                map_sle_lifecycle_event(
+                    hisi_rf_ws63::SleS1Event::AnnounceDisabled {
+                        announce_id: 1,
+                        status: 0,
+                    },
+                    &mut lifecycles,
+                )
+                .is_none()
             );
             assert_eq!(
                 controller.event_diagnostics(),
@@ -2047,22 +2746,31 @@ pub mod ws63 {
                 sender,
                 events: consumer,
             };
-            let event = SleEvent::BackendError {
-                operation: None,
-                stage: 0,
-                status: 1,
-            };
             for _ in 0..crate::EVENT_CAPACITY {
-                producer.try_publish(event).unwrap();
+                producer
+                    .try_publish(SleEvent::BackendError {
+                        operation: None,
+                        stage: 0,
+                        status: 1,
+                    })
+                    .unwrap();
             }
-            assert!(producer.try_publish(event).is_err());
+            assert!(
+                producer
+                    .try_publish(SleEvent::BackendError {
+                        operation: None,
+                        stage: 0,
+                        status: 1,
+                    })
+                    .is_err()
+            );
 
             let id = controller.try_start_announce(announce()).unwrap();
             let mut backend = FakeBackend {
                 ready: true,
                 ..FakeBackend::default()
             };
-            let mut lifecycles = SleLifecycles::default();
+            let mut lifecycles = sle_lifecycles();
             assert!(run_sle_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
             let completion = controller.try_take_completion().unwrap().unwrap();
             assert_eq!(completion.id(), id);
@@ -2087,7 +2795,7 @@ pub mod ws63 {
                 sender,
                 events: consumer,
             };
-            let mut lifecycles = SleLifecycles::default();
+            let mut lifecycles = sle_lifecycles();
             let id = controller
                 .try_register_ssap_server(ssap_database())
                 .unwrap();
@@ -2107,6 +2815,131 @@ pub mod ws63 {
                     property_handle: 3,
                 })
             );
+        }
+
+        #[test]
+        fn announce_guard_rejects_duplicate_start_and_waits_for_stop_callback() {
+            let state = Box::leak(Box::new(SleControlState::new()));
+            let (sender, mut receiver) = state.claim().unwrap();
+            let events = Box::leak(Box::new(SleEventState::new()));
+            let (mut producer, consumer) = events.claim().unwrap();
+            let mut controller = SleController {
+                sender,
+                events: consumer,
+            };
+            let mut backend = FakeBackend {
+                ready: true,
+                ..FakeBackend::default()
+            };
+            let mut lifecycles = sle_lifecycles();
+
+            let first = controller.try_start_announce(announce()).unwrap();
+            assert!(run_sle_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
+            assert_eq!(
+                controller
+                    .try_take_completion()
+                    .unwrap()
+                    .unwrap()
+                    .into_result(),
+                Ok(SleOperation::AnnounceRequested)
+            );
+
+            let duplicate = controller.try_start_announce(announce()).unwrap();
+            assert!(run_sle_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
+            let completion = controller.try_take_completion().unwrap().unwrap();
+            assert_eq!(completion.id(), duplicate);
+            assert_eq!(
+                completion.into_result().unwrap_err().kind(),
+                SleOperationErrorKind::LifecycleBusy
+            );
+            assert_eq!(backend.announce, 1);
+
+            let event = map_sle_lifecycle_event(
+                hisi_rf_ws63::SleS1Event::AnnounceEnabled {
+                    announce_id: 1,
+                    status: 0,
+                },
+                &mut lifecycles,
+            )
+            .unwrap();
+            producer.try_publish(event).unwrap();
+            let SleEvent::AnnounceStarted { announcer } = controller.try_next_event().unwrap()
+            else {
+                panic!("expected announce lifecycle guard");
+            };
+            assert_eq!(announcer.operation(), first);
+
+            let mut stop = Box::pin(announcer.stop());
+            let waker = Waker::noop();
+            let mut context = Context::from_waker(waker);
+            assert!(matches!(stop.as_mut().poll(&mut context), Poll::Pending));
+            assert!(run_sle_cancellation_once(&mut backend, &mut lifecycles));
+            assert_eq!(backend.announce_stops, 1);
+            assert!(matches!(stop.as_mut().poll(&mut context), Poll::Pending));
+            assert!(
+                map_sle_lifecycle_event(
+                    hisi_rf_ws63::SleS1Event::AnnounceDisabled {
+                        announce_id: 1,
+                        status: 0,
+                    },
+                    &mut lifecycles,
+                )
+                .is_none()
+            );
+            assert!(matches!(
+                stop.as_mut().poll(&mut context),
+                Poll::Ready(Ok(()))
+            ));
+        }
+
+        #[test]
+        fn seek_guard_stop_waits_for_matching_disabled_callback() {
+            let state = Box::leak(Box::new(SleControlState::new()));
+            let (sender, mut receiver) = state.claim().unwrap();
+            let events = Box::leak(Box::new(SleEventState::new()));
+            let (mut producer, consumer) = events.claim().unwrap();
+            let mut controller = SleController {
+                sender,
+                events: consumer,
+            };
+            let mut backend = FakeBackend {
+                ready: true,
+                ..FakeBackend::default()
+            };
+            let mut lifecycles = sle_lifecycles();
+            controller.try_start_seek(seek()).unwrap();
+            assert!(run_sle_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
+            let _ = controller.try_take_completion().unwrap().unwrap();
+            producer
+                .try_publish(
+                    map_sle_lifecycle_event(
+                        hisi_rf_ws63::SleS1Event::SeekEnabled { status: 0 },
+                        &mut lifecycles,
+                    )
+                    .unwrap(),
+                )
+                .unwrap();
+            let SleEvent::SeekReady { seeker } = controller.try_next_event().unwrap() else {
+                panic!("expected seek lifecycle guard");
+            };
+            let mut stop = Box::pin(seeker.stop());
+            let waker = Waker::noop();
+            let mut context = Context::from_waker(waker);
+            assert!(matches!(stop.as_mut().poll(&mut context), Poll::Pending));
+            assert!(run_sle_cancellation_once(&mut backend, &mut lifecycles));
+            assert_eq!(backend.seek_stops, 1);
+            assert!(matches!(stop.as_mut().poll(&mut context), Poll::Pending));
+            assert!(
+                map_sle_lifecycle_event(
+                    hisi_rf_ws63::SleS1Event::SeekDisabled { status: 0 },
+                    &mut lifecycles,
+                )
+                .is_none()
+            );
+            assert!(matches!(
+                stop.as_mut().poll(&mut context),
+                Poll::Ready(Ok(()))
+            ));
         }
     }
 }
@@ -2502,11 +3335,22 @@ macro_rules! declare_radio_storage {
                 $crate::ws63::__private::ProtocolControlStorage::new();
             static EVENTS: $crate::ws63::__private::ProtocolEventStorage =
                 $crate::ws63::__private::ProtocolEventStorage::new();
+            static ADVERTISING: $crate::ws63::__private::ProtocolLifecycleStorage =
+                $crate::ws63::__private::ProtocolLifecycleStorage::new();
+            static SCANNING: $crate::ws63::__private::ProtocolLifecycleStorage =
+                $crate::ws63::__private::ProtocolLifecycleStorage::new();
             #[cfg_attr(target_arch = "riscv32", unsafe(link_section = ".hisi.shared-arena"))]
             static ARENA: $crate::ws63::__private::ArenaStorage<
                 { $crate::ws63::RADIO_ARENA_BYTES },
             > = $crate::ws63::__private::ArenaStorage::new();
-            $crate::ws63::RadioStorage::__from_parts(&CONTROL, &ARENA, &PROTOCOL, &EVENTS)
+            $crate::ws63::RadioStorage::__from_parts(
+                &CONTROL,
+                &ARENA,
+                &PROTOCOL,
+                &EVENTS,
+                &ADVERTISING,
+                &SCANNING,
+            )
         };
     };
 }
@@ -2524,11 +3368,22 @@ macro_rules! declare_radio_storage {
                 $crate::ws63::__private::ProtocolControlStorage::new();
             static EVENTS: $crate::ws63::__private::ProtocolEventStorage =
                 $crate::ws63::__private::ProtocolEventStorage::new();
+            static ANNOUNCE: $crate::ws63::__private::ProtocolLifecycleStorage =
+                $crate::ws63::__private::ProtocolLifecycleStorage::new();
+            static SEEK: $crate::ws63::__private::ProtocolLifecycleStorage =
+                $crate::ws63::__private::ProtocolLifecycleStorage::new();
             #[cfg_attr(target_arch = "riscv32", unsafe(link_section = ".hisi.shared-arena"))]
             static ARENA: $crate::ws63::__private::ArenaStorage<
                 { $crate::ws63::RADIO_ARENA_BYTES },
             > = $crate::ws63::__private::ArenaStorage::new();
-            $crate::ws63::RadioStorage::__from_parts(&CONTROL, &ARENA, &PROTOCOL, &EVENTS)
+            $crate::ws63::RadioStorage::__from_parts(
+                &CONTROL,
+                &ARENA,
+                &PROTOCOL,
+                &EVENTS,
+                &ANNOUNCE,
+                &SEEK,
+            )
         };
     };
 }

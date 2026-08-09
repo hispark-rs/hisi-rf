@@ -36,13 +36,13 @@ pub mod hisi_rf::ws63
 pub macro hisi_rf::ws63::declare_radio_storage!
 pub enum hisi_rf::ws63::BleEvent
 pub hisi_rf::ws63::BleEvent::AdvertisingStarted
-pub hisi_rf::ws63::BleEvent::AdvertisingStarted::operation: hisi_rf::ProtocolCommandId
+pub hisi_rf::ws63::BleEvent::AdvertisingStarted::advertiser: hisi_rf::ws63::Advertiser
 pub hisi_rf::ws63::BleEvent::BackendError
 pub hisi_rf::ws63::BleEvent::BackendError::operation: core::option::Option<hisi_rf::ProtocolCommandId>
 pub hisi_rf::ws63::BleEvent::BackendError::stage: u8
 pub hisi_rf::ws63::BleEvent::BackendError::status: u32
 pub hisi_rf::ws63::BleEvent::ScanReady
-pub hisi_rf::ws63::BleEvent::ScanReady::operation: hisi_rf::ProtocolCommandId
+pub hisi_rf::ws63::BleEvent::ScanReady::scanner: hisi_rf::ws63::Scanner
 pub enum hisi_rf::ws63::BleOperation
 pub hisi_rf::ws63::BleOperation::AdvertisingRequested
 pub hisi_rf::ws63::BleOperation::GattServerRegistered(hisi_rf::ws63::GattServerHandle)
@@ -50,13 +50,23 @@ pub hisi_rf::ws63::BleOperation::ScanningRequested
 pub enum hisi_rf::ws63::BleOperationErrorKind
 pub hisi_rf::ws63::BleOperationErrorKind::Enable
 pub hisi_rf::ws63::BleOperationErrorKind::GattDatabase
+pub hisi_rf::ws63::BleOperationErrorKind::LifecycleBusy
 pub hisi_rf::ws63::BleOperationErrorKind::SetAdvertisingData
 pub hisi_rf::ws63::BleOperationErrorKind::SetAdvertisingParameters
 pub hisi_rf::ws63::BleOperationErrorKind::SetScanParameters
+pub hisi_rf::ws63::BleOperationErrorKind::StaleLifecycle
 pub hisi_rf::ws63::BleOperationErrorKind::StartAdvertising
 pub hisi_rf::ws63::BleOperationErrorKind::StartScanning
+pub hisi_rf::ws63::BleOperationErrorKind::StopAdvertising
+pub hisi_rf::ws63::BleOperationErrorKind::StopScanning
 pub hisi_rf::ws63::BleOperationErrorKind::UnsupportedConfiguration
 pub hisi_rf::ws63::BleOperationErrorKind::UnsupportedTarget
+pub struct hisi_rf::ws63::Advertiser
+impl hisi_rf::ws63::Advertiser
+pub const fn hisi_rf::ws63::Advertiser::operation(&self) -> hisi_rf::ProtocolCommandId
+pub async fn hisi_rf::ws63::Advertiser::stop(self) -> core::result::Result<(), hisi_rf::ws63::BleOperationError>
+impl core::fmt::Debug for hisi_rf::ws63::Advertiser
+pub fn hisi_rf::ws63::Advertiser::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub struct hisi_rf::ws63::BleController
 impl hisi_rf::ws63::BleController
 pub fn hisi_rf::ws63::BleController::event_diagnostics(&self) -> hisi_rf::ProtocolEventDiagnostics
@@ -93,6 +103,12 @@ pub fn hisi_rf::ws63::RadioStorage::install(&'static self) -> core::result::Resu
 pub struct hisi_rf::ws63::Resources
 impl hisi_rf::ws63::Resources
 pub const fn hisi_rf::ws63::Resources::new(hisi_hal::peripherals::ws63_only::Efuse<'static>, hisi_hal::peripherals::ws63_only::Km<'static>, hisi_hal::peripherals::ws63_only::Spacc<'static>, hisi_hal::peripherals::Trng<'static>) -> Self
+pub struct hisi_rf::ws63::Scanner
+impl hisi_rf::ws63::Scanner
+pub const fn hisi_rf::ws63::Scanner::operation(&self) -> hisi_rf::ProtocolCommandId
+pub async fn hisi_rf::ws63::Scanner::stop(self) -> core::result::Result<(), hisi_rf::ws63::BleOperationError>
+impl core::fmt::Debug for hisi_rf::ws63::Scanner
+pub fn hisi_rf::ws63::Scanner::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub const hisi_rf::ws63::RADIO_ARENA_BYTES: usize
 pub fn hisi_rf::ws63::init(hisi_rf::ws63::Resources, hisi_rf::ws63::InstalledRadioStorage) -> core::result::Result<hisi_rf::ws63::RadioController, hisi_rf::ws63::InitError>
 pub macro hisi_rf::declare_radio_storage!

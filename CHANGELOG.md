@@ -7,8 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.87] - 2026-08-09
+
 ### Added
 
+- Add static typed GATT and SSAP database registration without exposing WS63
+  stage types or backend-owned handles.
+- Add facade-owned bounded BLE/SLE lifecycle event queues, generation-correlated
+  start events, async/nonblocking consumption, and explicit event conservation
+  diagnostics. Event overflow cannot consume command completions.
+- Add generation-tagged `Advertiser`, `Scanner`, `Announcer`, and `Seeker`
+  guards. Explicit `stop(self).await` waits for the matching backend result;
+  dropping a guard submits one nonblocking best-effort cleanup request.
 - Add the U2 bounded BLE/SLE control plane: typed advertising, scanning,
   announce, and seek requests cross a one-command mailbox into the unique
   `RadioRunner`; backpressure preserves request ownership and completions carry

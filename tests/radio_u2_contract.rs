@@ -30,6 +30,8 @@ fn ble_profile_exposes_only_the_ble_part() {
     assert_type::<hisi_rf::ws63::BleOperation>();
     assert_type::<hisi_rf::ws63::BleOperationError>();
     assert_type::<hisi_rf::ws63::BleEvent>();
+    assert_type::<hisi_rf::ws63::Advertiser>();
+    assert_type::<hisi_rf::ws63::Scanner>();
     assert_type::<hisi_rf::ble::AdvertisingConfig>();
     assert_type::<hisi_rf::ble::ScanConfig>();
     let _ = hisi_rf::ws63::BleController::try_start_advertising;
@@ -38,6 +40,10 @@ fn ble_profile_exposes_only_the_ble_part() {
     let _ = hisi_rf::ws63::BleController::try_next_event;
     let _ = hisi_rf::ws63::BleController::next_event;
     let _ = hisi_rf::ws63::BleController::event_diagnostics;
+    let _ = hisi_rf::ws63::Advertiser::operation;
+    let _ = hisi_rf::ws63::Advertiser::stop;
+    let _ = hisi_rf::ws63::Scanner::operation;
+    let _ = hisi_rf::ws63::Scanner::stop;
 }
 
 #[cfg(feature = "profile-sle-ssap")]
@@ -47,6 +53,8 @@ fn sle_profile_exposes_only_the_sle_part() {
     assert_type::<hisi_rf::ws63::SleOperation>();
     assert_type::<hisi_rf::ws63::SleOperationError>();
     assert_type::<hisi_rf::ws63::SleEvent>();
+    assert_type::<hisi_rf::ws63::Announcer>();
+    assert_type::<hisi_rf::ws63::Seeker>();
     assert_type::<hisi_rf::sle::AnnounceConfig>();
     assert_type::<hisi_rf::sle::SeekConfig>();
     let _ = hisi_rf::ws63::SleController::try_start_announce;
@@ -55,4 +63,8 @@ fn sle_profile_exposes_only_the_sle_part() {
     let _ = hisi_rf::ws63::SleController::try_next_event;
     let _ = hisi_rf::ws63::SleController::next_event;
     let _ = hisi_rf::ws63::SleController::event_diagnostics;
+    let _ = hisi_rf::ws63::Announcer::operation;
+    let _ = hisi_rf::ws63::Announcer::stop;
+    let _ = hisi_rf::ws63::Seeker::operation;
+    let _ = hisi_rf::ws63::Seeker::stop;
 }
