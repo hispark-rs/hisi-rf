@@ -77,4 +77,5 @@ fn progress(parts: &mut hisi_rf::ws63::RadioParts) {
     if parts.runner.dropped_events() != 0 || parts.sle.event_diagnostics().dropped != 0 {
         firmware::fail(b"RFDBG_RADIO_U4_SLE_EVENT_DROP\r\n");
     }
+    firmware::drive_scheduler();
 }
