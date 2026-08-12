@@ -612,6 +612,8 @@ pub mod ws63 {
             peer: crate::ble::BluetoothAddress,
             /// Signal strength, or `None` when the controller used its sentinel.
             rssi: Option<crate::ble::RssiDbm>,
+            /// Bounded advertisement bytes copied before the callback returned.
+            payload: crate::ble::AdvertisingPayload,
         },
         /// A requested peer connection became active.
         Connected {
@@ -1010,18 +1012,37 @@ pub mod ws63 {
                     }),
                 },
                 BleCommand::Connect(peer) => match lifecycles.connection.runner.begin() {
-                    Ok(generation) => match backend.connect(peer) {
-                        Ok(()) => {
-                            lifecycles.connection.operation = Some(crate::ProtocolCommandId(id));
-                            lifecycles.connection.generation = Some(generation);
-                            lifecycles.connection.peer = Some(peer);
-                            Ok(BleOperation::ConnectionRequested)
+                    Ok(generation) => {
+                        let scan_stop =
+                            if let Some(scan_generation) = lifecycles.scanning.generation {
+                                backend.stop_scanning().and_then(|()| {
+                                    lifecycles
+                                        .scanning
+                                        .runner
+                                        .terminate(scan_generation, Ok(()))
+                                        .map_err(|_| BleOperationError {
+                                            kind: BleOperationErrorKind::StaleLifecycle,
+                                            vendor_status: None,
+                                        })
+                                })
+                            } else {
+                                Ok(())
+                            };
+                        lifecycles.scanning.clear();
+                        match scan_stop.and_then(|()| backend.connect(peer)) {
+                            Ok(()) => {
+                                lifecycles.connection.operation =
+                                    Some(crate::ProtocolCommandId(id));
+                                lifecycles.connection.generation = Some(generation);
+                                lifecycles.connection.peer = Some(peer);
+                                Ok(BleOperation::ConnectionRequested)
+                            }
+                            Err(error) => {
+                                let _ = lifecycles.connection.runner.abort_start(generation);
+                                Err(error)
+                            }
                         }
-                        Err(error) => {
-                            let _ = lifecycles.connection.runner.abort_start(generation);
-                            Err(error)
-                        }
-                    },
+                    }
                     Err(_) => Err(BleOperationError {
                         kind: BleOperationErrorKind::LifecycleBusy,
                         vendor_status: None,
@@ -1123,11 +1144,18 @@ pub mod ws63 {
                 address,
                 address_type,
                 rssi,
-                ..
+                data_len,
+                data,
             } => map_ble_peer(address, address_type)
-                .map(|peer| BleEvent::PeerObserved {
-                    peer,
-                    rssi: crate::ble::RssiDbm::from_controller(rssi),
+                .and_then(|peer| {
+                    crate::ble::AdvertisingPayload::try_from_slice(
+                        &data[..usize::from(data_len).min(data.len())],
+                    )
+                    .map(|payload| BleEvent::PeerObserved {
+                        peer,
+                        rssi: crate::ble::RssiDbm::from_controller(rssi),
+                        payload,
+                    })
                 })
                 .or(Some(BleEvent::BackendError {
                     operation: lifecycles.scanning.operation,
@@ -2189,12 +2217,34 @@ pub mod ws63 {
                 Some(BleEvent::PeerObserved {
                     peer: observed,
                     rssi: Some(rssi),
-                }) if observed == peer && rssi.get() == -42
+                    payload,
+                }) if observed == peer && rssi.get() == -42 && payload.as_bytes().is_empty()
             ));
+
+            let scan_command = controller.try_start_scanning(scanning()).unwrap();
+            assert!(run_ble_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
+            let _ = controller.try_take_completion().unwrap().unwrap();
+            producer
+                .try_publish(
+                    map_ble_lifecycle_event(
+                        hisi_rf_ws63::BleB2Event::ScanParameters { status: 0 },
+                        &mut lifecycles,
+                    )
+                    .unwrap(),
+                )
+                .unwrap();
+            let Some(BleEvent::ScanReady { scanner }) = controller.try_next_event() else {
+                panic!("expected scan guard");
+            };
+            assert_eq!(scanner.operation(), scan_command);
 
             let operation = controller.try_connect(peer).unwrap();
             assert!(run_ble_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
             assert_eq!(backend.connections, 1);
+            assert_eq!(backend.scanning_stops, 1);
+            drop(scanner);
+            assert!(!run_ble_cancellation_once(&mut backend, &mut lifecycles));
+            assert_eq!(backend.scanning_stops, 1);
             assert_eq!(
                 controller
                     .try_take_completion()
