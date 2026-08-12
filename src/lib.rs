@@ -238,6 +238,7 @@ pub mod ws63 {
     pub enum BleCommand {
         StartAdvertising(crate::ble::AdvertisingConfig),
         StartScanning(crate::ble::ScanConfig),
+        Connect(crate::ble::BluetoothAddress),
         RegisterGattServer(crate::ble::GattServerDefinition),
         ConfigureSecurity(crate::ble::SecurityConfig),
         Pair(crate::ble::BluetoothAddress),
@@ -294,6 +295,7 @@ pub mod ws63 {
         events: &'static BleEventState,
         advertising: &'static BleLifecycleState,
         scanning: &'static BleLifecycleState,
+        connection: &'static BleLifecycleState,
     }
 
     impl RadioStorage {
@@ -306,6 +308,7 @@ pub mod ws63 {
             events: &'static __private::ProtocolEventStorage,
             advertising: &'static __private::ProtocolLifecycleStorage,
             scanning: &'static __private::ProtocolLifecycleStorage,
+            connection: &'static __private::ProtocolLifecycleStorage,
         ) -> Self {
             Self {
                 inner: hisi_rf_ws63::BleB1Storage::from_parts(control, arena),
@@ -313,6 +316,7 @@ pub mod ws63 {
                 events,
                 advertising,
                 scanning,
+                connection,
             }
         }
 
@@ -326,6 +330,7 @@ pub mod ws63 {
                     events: self.events,
                     advertising: self.advertising,
                     scanning: self.scanning,
+                    connection: self.connection,
                 })
                 .map_err(|_| InitError::new())
         }
@@ -338,6 +343,7 @@ pub mod ws63 {
         events: &'static BleEventState,
         advertising: &'static BleLifecycleState,
         scanning: &'static BleLifecycleState,
+        connection: &'static BleLifecycleState,
     }
 
     impl InstalledRadioStorage {
@@ -416,6 +422,10 @@ pub mod ws63 {
         StopAdvertising,
         /// The controller rejected the scan stop request.
         StopScanning,
+        /// The controller rejected the peer connection request.
+        Connect,
+        /// The controller rejected the peer disconnect request.
+        Disconnect,
         /// Another generation still owns this lifecycle.
         LifecycleBusy,
         /// A late callback or handle no longer names the active generation.
@@ -466,6 +476,8 @@ pub mod ws63 {
         AdvertisingRequested,
         /// The WS63 host accepted the start-scan request.
         ScanningRequested,
+        /// The WS63 host accepted a peer connection request.
+        ConnectionRequested,
         /// The static GATT database was registered and started.
         GattServerRegistered(GattServerHandle),
         /// The typed BLE security policy was accepted.
@@ -511,6 +523,41 @@ pub mod ws63 {
     pub struct Scanner {
         operation: crate::ProtocolCommandId,
         inner: hisi_rf_core::control::LifecycleGuard<BleOperationError>,
+    }
+
+    /// Active BLE link ownership returned by the event plane.
+    #[must_use = "call disconnect().await or retain the connection; dropping it requests cleanup"]
+    pub struct BleConnection {
+        operation: crate::ProtocolCommandId,
+        peer: crate::ble::BluetoothAddress,
+        inner: hisi_rf_core::control::LifecycleGuard<BleOperationError>,
+    }
+
+    impl BleConnection {
+        /// Command that created this connection generation.
+        pub const fn operation(&self) -> crate::ProtocolCommandId {
+            self.operation
+        }
+
+        /// Peer identity bound to this generation.
+        pub const fn peer(&self) -> crate::ble::BluetoothAddress {
+            self.peer
+        }
+
+        /// Disconnect and wait for the matching backend event.
+        pub async fn disconnect(self) -> Result<(), BleOperationError> {
+            map_ble_stop_result(self.inner.stop().await)
+        }
+    }
+
+    impl core::fmt::Debug for BleConnection {
+        fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+            formatter
+                .debug_struct("BleConnection")
+                .field("operation", &self.operation)
+                .field("peer", &self.peer)
+                .finish_non_exhaustive()
+        }
     }
 
     impl Scanner {
@@ -559,6 +606,25 @@ pub mod ws63 {
             /// Unique active scan capability.
             scanner: Scanner,
         },
+        /// One validated peer observation copied from the scan callback.
+        PeerObserved {
+            /// Typed peer identity suitable for a connection request.
+            peer: crate::ble::BluetoothAddress,
+            /// Signal strength, or `None` when the controller used its sentinel.
+            rssi: Option<crate::ble::RssiDbm>,
+        },
+        /// A requested peer connection became active.
+        Connected {
+            /// Unique link capability for this connection generation.
+            connection: BleConnection,
+        },
+        /// An active link ended, either locally or remotely.
+        Disconnected {
+            /// Typed peer identity from the copied connection callback.
+            peer: crate::ble::BluetoothAddress,
+            /// Diagnostic termination reason.
+            reason: crate::ble::DisconnectReason,
+        },
         /// Pairing reached a terminal result for the copied peer identity.
         PairingComplete {
             /// Validated peer address copied from the vendor callback.
@@ -593,12 +659,14 @@ pub mod ws63 {
         operation: Option<crate::ProtocolCommandId>,
         generation: Option<hisi_rf_core::control::LifecycleId>,
         stopping: Option<hisi_rf_core::control::LifecycleId>,
+        peer: Option<crate::ble::BluetoothAddress>,
         runner: hisi_rf_core::control::LifecycleRunner<BleOperationError>,
     }
 
     struct BleLifecycles {
         advertising: BleLifecycle,
         scanning: BleLifecycle,
+        connection: BleLifecycle,
     }
 
     impl BleLifecycle {
@@ -607,6 +675,7 @@ pub mod ws63 {
                 operation: None,
                 generation: None,
                 stopping: None,
+                peer: None,
                 runner,
             }
         }
@@ -615,6 +684,7 @@ pub mod ws63 {
             self.operation = None;
             self.generation = None;
             self.stopping = None;
+            self.peer = None;
         }
     }
 
@@ -622,10 +692,12 @@ pub mod ws63 {
         fn new(
             advertising: hisi_rf_core::control::LifecycleRunner<BleOperationError>,
             scanning: hisi_rf_core::control::LifecycleRunner<BleOperationError>,
+            connection: hisi_rf_core::control::LifecycleRunner<BleOperationError>,
         ) -> Self {
             Self {
                 advertising: BleLifecycle::new(advertising),
                 scanning: BleLifecycle::new(scanning),
+                connection: BleLifecycle::new(connection),
             }
         }
     }
@@ -651,6 +723,11 @@ pub mod ws63 {
         ) -> Result<(), BleOperationError>;
         fn stop_advertising(&mut self) -> Result<(), BleOperationError>;
         fn stop_scanning(&mut self) -> Result<(), BleOperationError>;
+        fn connect(&mut self, peer: crate::ble::BluetoothAddress) -> Result<(), BleOperationError>;
+        fn disconnect(
+            &mut self,
+            peer: crate::ble::BluetoothAddress,
+        ) -> Result<(), BleOperationError>;
         fn register_gatt_server(
             &mut self,
             definition: crate::ble::GattServerDefinition,
@@ -702,6 +779,17 @@ pub mod ws63 {
 
         fn stop_scanning(&mut self) -> Result<(), BleOperationError> {
             self.stop_scanning().map_err(map_ble_error)
+        }
+
+        fn connect(&mut self, peer: crate::ble::BluetoothAddress) -> Result<(), BleOperationError> {
+            self.connect_peer(peer).map_err(map_ble_connection_error)
+        }
+
+        fn disconnect(
+            &mut self,
+            peer: crate::ble::BluetoothAddress,
+        ) -> Result<(), BleOperationError> {
+            self.disconnect_peer(peer).map_err(map_ble_connection_error)
         }
 
         fn register_gatt_server(
@@ -804,6 +892,28 @@ pub mod ws63 {
         }
     }
 
+    fn map_ble_connection_error(error: hisi_rf_ws63::BleB3Error) -> BleOperationError {
+        use hisi_rf_ws63::BleB3Error as E;
+        match error {
+            E::Connect(status) | E::StopScanning(status) => BleOperationError {
+                kind: BleOperationErrorKind::Connect,
+                vendor_status: Some(status),
+            },
+            E::Disconnect(status) => BleOperationError {
+                kind: BleOperationErrorKind::Disconnect,
+                vendor_status: Some(status),
+            },
+            E::UnsupportedTarget => BleOperationError {
+                kind: BleOperationErrorKind::UnsupportedTarget,
+                vendor_status: None,
+            },
+            _ => BleOperationError {
+                kind: BleOperationErrorKind::UnsupportedConfiguration,
+                vendor_status: None,
+            },
+        }
+    }
+
     fn map_ble_security_error(error: hisi_rf_ws63::BleSecurityError) -> BleOperationError {
         use hisi_rf_ws63::BleSecurityError as E;
         let (kind, vendor_status) = match error {
@@ -870,6 +980,24 @@ pub mod ws63 {
                         }
                         Err(error) => {
                             let _ = lifecycles.scanning.runner.abort_start(generation);
+                            Err(error)
+                        }
+                    },
+                    Err(_) => Err(BleOperationError {
+                        kind: BleOperationErrorKind::LifecycleBusy,
+                        vendor_status: None,
+                    }),
+                },
+                BleCommand::Connect(peer) => match lifecycles.connection.runner.begin() {
+                    Ok(generation) => match backend.connect(peer) {
+                        Ok(()) => {
+                            lifecycles.connection.operation = Some(crate::ProtocolCommandId(id));
+                            lifecycles.connection.generation = Some(generation);
+                            lifecycles.connection.peer = Some(peer);
+                            Ok(BleOperation::ConnectionRequested)
+                        }
+                        Err(error) => {
+                            let _ = lifecycles.connection.runner.abort_start(generation);
                             Err(error)
                         }
                     },
@@ -970,6 +1098,69 @@ pub mod ws63 {
                     status,
                 })
             }
+            hisi_rf_ws63::BleB2Event::ScanResult {
+                address,
+                address_type,
+                rssi,
+                ..
+            } => map_ble_peer(address, address_type)
+                .map(|peer| BleEvent::PeerObserved {
+                    peer,
+                    rssi: crate::ble::RssiDbm::from_controller(rssi),
+                })
+                .or(Some(BleEvent::BackendError {
+                    operation: lifecycles.scanning.operation,
+                    stage: 3,
+                    status: u32::MAX,
+                })),
+            hisi_rf_ws63::BleB2Event::ConnectionState {
+                address,
+                address_type,
+                connected: true,
+                ..
+            } => {
+                let peer = map_ble_peer(address, address_type)?;
+                if lifecycles.connection.peer != Some(peer) {
+                    return Some(BleEvent::BackendError {
+                        operation: lifecycles.connection.operation,
+                        stage: 4,
+                        status: u32::MAX,
+                    });
+                }
+                let operation = lifecycles.connection.operation?;
+                let generation = lifecycles.connection.generation?;
+                lifecycles
+                    .connection
+                    .runner
+                    .activate(generation)
+                    .ok()
+                    .map(|inner| BleEvent::Connected {
+                        connection: BleConnection {
+                            operation,
+                            peer,
+                            inner,
+                        },
+                    })
+            }
+            hisi_rf_ws63::BleB2Event::ConnectionState {
+                address,
+                address_type,
+                connected: false,
+                reason,
+                ..
+            } => {
+                let peer = map_ble_peer(address, address_type)?;
+                if lifecycles.connection.peer != Some(peer) {
+                    return None;
+                }
+                let generation = lifecycles.connection.generation?;
+                let _ = lifecycles.connection.runner.terminate(generation, Ok(()));
+                lifecycles.connection.clear();
+                Some(BleEvent::Disconnected {
+                    peer,
+                    reason: crate::ble::DisconnectReason::from_vendor(reason),
+                })
+            }
             hisi_rf_ws63::BleB2Event::Enabled { status } if status != 0 => {
                 Some(BleEvent::BackendError {
                     operation: None,
@@ -1061,6 +1252,23 @@ pub mod ws63 {
             lifecycles.scanning.clear();
             return true;
         }
+        if let Some(generation) = lifecycles.connection.runner.try_take_cancel() {
+            let result = match lifecycles.connection.peer {
+                Some(peer) => backend.disconnect(peer),
+                None => Err(BleOperationError {
+                    kind: BleOperationErrorKind::StaleLifecycle,
+                    vendor_status: None,
+                }),
+            };
+            match result {
+                Ok(()) => lifecycles.connection.stopping = Some(generation),
+                Err(error) => {
+                    let _ = lifecycles.connection.runner.finish(generation, Err(error));
+                    lifecycles.connection.clear();
+                }
+            }
+            return true;
+        }
         false
     }
 
@@ -1079,6 +1287,7 @@ pub mod ws63 {
         event_consumer: hisi_rf_core::control::EventConsumer<BleEvent, { crate::EVENT_CAPACITY }>,
         advertising: hisi_rf_core::control::LifecycleRunner<BleOperationError>,
         scanning: hisi_rf_core::control::LifecycleRunner<BleOperationError>,
+        connection: hisi_rf_core::control::LifecycleRunner<BleOperationError>,
     }
 
     impl RadioController {
@@ -1093,7 +1302,11 @@ pub mod ws63 {
                     inner: self.inner,
                     receiver: self.receiver,
                     events: self.event_producer,
-                    lifecycles: BleLifecycles::new(self.advertising, self.scanning),
+                    lifecycles: BleLifecycles::new(
+                        self.advertising,
+                        self.scanning,
+                        self.connection,
+                    ),
                 },
             }
         }
@@ -1142,6 +1355,21 @@ pub mod ws63 {
                 .map(crate::ProtocolCommandId)
                 .map_err(|error| match error.into_inner() {
                     BleCommand::StartScanning(config) => crate::ProtocolBusy { request: config },
+                    _ => unreachable!(),
+                })
+        }
+
+        /// Queue a connection request for one validated scan identity.
+        pub fn try_connect(
+            &mut self,
+            peer: crate::ble::BluetoothAddress,
+        ) -> Result<crate::ProtocolCommandId, crate::ProtocolBusy<crate::ble::BluetoothAddress>>
+        {
+            self.sender
+                .try_submit(BleCommand::Connect(peer))
+                .map(crate::ProtocolCommandId)
+                .map_err(|error| match error.into_inner() {
+                    BleCommand::Connect(peer) => crate::ProtocolBusy { request: peer },
                     _ => unreachable!(),
                 })
         }
@@ -1361,6 +1589,7 @@ pub mod ws63 {
         let (event_producer, event_consumer) = storage.events.claim().ok_or_else(InitError::new)?;
         let advertising = storage.advertising.claim().ok_or_else(InitError::new)?;
         let scanning = storage.scanning.claim().ok_or_else(InitError::new)?;
+        let connection = storage.connection.claim().ok_or_else(InitError::new)?;
         hisi_rf_ws63::init_ble_b1(resources.inner, storage.inner)
             .map(|inner| RadioController {
                 inner,
@@ -1370,6 +1599,7 @@ pub mod ws63 {
                 event_consumer,
                 advertising,
                 scanning,
+                connection,
             })
             .map_err(|_| InitError::new())
     }
@@ -1391,6 +1621,8 @@ pub mod ws63 {
             pairing_requests: usize,
             pairing_queries: usize,
             bond_removals: usize,
+            connections: usize,
+            disconnections: usize,
             pairing_state: crate::ble::PairingState,
             ready: bool,
             enable_error: Option<u32>,
@@ -1409,6 +1641,8 @@ pub mod ws63 {
                     pairing_requests: 0,
                     pairing_queries: 0,
                     bond_removals: 0,
+                    connections: 0,
+                    disconnections: 0,
                     pairing_state: crate::ble::PairingState::NotPaired,
                     ready: false,
                     enable_error: None,
@@ -1458,6 +1692,22 @@ pub mod ws63 {
 
             fn stop_scanning(&mut self) -> Result<(), BleOperationError> {
                 self.scanning_stops += 1;
+                Ok(())
+            }
+
+            fn connect(
+                &mut self,
+                _: crate::ble::BluetoothAddress,
+            ) -> Result<(), BleOperationError> {
+                self.connections += 1;
+                Ok(())
+            }
+
+            fn disconnect(
+                &mut self,
+                _: crate::ble::BluetoothAddress,
+            ) -> Result<(), BleOperationError> {
+                self.disconnections += 1;
                 Ok(())
             }
 
@@ -1511,7 +1761,10 @@ pub mod ws63 {
             let scanning = Box::leak(Box::new(BleLifecycleState::new()))
                 .claim()
                 .unwrap();
-            BleLifecycles::new(advertising, scanning)
+            let connection = Box::leak(Box::new(BleLifecycleState::new()))
+                .claim()
+                .unwrap();
+            BleLifecycles::new(advertising, scanning, connection)
         }
 
         fn advertising() -> crate::ble::AdvertisingConfig {
@@ -1840,6 +2093,117 @@ pub mod ws63 {
                 ),
                 Some(BleEvent::BackendError { stage: 5, .. })
             ));
+        }
+
+        #[test]
+        fn typed_peer_scan_connect_and_disconnect_share_one_generation() {
+            let state = Box::leak(Box::new(BleControlState::new()));
+            let (sender, mut receiver) = state.claim().unwrap();
+            let events = Box::leak(Box::new(BleEventState::new()));
+            let (mut producer, consumer) = events.claim().unwrap();
+            let mut controller = BleController {
+                sender,
+                events: consumer,
+            };
+            let mut backend = FakeBackend {
+                ready: true,
+                ..FakeBackend::default()
+            };
+            let mut lifecycles = ble_lifecycles();
+            let peer = crate::ble::BluetoothAddress::random([1, 2, 3, 4, 5, 0x46]).unwrap();
+
+            let scan = map_ble_lifecycle_event(
+                hisi_rf_ws63::BleB2Event::ScanResult {
+                    address: peer.bytes(),
+                    address_type: 1,
+                    rssi: -42,
+                    data_len: 0,
+                    data: [0; 31],
+                },
+                &mut lifecycles,
+            )
+            .unwrap();
+            producer.try_publish(scan).unwrap();
+            assert!(matches!(
+                controller.try_next_event(),
+                Some(BleEvent::PeerObserved {
+                    peer: observed,
+                    rssi: Some(rssi),
+                }) if observed == peer && rssi.get() == -42
+            ));
+
+            let operation = controller.try_connect(peer).unwrap();
+            assert!(run_ble_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
+            assert_eq!(backend.connections, 1);
+            assert_eq!(
+                controller
+                    .try_take_completion()
+                    .unwrap()
+                    .unwrap()
+                    .into_result(),
+                Ok(BleOperation::ConnectionRequested)
+            );
+
+            producer
+                .try_publish(
+                    map_ble_lifecycle_event(
+                        hisi_rf_ws63::BleB2Event::ConnectionState {
+                            conn_id: 3,
+                            address: peer.bytes(),
+                            address_type: 1,
+                            connected: true,
+                            pair_state: 0,
+                            reason: 0,
+                        },
+                        &mut lifecycles,
+                    )
+                    .unwrap(),
+                )
+                .unwrap();
+            let Some(BleEvent::Connected { connection }) = controller.try_next_event() else {
+                panic!("expected typed connection guard");
+            };
+            assert_eq!(connection.operation(), operation);
+            assert_eq!(connection.peer(), peer);
+
+            let mut disconnect = Box::pin(connection.disconnect());
+            let waker = Waker::noop();
+            let mut context = Context::from_waker(waker);
+            assert!(matches!(
+                disconnect.as_mut().poll(&mut context),
+                Poll::Pending
+            ));
+            assert!(run_ble_cancellation_once(&mut backend, &mut lifecycles));
+            assert_eq!(backend.disconnections, 1);
+            assert!(matches!(
+                disconnect.as_mut().poll(&mut context),
+                Poll::Pending
+            ));
+
+            let disconnected = map_ble_lifecycle_event(
+                hisi_rf_ws63::BleB2Event::ConnectionState {
+                    conn_id: 3,
+                    address: peer.bytes(),
+                    address_type: 1,
+                    connected: false,
+                    pair_state: 0,
+                    reason: 0x13,
+                },
+                &mut lifecycles,
+            )
+            .unwrap();
+            producer.try_publish(disconnected).unwrap();
+            assert!(matches!(
+                disconnect.as_mut().poll(&mut context),
+                Poll::Ready(Ok(()))
+            ));
+            assert!(matches!(
+                controller.try_next_event(),
+                Some(BleEvent::Disconnected { peer: p, reason })
+                    if p == peer && reason.vendor_code() == 0x13
+            ));
+
+            assert!(controller.try_connect(peer).is_ok());
         }
 
         #[test]
@@ -3729,6 +4093,8 @@ macro_rules! declare_radio_storage {
                 $crate::ws63::__private::ProtocolLifecycleStorage::new();
             static SCANNING: $crate::ws63::__private::ProtocolLifecycleStorage =
                 $crate::ws63::__private::ProtocolLifecycleStorage::new();
+            static CONNECTION: $crate::ws63::__private::ProtocolLifecycleStorage =
+                $crate::ws63::__private::ProtocolLifecycleStorage::new();
             #[cfg_attr(target_arch = "riscv32", unsafe(link_section = ".hisi.shared-arena"))]
             static ARENA: $crate::ws63::__private::ArenaStorage<
                 { $crate::ws63::RADIO_ARENA_BYTES },
@@ -3740,6 +4106,7 @@ macro_rules! declare_radio_storage {
                 &EVENTS,
                 &ADVERTISING,
                 &SCANNING,
+                &CONNECTION,
             )
         };
     };
