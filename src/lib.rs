@@ -235,13 +235,20 @@ pub mod ws63 {
     pub use crate::declare_radio_storage;
 
     #[doc(hidden)]
+    #[derive(Clone, Copy)]
+    pub struct PairRequest {
+        peer: crate::ble::BluetoothAddress,
+        connection: hisi_rf_core::control::LifecycleId,
+    }
+
+    #[doc(hidden)]
     pub enum BleCommand {
         StartAdvertising(crate::ble::AdvertisingConfig),
         StartScanning(crate::ble::ScanConfig),
         Connect(crate::ble::BluetoothAddress),
         RegisterGattServer(crate::ble::GattServerDefinition),
         ConfigureSecurity(crate::ble::SecurityConfig),
-        Pair(crate::ble::BluetoothAddress),
+        Pair(PairRequest),
         QueryPairingState(crate::ble::BluetoothAddress),
         RemoveBond(crate::ble::BluetoothAddress),
     }
@@ -1054,8 +1061,20 @@ pub mod ws63 {
                 BleCommand::ConfigureSecurity(config) => backend
                     .configure_security(config)
                     .map(|()| BleOperation::SecurityConfigured),
-                BleCommand::Pair(peer) => {
-                    backend.pair(peer).map(|()| BleOperation::PairingRequested)
+                BleCommand::Pair(request) => {
+                    let current = lifecycles.connection.peer == Some(request.peer)
+                        && lifecycles.connection.generation == Some(request.connection)
+                        && lifecycles.connection.runner.is_active(request.connection);
+                    if current {
+                        backend
+                            .pair(request.peer)
+                            .map(|()| BleOperation::PairingRequested)
+                    } else {
+                        Err(BleOperationError {
+                            kind: BleOperationErrorKind::StaleLifecycle,
+                            vendor_status: None,
+                        })
+                    }
                 }
                 BleCommand::QueryPairingState(peer) => {
                     backend.pairing_state(peer).map(BleOperation::PairingState)
@@ -1470,17 +1489,27 @@ pub mod ws63 {
                 })
         }
 
-        /// Queue pairing with one validated peer.
+        /// Queue pairing for the active connection generation.
+        ///
+        /// The runner validates the generation again immediately before it
+        /// touches the backend. A queued request therefore fails closed if the
+        /// link disconnects or starts cancellation first.
         pub fn try_pair(
             &mut self,
-            peer: crate::ble::BluetoothAddress,
+            connection: &BleConnection,
         ) -> Result<crate::ProtocolCommandId, crate::ProtocolBusy<crate::ble::BluetoothAddress>>
         {
+            let request = PairRequest {
+                peer: connection.peer,
+                connection: connection.inner.id(),
+            };
             self.sender
-                .try_submit(BleCommand::Pair(peer))
+                .try_submit(BleCommand::Pair(request))
                 .map(crate::ProtocolCommandId)
                 .map_err(|error| match error.into_inner() {
-                    BleCommand::Pair(peer) => crate::ProtocolBusy { request: peer },
+                    BleCommand::Pair(request) => crate::ProtocolBusy {
+                        request: request.peer,
+                    },
                     _ => unreachable!(),
                 })
         }
@@ -2103,6 +2132,21 @@ pub mod ws63 {
                 crate::ble::SecurityRequirement::SecureConnectionsAuthenticated,
             );
 
+            let BleEvent::Connected { connection } = map_ble_lifecycle_event(
+                hisi_rf_ws63::BleB2Event::ConnectionState {
+                    conn_id: 7,
+                    address: peer.bytes(),
+                    address_type: 0,
+                    connected: true,
+                    pair_state: 0,
+                    reason: 0,
+                },
+                &mut lifecycles,
+            )
+            .unwrap() else {
+                panic!("expected adopted connection");
+            };
+
             let configure = controller.try_configure_security(security).unwrap();
             assert!(run_ble_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
             let completion = controller.try_take_completion().unwrap().unwrap();
@@ -2112,7 +2156,7 @@ pub mod ws63 {
                 Ok(BleOperation::SecurityConfigured)
             );
 
-            let pair = controller.try_pair(peer).unwrap();
+            let pair = controller.try_pair(&connection).unwrap();
             assert!(run_ble_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
             let completion = controller.try_take_completion().unwrap().unwrap();
             assert_eq!(completion.id(), pair);
@@ -2206,6 +2250,68 @@ pub mod ws63 {
                 map_vendor_bond_observation(peer.bytes(), 9),
                 BleEvent::BackendError { stage: 7, .. }
             ));
+            drop(connection);
+        }
+
+        #[test]
+        fn queued_pairing_fails_closed_after_connection_generation_ends() {
+            let state = Box::leak(Box::new(BleControlState::new()));
+            let (sender, mut receiver) = state.claim().unwrap();
+            let events = Box::leak(Box::new(BleEventState::new()));
+            let (_producer, consumer) = events.claim().unwrap();
+            let mut controller = BleController {
+                sender,
+                events: consumer,
+            };
+            let mut backend = FakeBackend {
+                ready: true,
+                ..FakeBackend::default()
+            };
+            let mut lifecycles = ble_lifecycles();
+            let peer = crate::ble::BluetoothAddress::public([1, 2, 3, 4, 5, 6]).unwrap();
+            let BleEvent::Connected { connection } = map_ble_lifecycle_event(
+                hisi_rf_ws63::BleB2Event::ConnectionState {
+                    conn_id: 9,
+                    address: peer.bytes(),
+                    address_type: 0,
+                    connected: true,
+                    pair_state: 0,
+                    reason: 0,
+                },
+                &mut lifecycles,
+            )
+            .unwrap() else {
+                panic!("expected adopted connection");
+            };
+
+            let pair = controller.try_pair(&connection).unwrap();
+            assert!(matches!(
+                map_ble_lifecycle_event(
+                    hisi_rf_ws63::BleB2Event::ConnectionState {
+                        conn_id: 9,
+                        address: peer.bytes(),
+                        address_type: 0,
+                        connected: false,
+                        pair_state: 0,
+                        reason: 0x13,
+                    },
+                    &mut lifecycles,
+                ),
+                Some(BleEvent::Disconnected { peer: p, .. }) if p == peer
+            ));
+
+            assert!(run_ble_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
+            let completion = controller.try_take_completion().unwrap().unwrap();
+            assert_eq!(completion.id(), pair);
+            assert_eq!(
+                completion.into_result(),
+                Err(BleOperationError {
+                    kind: BleOperationErrorKind::StaleLifecycle,
+                    vendor_status: None,
+                })
+            );
+            assert_eq!(backend.pairing_requests, 0);
+            drop(connection);
         }
 
         #[test]
@@ -2363,7 +2469,7 @@ pub mod ws63 {
             assert_eq!(connection.operation(), None);
             assert_eq!(connection.peer(), peer);
 
-            assert!(matches!(
+            assert!(
                 map_ble_lifecycle_event(
                     hisi_rf_ws63::BleB2Event::ConnectionState {
                         conn_id: 9,
@@ -2374,9 +2480,9 @@ pub mod ws63 {
                         reason: 0,
                     },
                     &mut lifecycles,
-                ),
-                None
-            ));
+                )
+                .is_none()
+            );
             assert!(matches!(
                 map_ble_lifecycle_event(
                     hisi_rf_ws63::BleB2Event::ConnectionState {

@@ -66,8 +66,7 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
                     firmware::log(b"RFDBG_RADIO_U5_BLE_SCAN_MATCH\r\n");
                 }
                 hisi_rf::ws63::BleEvent::Connected { connection: link } => {
-                    let linked_peer = link.peer();
-                    pair_command = Some(parts.ble.try_pair(linked_peer).unwrap_or_else(|_| {
+                    pair_command = Some(parts.ble.try_pair(&link).unwrap_or_else(|_| {
                         firmware::fail(b"RFDBG_RADIO_U5_BLE_PAIR_QUEUE_ERR\r\n")
                     }));
                     connection = Some(link);
