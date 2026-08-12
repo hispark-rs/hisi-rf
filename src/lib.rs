@@ -1302,14 +1302,20 @@ pub mod ws63 {
         }
     }
 
-    fn map_vendor_bond_observation(address: [u8; 6], address_type: u8) -> BleEvent {
-        match map_ble_peer(address, address_type) {
-            Some(peer) => BleEvent::VendorManagedBondObserved { peer },
-            None => BleEvent::BackendError {
+    fn map_vendor_bond_observation(
+        authenticated_peer: crate::ble::BluetoothAddress,
+        record_address: [u8; 6],
+    ) -> BleEvent {
+        if record_address == authenticated_peer.bytes() {
+            BleEvent::VendorManagedBondObserved {
+                peer: authenticated_peer,
+            }
+        } else {
+            BleEvent::BackendError {
                 operation: None,
                 stage: 7,
                 status: u32::MAX,
-            },
+            }
         }
     }
 
@@ -1383,7 +1389,7 @@ pub mod ws63 {
                     inner: self.inner,
                     receiver: self.receiver,
                     events: self.event_producer,
-                    bond_observation_armed: false,
+                    pending_bond_peer: None,
                     lifecycles: BleLifecycles::new(
                         self.advertising,
                         self.scanning,
@@ -1598,7 +1604,7 @@ pub mod ws63 {
             Result<BleOperation, BleOperationError>,
         >,
         events: hisi_rf_core::control::EventProducer<BleEvent, { crate::EVENT_CAPACITY }>,
-        bond_observation_armed: bool,
+        pending_bond_peer: Option<crate::ble::BluetoothAddress>,
         lifecycles: BleLifecycles,
     }
 
@@ -1649,23 +1655,27 @@ pub mod ws63 {
         /// a full event queue never consumes a completion.
         pub fn run_event_once(&mut self) -> bool {
             if let Some(event) = self.inner.next_event() {
-                if let hisi_rf_ws63::BleB2Event::AuthenticationComplete { status, .. } = &event {
-                    self.bond_observation_armed = *status == 0;
-                }
                 let event = map_ble_lifecycle_event(event, &mut self.lifecycles);
                 if let Some(event) = event {
+                    match &event {
+                        BleEvent::AuthenticationComplete {
+                            peer,
+                            result: Ok(()),
+                            ..
+                        } => self.pending_bond_peer = Some(*peer),
+                        BleEvent::AuthenticationComplete { result: Err(_), .. }
+                        | BleEvent::Disconnected { .. } => self.pending_bond_peer = None,
+                        _ => {}
+                    }
                     let _ = self.events.try_publish(event);
                 }
                 return true;
             }
-            if self.bond_observation_armed
+            if let Some(peer) = self.pending_bond_peer
                 && let Some(record) = self.inner.next_vendor_bond_record()
             {
-                self.bond_observation_armed = false;
-                let event = map_vendor_bond_observation(
-                    record.peer_address(),
-                    record.remote_initial_address_type(),
-                );
+                self.pending_bond_peer = None;
+                let event = map_vendor_bond_observation(peer, record.peer_address());
                 let _ = self.events.try_publish(event);
                 return true;
             }
@@ -2251,11 +2261,11 @@ pub mod ws63 {
             ));
 
             assert!(matches!(
-                map_vendor_bond_observation(peer.bytes(), 0),
+                map_vendor_bond_observation(peer, peer.bytes()),
                 BleEvent::VendorManagedBondObserved { peer: observed } if observed == peer
             ));
             assert!(matches!(
-                map_vendor_bond_observation(peer.bytes(), 9),
+                map_vendor_bond_observation(peer, [9; 6]),
                 BleEvent::BackendError { stage: 7, .. }
             ));
             drop(connection);
