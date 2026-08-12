@@ -528,14 +528,14 @@ pub mod ws63 {
     /// Active BLE link ownership returned by the event plane.
     #[must_use = "call disconnect().await or retain the connection; dropping it requests cleanup"]
     pub struct BleConnection {
-        operation: crate::ProtocolCommandId,
+        operation: Option<crate::ProtocolCommandId>,
         peer: crate::ble::BluetoothAddress,
         inner: hisi_rf_core::control::LifecycleGuard<BleOperationError>,
     }
 
     impl BleConnection {
         /// Command that created this connection generation.
-        pub const fn operation(&self) -> crate::ProtocolCommandId {
+        pub const fn operation(&self) -> Option<crate::ProtocolCommandId> {
             self.operation
         }
 
@@ -1169,27 +1169,29 @@ pub mod ws63 {
                 ..
             } => {
                 let peer = map_ble_peer(address, address_type)?;
-                if lifecycles.connection.peer != Some(peer) {
+                if lifecycles.connection.peer.is_some() && lifecycles.connection.peer != Some(peer)
+                {
                     return Some(BleEvent::BackendError {
                         operation: lifecycles.connection.operation,
                         stage: 4,
                         status: u32::MAX,
                     });
                 }
-                let operation = lifecycles.connection.operation?;
-                let generation = lifecycles.connection.generation?;
-                lifecycles
-                    .connection
-                    .runner
-                    .activate(generation)
-                    .ok()
-                    .map(|inner| BleEvent::Connected {
-                        connection: BleConnection {
-                            operation,
-                            peer,
-                            inner,
-                        },
-                    })
+                let operation = lifecycles.connection.operation;
+                let guard = match lifecycles.connection.generation {
+                    Some(generation) => lifecycles.connection.runner.activate(generation),
+                    None => lifecycles.connection.runner.adopt().inspect(|guard| {
+                        lifecycles.connection.generation = Some(guard.id());
+                        lifecycles.connection.peer = Some(peer);
+                    }),
+                };
+                guard.ok().map(|inner| BleEvent::Connected {
+                    connection: BleConnection {
+                        operation,
+                        peer,
+                        inner,
+                    },
+                })
             }
             hisi_rf_ws63::BleB2Event::ConnectionState {
                 address,
@@ -2273,7 +2275,7 @@ pub mod ws63 {
             let Some(BleEvent::Connected { connection }) = controller.try_next_event() else {
                 panic!("expected typed connection guard");
             };
-            assert_eq!(connection.operation(), operation);
+            assert_eq!(connection.operation(), Some(operation));
             assert_eq!(connection.peer(), peer);
 
             let mut disconnect = Box::pin(connection.disconnect());
@@ -2314,6 +2316,61 @@ pub mod ws63 {
             ));
 
             assert!(controller.try_connect(peer).is_ok());
+        }
+
+        #[test]
+        fn unsolicited_connection_is_adopted_without_a_fabricated_command() {
+            let mut lifecycles = ble_lifecycles();
+            let peer = crate::ble::BluetoothAddress::public([1, 2, 3, 4, 5, 6]).unwrap();
+            let event = map_ble_lifecycle_event(
+                hisi_rf_ws63::BleB2Event::ConnectionState {
+                    conn_id: 9,
+                    address: peer.bytes(),
+                    address_type: 0,
+                    connected: true,
+                    pair_state: 0,
+                    reason: 0,
+                },
+                &mut lifecycles,
+            )
+            .unwrap();
+            let BleEvent::Connected { connection } = event else {
+                panic!("expected adopted connection");
+            };
+            assert_eq!(connection.operation(), None);
+            assert_eq!(connection.peer(), peer);
+
+            assert!(matches!(
+                map_ble_lifecycle_event(
+                    hisi_rf_ws63::BleB2Event::ConnectionState {
+                        conn_id: 9,
+                        address: peer.bytes(),
+                        address_type: 0,
+                        connected: true,
+                        pair_state: 0,
+                        reason: 0,
+                    },
+                    &mut lifecycles,
+                ),
+                None
+            ));
+            assert!(matches!(
+                map_ble_lifecycle_event(
+                    hisi_rf_ws63::BleB2Event::ConnectionState {
+                        conn_id: 9,
+                        address: peer.bytes(),
+                        address_type: 0,
+                        connected: false,
+                        pair_state: 0,
+                        reason: 0x16,
+                    },
+                    &mut lifecycles,
+                ),
+                Some(BleEvent::Disconnected { peer: p, reason })
+                    if p == peer && reason.vendor_code() == 0x16
+            ));
+            drop(connection);
+            assert!(lifecycles.connection.runner.try_take_cancel().is_none());
         }
 
         #[test]
