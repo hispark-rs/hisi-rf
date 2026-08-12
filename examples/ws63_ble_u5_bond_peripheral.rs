@@ -30,6 +30,7 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
         .ble
         .try_start_advertising(config)
         .unwrap_or_else(|_| firmware::fail(b"RFDBG_RADIO_U5_BLE_ADV_QUEUE_ERR\r\n"));
+    let mut advertising = None;
     let mut connection = None;
     let mut paired = false;
     let mut authenticated = false;
@@ -47,8 +48,9 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
         }
         while let Some(event) = parts.ble.try_next_event() {
             match event {
-                hisi_rf::ws63::BleEvent::AdvertisingStarted { .. } => {
-                    firmware::log(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_READY\r\n")
+                hisi_rf::ws63::BleEvent::AdvertisingStarted { advertiser } => {
+                    advertising = Some(advertiser);
+                    firmware::log(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_READY\r\n");
                 }
                 hisi_rf::ws63::BleEvent::Connected { connection: link } => {
                     connection = Some(link);
@@ -74,7 +76,7 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
                 _ => {}
             }
         }
-        if connection.is_some() && paired && authenticated && observed {
+        if advertising.is_some() && connection.is_some() && paired && authenticated && observed {
             let diagnostics = parts.runner.bond_observation_diagnostics();
             if diagnostics.received
                 != diagnostics.processed + diagnostics.dropped + diagnostics.pending

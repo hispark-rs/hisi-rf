@@ -21,6 +21,7 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
     restore_bonds(&mut parts);
     submit_security(&mut parts);
     start_scan(&mut parts);
+    let mut scanning = None;
     let mut peer = None;
     let mut connection = None;
     let mut pair_command = None;
@@ -43,12 +44,22 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
         }
         while let Some(event) = parts.ble.try_next_event() {
             match event {
+                hisi_rf::ws63::BleEvent::ScanReady { scanner } => {
+                    scanning = Some(scanner);
+                }
                 hisi_rf::ws63::BleEvent::PeerObserved {
                     peer: found,
                     payload,
                     ..
                 } if peer.is_none() && payload.as_bytes() == PEER_PAYLOAD => {
                     peer = Some(found);
+                    let scanner = scanning.take().unwrap_or_else(|| {
+                        firmware::fail(b"RFDBG_RADIO_U5_BLE_SCAN_LIFECYCLE_ERR\r\n")
+                    });
+                    firmware::wait_with_runner(scanner.stop(), || progress(&mut parts))
+                        .unwrap_or_else(|_| {
+                            firmware::fail(b"RFDBG_RADIO_U5_BLE_SCAN_STOP_ERR\r\n")
+                        });
                     parts.ble.try_connect(found).unwrap_or_else(|_| {
                         firmware::fail(b"RFDBG_RADIO_U5_BLE_CONNECT_QUEUE_ERR\r\n")
                     });
