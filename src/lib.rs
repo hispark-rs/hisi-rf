@@ -625,6 +625,14 @@ pub mod ws63 {
             /// Diagnostic termination reason.
             reason: crate::ble::DisconnectReason,
         },
+        /// The vendor-managed persistence path emitted one complete bond record.
+        ///
+        /// Only the validated peer identity leaves the WS63 integration layer;
+        /// all key bytes remain opaque and are zeroized after observation.
+        VendorManagedBondObserved {
+            /// Peer identity proven by the pinned record ABI.
+            peer: crate::ble::BluetoothAddress,
+        },
         /// Pairing reached a terminal result for the copied peer identity.
         PairingComplete {
             /// Validated peer address copied from the vendor callback.
@@ -653,6 +661,19 @@ pub mod ws63 {
             /// Lossless vendor status.
             status: u32,
         },
+    }
+
+    /// Secret-free conservation counters for vendor-managed bond observations.
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub struct BondObservationDiagnostics {
+        /// Complete records copied from callback context.
+        pub received: u32,
+        /// Records removed from the bounded backend queue.
+        pub processed: u32,
+        /// Records rejected because that queue was full.
+        pub dropped: u32,
+        /// Records still waiting for the runner.
+        pub pending: u32,
     }
 
     struct BleLifecycle {
@@ -1232,6 +1253,17 @@ pub mod ws63 {
         }
     }
 
+    fn map_vendor_bond_observation(address: [u8; 6], address_type: u8) -> BleEvent {
+        match map_ble_peer(address, address_type) {
+            Some(peer) => BleEvent::VendorManagedBondObserved { peer },
+            None => BleEvent::BackendError {
+                operation: None,
+                stage: 7,
+                status: u32::MAX,
+            },
+        }
+    }
+
     fn run_ble_cancellation_once(
         backend: &mut impl BleBackend,
         lifecycles: &mut BleLifecycles,
@@ -1515,6 +1547,17 @@ pub mod ws63 {
             self.inner.dropped_events()
         }
 
+        /// Snapshot secret-free vendor bond-record conservation counters.
+        pub fn bond_observation_diagnostics(&self) -> BondObservationDiagnostics {
+            let diagnostics = self.inner.bond_record_diagnostics();
+            BondObservationDiagnostics {
+                received: diagnostics.received,
+                processed: diagnostics.processed,
+                dropped: diagnostics.dropped,
+                pending: diagnostics.pending,
+            }
+        }
+
         /// Execute at most one queued BLE command and publish its completion.
         ///
         /// Returns `Ok(false)` when no command is pending or the asynchronous
@@ -1533,6 +1576,14 @@ pub mod ws63 {
         /// Command completions and unsolicited events use independent storage;
         /// a full event queue never consumes a completion.
         pub fn run_event_once(&mut self) -> bool {
+            if let Some(record) = self.inner.next_vendor_bond_record() {
+                let event = map_vendor_bond_observation(
+                    record.peer_address(),
+                    record.remote_initial_address_type(),
+                );
+                let _ = self.events.try_publish(event);
+                return true;
+            }
             let Some(event) = self.inner.next_event() else {
                 return false;
             };
@@ -2092,6 +2143,15 @@ pub mod ws63 {
                     &mut lifecycles,
                 ),
                 Some(BleEvent::BackendError { stage: 5, .. })
+            ));
+
+            assert!(matches!(
+                map_vendor_bond_observation(peer.bytes(), 0),
+                BleEvent::VendorManagedBondObserved { peer: observed } if observed == peer
+            ));
+            assert!(matches!(
+                map_vendor_bond_observation(peer.bytes(), 9),
+                BleEvent::BackendError { stage: 7, .. }
             ));
         }
 
