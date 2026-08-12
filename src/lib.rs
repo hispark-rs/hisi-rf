@@ -1842,6 +1842,7 @@ pub mod ws63 {
                 _: crate::ble::BluetoothAddress,
             ) -> Result<(), BleOperationError> {
                 self.bond_removals += 1;
+                self.pairing_state = crate::ble::PairingState::NotPaired;
                 Ok(())
             }
         }
@@ -2131,9 +2132,20 @@ pub mod ws63 {
             let completion = controller.try_take_completion().unwrap().unwrap();
             assert_eq!(completion.id(), remove);
             assert_eq!(completion.into_result(), Ok(BleOperation::BondRemoved));
+
+            let query = controller.try_query_pairing_state(peer).unwrap();
+            assert!(run_ble_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
+            let completion = controller.try_take_completion().unwrap().unwrap();
+            assert_eq!(completion.id(), query);
+            assert_eq!(
+                completion.into_result(),
+                Ok(BleOperation::PairingState(
+                    crate::ble::PairingState::NotPaired
+                ))
+            );
             assert_eq!(backend.security_configurations, 1);
             assert_eq!(backend.pairing_requests, 1);
-            assert_eq!(backend.pairing_queries, 1);
+            assert_eq!(backend.pairing_queries, 2);
             assert_eq!(backend.bond_removals, 1);
 
             producer
