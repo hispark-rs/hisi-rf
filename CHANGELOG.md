@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Make the WS63 BLE composition resource set explicitly own the PKE peripheral
   required by the backend's bounded P-256 pairing compatibility path.
+- Expose the authentication observation as `ltk_present` and document that it
+  does not claim complete IRK/CSRK bond material is available to the facade.
 
 ## [0.1.0-alpha.87] - 2026-08-09
 

@@ -570,8 +570,11 @@ pub mod ws63 {
         AuthenticationComplete {
             /// Validated peer address copied from the vendor callback.
             peer: crate::ble::BluetoothAddress,
-            /// Whether the backend reported bond material for internal storage.
-            key_material_present: bool,
+            /// Whether the WS63 callback reported its 16-byte LTK field.
+            ///
+            /// This does not imply that IRK, CSRK, or complete restorable bond
+            /// state is available outside the vendor host.
+            ltk_present: bool,
             /// Success or the exact backend status mapped to the authentication stage.
             result: Result<(), BleOperationError>,
         },
@@ -996,7 +999,7 @@ pub mod ws63 {
                 address,
                 address_type,
                 status,
-                key_material_present,
+                ltk_present,
                 ..
             } => {
                 let Some(peer) = map_ble_peer(address, address_type) else {
@@ -1008,7 +1011,7 @@ pub mod ws63 {
                 };
                 Some(BleEvent::AuthenticationComplete {
                     peer,
-                    key_material_present,
+                    ltk_present,
                     result: ble_status_result(BleOperationErrorKind::Authentication, status),
                 })
             }
@@ -1796,7 +1799,7 @@ pub mod ws63 {
                             address: peer.bytes(),
                             address_type: 0,
                             status: 0,
-                            key_material_present: true,
+                            ltk_present: true,
                         },
                         &mut lifecycles,
                     )
@@ -1805,14 +1808,14 @@ pub mod ws63 {
                 .unwrap();
             let BleEvent::AuthenticationComplete {
                 peer: event_peer,
-                key_material_present,
+                ltk_present,
                 result,
             } = controller.try_next_event().unwrap()
             else {
                 panic!("expected authentication completion");
             };
             assert_eq!(event_peer, peer);
-            assert!(key_material_present);
+            assert!(ltk_present);
             assert_eq!(result, Ok(()));
             assert_eq!(
                 controller.event_diagnostics(),
