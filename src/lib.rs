@@ -1383,6 +1383,7 @@ pub mod ws63 {
                     inner: self.inner,
                     receiver: self.receiver,
                     events: self.event_producer,
+                    bond_observation_armed: false,
                     lifecycles: BleLifecycles::new(
                         self.advertising,
                         self.scanning,
@@ -1597,6 +1598,7 @@ pub mod ws63 {
             Result<BleOperation, BleOperationError>,
         >,
         events: hisi_rf_core::control::EventProducer<BleEvent, { crate::EVENT_CAPACITY }>,
+        bond_observation_armed: bool,
         lifecycles: BleLifecycles,
     }
 
@@ -1646,7 +1648,20 @@ pub mod ws63 {
         /// Command completions and unsolicited events use independent storage;
         /// a full event queue never consumes a completion.
         pub fn run_event_once(&mut self) -> bool {
-            if let Some(record) = self.inner.next_vendor_bond_record() {
+            if let Some(event) = self.inner.next_event() {
+                if let hisi_rf_ws63::BleB2Event::AuthenticationComplete { status, .. } = &event {
+                    self.bond_observation_armed = *status == 0;
+                }
+                let event = map_ble_lifecycle_event(event, &mut self.lifecycles);
+                if let Some(event) = event {
+                    let _ = self.events.try_publish(event);
+                }
+                return true;
+            }
+            if self.bond_observation_armed
+                && let Some(record) = self.inner.next_vendor_bond_record()
+            {
+                self.bond_observation_armed = false;
                 let event = map_vendor_bond_observation(
                     record.peer_address(),
                     record.remote_initial_address_type(),
@@ -1654,14 +1669,7 @@ pub mod ws63 {
                 let _ = self.events.try_publish(event);
                 return true;
             }
-            let Some(event) = self.inner.next_event() else {
-                return false;
-            };
-            let event = map_ble_lifecycle_event(event, &mut self.lifecycles);
-            if let Some(event) = event {
-                let _ = self.events.try_publish(event);
-            }
-            true
+            false
         }
 
         /// Consume one backend lifecycle event for the temporary U2 HIL gate.
