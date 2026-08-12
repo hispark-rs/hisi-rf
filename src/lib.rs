@@ -1022,7 +1022,7 @@ pub mod ws63 {
     fn map_ble_peer(address: [u8; 6], address_type: u8) -> Option<crate::ble::BluetoothAddress> {
         match address_type {
             0 => crate::ble::BluetoothAddress::public(address),
-            1 => crate::ble::BluetoothAddress::random_static(address),
+            1 => crate::ble::BluetoothAddress::random(address),
             _ => None,
         }
     }
