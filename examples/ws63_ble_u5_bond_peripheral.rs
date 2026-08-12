@@ -18,6 +18,7 @@ fn main() -> ! {
 }
 
 fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
+    restore_bonds(&mut parts);
     submit_security(&mut parts);
     let interval = hisi_rf::ble::AdvertisingInterval::try_from_units(0x20).unwrap();
     let config = hisi_rf::ble::AdvertisingConfig::new(
@@ -87,6 +88,14 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
             authenticated = false;
             observed = false;
         }
+    }
+}
+
+fn restore_bonds(parts: &mut hisi_rf::ws63::RadioParts) {
+    match parts.runner.restore_vendor_managed_bonds() {
+        Ok(0) => firmware::log(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_BOND_EMPTY\r\n"),
+        Ok(_) => firmware::log(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_BOND_RESTORED\r\n"),
+        Err(_) => firmware::fail(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_BOND_RESTORE_ERR\r\n"),
     }
 }
 

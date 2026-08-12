@@ -1588,6 +1588,17 @@ pub mod ws63 {
             }
         }
 
+        /// Replay the bounded vendor-owned bond table into the running host.
+        ///
+        /// This migration-only diagnostic preserves vendor persistence
+        /// ownership and returns only a secret-free record count.
+        #[doc(hidden)]
+        pub fn restore_vendor_managed_bonds(
+            &mut self,
+        ) -> Result<usize, hisi_rf_ws63::BleVendorBondError> {
+            self.inner.restore_vendor_managed_bonds()
+        }
+
         /// Execute at most one queued BLE command and publish its completion.
         ///
         /// Returns `Ok(false)` when no command is pending or the asynchronous

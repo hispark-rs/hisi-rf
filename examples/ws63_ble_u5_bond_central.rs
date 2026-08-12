@@ -18,6 +18,7 @@ fn main() -> ! {
 }
 
 fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
+    restore_bonds(&mut parts);
     submit_security(&mut parts);
     start_scan(&mut parts);
     let mut peer = None;
@@ -102,6 +103,14 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
                 progress(&mut parts);
             }
         }
+    }
+}
+
+fn restore_bonds(parts: &mut hisi_rf::ws63::RadioParts) {
+    match parts.runner.restore_vendor_managed_bonds() {
+        Ok(0) => firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_BOND_EMPTY\r\n"),
+        Ok(_) => firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_BOND_RESTORED\r\n"),
+        Err(_) => firmware::fail(b"RFDBG_RADIO_U5_BLE_CENTRAL_BOND_RESTORE_ERR\r\n"),
     }
 }
 
