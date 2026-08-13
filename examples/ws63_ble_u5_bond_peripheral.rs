@@ -34,6 +34,7 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
     let mut connection = None;
     let mut paired = restored;
     let mut authenticated = false;
+    let mut security_completed = false;
     let mut observed = restored;
 
     loop {
@@ -58,6 +59,7 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
                 }
                 hisi_rf::ws63::BleEvent::PairingComplete { result: Ok(()), .. } => {
                     paired = true;
+                    security_completed = true;
                     if restored {
                         firmware::log(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_RESTORED_ACTIVE\r\n");
                     }
@@ -65,6 +67,7 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
                 }
                 hisi_rf::ws63::BleEvent::AuthenticationComplete { result: Ok(()), .. } => {
                     authenticated = true;
+                    security_completed = true;
                     firmware::log(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_AUTH_OK\r\n");
                 }
                 hisi_rf::ws63::BleEvent::VendorManagedBondObserved { .. } => {
@@ -82,6 +85,7 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
         if advertising.is_some()
             && connection.is_some()
             && paired
+            && security_completed
             && (authenticated || restored)
             && observed
         {
@@ -96,6 +100,7 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
             firmware::log(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_BOND_OK\r\n");
             paired = false;
             authenticated = false;
+            security_completed = false;
             observed = false;
         }
     }
