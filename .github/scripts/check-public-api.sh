@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 BASELINE="$ROOT/.github/public-api/ws63-incremental.txt"
-BLE_BASELINE="$ROOT/.github/public-api/ws63-ble-u4.txt"
+BLE_BASELINE="$ROOT/.github/public-api/ws63-ble-u5.txt"
 SLE_BASELINE="$ROOT/.github/public-api/ws63-sle-u4.txt"
 EXPECTED_VERSION="cargo-public-api 0.52.0"
 
@@ -69,4 +69,4 @@ if grep -E 'hisi_rf_ws63|ws63_radio_sys|hisi_rf_rtos_driver|BleB[123]|SleS[123]'
     exit 1
 fi
 
-echo "hisi-rf public API matches the Wi-Fi, BLE U4, and SLE U4 facade baselines"
+echo "hisi-rf public API matches the Wi-Fi, BLE U5, and SLE U4 facade baselines"

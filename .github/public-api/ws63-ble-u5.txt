@@ -37,20 +37,50 @@ pub macro hisi_rf::ws63::declare_radio_storage!
 pub enum hisi_rf::ws63::BleEvent
 pub hisi_rf::ws63::BleEvent::AdvertisingStarted
 pub hisi_rf::ws63::BleEvent::AdvertisingStarted::advertiser: hisi_rf::ws63::Advertiser
+pub hisi_rf::ws63::BleEvent::AuthenticationComplete
+pub hisi_rf::ws63::BleEvent::AuthenticationComplete::ltk_present: bool
+pub hisi_rf::ws63::BleEvent::AuthenticationComplete::peer: hisi_rf_core::ble::BluetoothAddress
+pub hisi_rf::ws63::BleEvent::AuthenticationComplete::result: core::result::Result<(), hisi_rf::ws63::BleOperationError>
 pub hisi_rf::ws63::BleEvent::BackendError
 pub hisi_rf::ws63::BleEvent::BackendError::operation: core::option::Option<hisi_rf::ProtocolCommandId>
 pub hisi_rf::ws63::BleEvent::BackendError::stage: u8
 pub hisi_rf::ws63::BleEvent::BackendError::status: u32
+pub hisi_rf::ws63::BleEvent::Connected
+pub hisi_rf::ws63::BleEvent::Connected::connection: hisi_rf::ws63::BleConnection
+pub hisi_rf::ws63::BleEvent::Disconnected
+pub hisi_rf::ws63::BleEvent::Disconnected::peer: hisi_rf_core::ble::BluetoothAddress
+pub hisi_rf::ws63::BleEvent::Disconnected::reason: hisi_rf_core::ble::DisconnectReason
+pub hisi_rf::ws63::BleEvent::PairingComplete
+pub hisi_rf::ws63::BleEvent::PairingComplete::peer: hisi_rf_core::ble::BluetoothAddress
+pub hisi_rf::ws63::BleEvent::PairingComplete::result: core::result::Result<(), hisi_rf::ws63::BleOperationError>
+pub hisi_rf::ws63::BleEvent::PeerObserved
+pub hisi_rf::ws63::BleEvent::PeerObserved::payload: hisi_rf_core::ble::AdvertisingPayload
+pub hisi_rf::ws63::BleEvent::PeerObserved::peer: hisi_rf_core::ble::BluetoothAddress
+pub hisi_rf::ws63::BleEvent::PeerObserved::rssi: core::option::Option<hisi_rf_core::ble::RssiDbm>
 pub hisi_rf::ws63::BleEvent::ScanReady
 pub hisi_rf::ws63::BleEvent::ScanReady::scanner: hisi_rf::ws63::Scanner
+pub hisi_rf::ws63::BleEvent::VendorManagedBondObserved
+pub hisi_rf::ws63::BleEvent::VendorManagedBondObserved::peer: hisi_rf_core::ble::BluetoothAddress
 pub enum hisi_rf::ws63::BleOperation
 pub hisi_rf::ws63::BleOperation::AdvertisingRequested
+pub hisi_rf::ws63::BleOperation::BondRemoved
+pub hisi_rf::ws63::BleOperation::ConnectionRequested
 pub hisi_rf::ws63::BleOperation::GattServerRegistered(hisi_rf::ws63::GattServerHandle)
+pub hisi_rf::ws63::BleOperation::PairingRequested
+pub hisi_rf::ws63::BleOperation::PairingState(hisi_rf_core::ble::PairingState)
 pub hisi_rf::ws63::BleOperation::ScanningRequested
+pub hisi_rf::ws63::BleOperation::SecurityConfigured
 pub enum hisi_rf::ws63::BleOperationErrorKind
+pub hisi_rf::ws63::BleOperationErrorKind::Authentication
+pub hisi_rf::ws63::BleOperationErrorKind::ConfigureSecurity
+pub hisi_rf::ws63::BleOperationErrorKind::Connect
+pub hisi_rf::ws63::BleOperationErrorKind::Disconnect
 pub hisi_rf::ws63::BleOperationErrorKind::Enable
 pub hisi_rf::ws63::BleOperationErrorKind::GattDatabase
 pub hisi_rf::ws63::BleOperationErrorKind::LifecycleBusy
+pub hisi_rf::ws63::BleOperationErrorKind::Pair
+pub hisi_rf::ws63::BleOperationErrorKind::QueryPairingState
+pub hisi_rf::ws63::BleOperationErrorKind::RemoveBond
 pub hisi_rf::ws63::BleOperationErrorKind::SetAdvertisingData
 pub hisi_rf::ws63::BleOperationErrorKind::SetAdvertisingParameters
 pub hisi_rf::ws63::BleOperationErrorKind::SetScanParameters
@@ -59,6 +89,7 @@ pub hisi_rf::ws63::BleOperationErrorKind::StartAdvertising
 pub hisi_rf::ws63::BleOperationErrorKind::StartScanning
 pub hisi_rf::ws63::BleOperationErrorKind::StopAdvertising
 pub hisi_rf::ws63::BleOperationErrorKind::StopScanning
+pub hisi_rf::ws63::BleOperationErrorKind::UnknownPairingState
 pub hisi_rf::ws63::BleOperationErrorKind::UnsupportedConfiguration
 pub hisi_rf::ws63::BleOperationErrorKind::UnsupportedTarget
 pub struct hisi_rf::ws63::Advertiser
@@ -67,12 +98,24 @@ pub const fn hisi_rf::ws63::Advertiser::operation(&self) -> hisi_rf::ProtocolCom
 pub async fn hisi_rf::ws63::Advertiser::stop(self) -> core::result::Result<(), hisi_rf::ws63::BleOperationError>
 impl core::fmt::Debug for hisi_rf::ws63::Advertiser
 pub fn hisi_rf::ws63::Advertiser::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+pub struct hisi_rf::ws63::BleConnection
+impl hisi_rf::ws63::BleConnection
+pub async fn hisi_rf::ws63::BleConnection::disconnect(self) -> core::result::Result<(), hisi_rf::ws63::BleOperationError>
+pub const fn hisi_rf::ws63::BleConnection::operation(&self) -> core::option::Option<hisi_rf::ProtocolCommandId>
+pub const fn hisi_rf::ws63::BleConnection::peer(&self) -> hisi_rf_core::ble::BluetoothAddress
+impl core::fmt::Debug for hisi_rf::ws63::BleConnection
+pub fn hisi_rf::ws63::BleConnection::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub struct hisi_rf::ws63::BleController
 impl hisi_rf::ws63::BleController
 pub fn hisi_rf::ws63::BleController::event_diagnostics(&self) -> hisi_rf::ProtocolEventDiagnostics
 pub async fn hisi_rf::ws63::BleController::next_event(&mut self) -> hisi_rf::ws63::BleEvent
+pub fn hisi_rf::ws63::BleController::try_configure_security(&mut self, hisi_rf_core::ble::SecurityConfig) -> core::result::Result<hisi_rf::ProtocolCommandId, hisi_rf::ProtocolBusy<hisi_rf_core::ble::SecurityConfig>>
+pub fn hisi_rf::ws63::BleController::try_connect(&mut self, hisi_rf_core::ble::BluetoothAddress) -> core::result::Result<hisi_rf::ProtocolCommandId, hisi_rf::ProtocolBusy<hisi_rf_core::ble::BluetoothAddress>>
 pub fn hisi_rf::ws63::BleController::try_next_event(&mut self) -> core::option::Option<hisi_rf::ws63::BleEvent>
+pub fn hisi_rf::ws63::BleController::try_pair(&mut self, &hisi_rf::ws63::BleConnection) -> core::result::Result<hisi_rf::ProtocolCommandId, hisi_rf::ProtocolBusy<hisi_rf_core::ble::BluetoothAddress>>
+pub fn hisi_rf::ws63::BleController::try_query_pairing_state(&mut self, hisi_rf_core::ble::BluetoothAddress) -> core::result::Result<hisi_rf::ProtocolCommandId, hisi_rf::ProtocolBusy<hisi_rf_core::ble::BluetoothAddress>>
 pub fn hisi_rf::ws63::BleController::try_register_gatt_server(&mut self, hisi_rf_core::ble::GattServerDefinition) -> core::result::Result<hisi_rf::ProtocolCommandId, hisi_rf::ProtocolBusy<hisi_rf_core::ble::GattServerDefinition>>
+pub fn hisi_rf::ws63::BleController::try_remove_bond(&mut self, hisi_rf_core::ble::BluetoothAddress) -> core::result::Result<hisi_rf::ProtocolCommandId, hisi_rf::ProtocolBusy<hisi_rf_core::ble::BluetoothAddress>>
 pub fn hisi_rf::ws63::BleController::try_start_advertising(&mut self, hisi_rf_core::ble::AdvertisingConfig) -> core::result::Result<hisi_rf::ProtocolCommandId, hisi_rf::ProtocolBusy<hisi_rf_core::ble::AdvertisingConfig>>
 pub fn hisi_rf::ws63::BleController::try_start_scanning(&mut self, hisi_rf_core::ble::ScanConfig) -> core::result::Result<hisi_rf::ProtocolCommandId, hisi_rf::ProtocolBusy<hisi_rf_core::ble::ScanConfig>>
 pub fn hisi_rf::ws63::BleController::try_take_completion(&mut self) -> core::result::Result<core::option::Option<hisi_rf::ProtocolCompletion<hisi_rf::ws63::BleOperation, hisi_rf::ws63::BleOperationError>>, hisi_rf::ProtocolError>
@@ -80,6 +123,11 @@ pub struct hisi_rf::ws63::BleOperationError
 impl hisi_rf::ws63::BleOperationError
 pub const fn hisi_rf::ws63::BleOperationError::kind(&self) -> hisi_rf::ws63::BleOperationErrorKind
 pub const fn hisi_rf::ws63::BleOperationError::vendor_status(&self) -> core::option::Option<u32>
+pub struct hisi_rf::ws63::BondObservationDiagnostics
+pub hisi_rf::ws63::BondObservationDiagnostics::dropped: u32
+pub hisi_rf::ws63::BondObservationDiagnostics::pending: u32
+pub hisi_rf::ws63::BondObservationDiagnostics::processed: u32
+pub hisi_rf::ws63::BondObservationDiagnostics::received: u32
 pub struct hisi_rf::ws63::GattServerHandle
 pub struct hisi_rf::ws63::InitError
 pub struct hisi_rf::ws63::InstalledRadioStorage
@@ -94,6 +142,7 @@ pub hisi_rf::ws63::RadioParts::ble: hisi_rf::ws63::BleController
 pub hisi_rf::ws63::RadioParts::runner: hisi_rf::ws63::RadioRunner
 pub struct hisi_rf::ws63::RadioRunner
 impl hisi_rf::ws63::RadioRunner
+pub fn hisi_rf::ws63::RadioRunner::bond_observation_diagnostics(&self) -> hisi_rf::ws63::BondObservationDiagnostics
 pub fn hisi_rf::ws63::RadioRunner::dropped_events(&self) -> u32
 pub fn hisi_rf::ws63::RadioRunner::run_event_once(&mut self) -> bool
 pub fn hisi_rf::ws63::RadioRunner::run_once(&mut self) -> core::result::Result<bool, hisi_rf::ProtocolError>
@@ -102,7 +151,7 @@ impl hisi_rf::ws63::RadioStorage
 pub fn hisi_rf::ws63::RadioStorage::install(&'static self) -> core::result::Result<hisi_rf::ws63::InstalledRadioStorage, hisi_rf::ws63::InitError>
 pub struct hisi_rf::ws63::Resources
 impl hisi_rf::ws63::Resources
-pub const fn hisi_rf::ws63::Resources::new(hisi_hal::peripherals::ws63_only::Efuse<'static>, hisi_hal::peripherals::ws63_only::Km<'static>, hisi_hal::peripherals::ws63_only::Spacc<'static>, hisi_hal::peripherals::Trng<'static>) -> Self
+pub const fn hisi_rf::ws63::Resources::new(hisi_hal::peripherals::ws63_only::Efuse<'static>, hisi_hal::peripherals::ws63_only::Km<'static>, hisi_hal::peripherals::ws63_only::Spacc<'static>, hisi_hal::peripherals::ws63_only::Pke<'static>, hisi_hal::peripherals::Trng<'static>) -> Self
 pub struct hisi_rf::ws63::Scanner
 impl hisi_rf::ws63::Scanner
 pub const fn hisi_rf::ws63::Scanner::operation(&self) -> hisi_rf::ProtocolCommandId
