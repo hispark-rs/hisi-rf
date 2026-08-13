@@ -481,9 +481,9 @@ dependencies = [
 
 [[package]]
 name = "hisi-crypto-ws63"
-version = "0.1.0-alpha.3"
+version = "0.1.0-alpha.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fdc966b600ba8e8d5d944cc6bd93e10e519715042ad46b657b151d7eef5cc761"
+checksum = "63e3e825abdddd14a9a65bc881c454725b4797631e08d71a44109ec3a8e0c3e5"
 dependencies = [
  "critical-section",
  "hisi-crypto",
@@ -523,9 +523,9 @@ dependencies = [
 
 [[package]]
 name = "hisi-rf"
-version = "0.1.0-alpha.86"
+version = "0.1.0-alpha.88"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee291e43eeec468c19e678b58e68a7fc453916cba0525b193ec9dd7700415b62"
+checksum = "9d0da6d7cbce82e6cef3b33737d5cbbf8a6af538100444da99187033803b5635"
 dependencies = [
  "hisi-rf-core",
  "hisi-rf-ws63",
@@ -533,9 +533,9 @@ dependencies = [
 
 [[package]]
 name = "hisi-rf-core"
-version = "0.1.0-alpha.21"
+version = "0.1.0-alpha.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd8d2bf8b66b403550b322cf19a600989ed1da4c46e7f23552874eae2de742eb"
+checksum = "dbd834e2ad9f1d7ad40b4e074d0c266da82303d18d2518529b27cf8249eef4ba"
 dependencies = [
  "embassy-sync",
  "portable-atomic",
@@ -544,9 +544,9 @@ dependencies = [
 
 [[package]]
 name = "hisi-rf-link"
-version = "0.1.0-alpha.16"
+version = "0.1.0-alpha.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5ad007cb6fe20bc159306319edca26db89bf44dd216a50830917e9c40c908d7"
+checksum = "512db26a3086bf41901cd2449f3ac6d26b489e3c3fd67f79409105afcdcca1f2"
 
 [[package]]
 name = "hisi-rf-rtos-driver"
@@ -559,9 +559,9 @@ dependencies = [
 
 [[package]]
 name = "hisi-rf-ws63"
-version = "0.1.0-alpha.74"
+version = "0.1.0-alpha.76"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "85c696aa9438e32f3e8ca63213495be92163f33910550e1d24f33f8b4dcace0f"
+checksum = "66258981c4e130f2e30f52133229e0e3e158d01cbbf575bd5e2efc47ebfa2cac"
 dependencies = [
  "ar_archive_writer",
  "critical-section",
@@ -1163,9 +1163,9 @@ dependencies = [
 
 [[package]]
 name = "ws63-radio-blob"
-version = "0.1.0-alpha.16"
+version = "0.1.0-alpha.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e59786f463503937f42f8a1be4d0c6d203727ad120c74104ef553aa2c9d9419"
+checksum = "8af5014114cc9d69a06abcc47c39a24e498872894f0b226891205cc5ec781857"
 dependencies = [
  "ruzstd",
  "serde",
@@ -1175,9 +1175,9 @@ dependencies = [
 
 [[package]]
 name = "ws63-radio-sys"
-version = "0.1.0-alpha.16"
+version = "0.1.0-alpha.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71ec635bb75b73de951d857b2d5400b7dbfa7c4cf51404a89d16164607a8d6f4"
+checksum = "b2636b6d89c8fb79918afa8b6b1c8ebbb82d00652effcae7860d1e4341bce630"
 dependencies = [
  "hisi-rf-link",
  "hisi-rom-sys-ws63",
@@ -1186,6 +1186,7 @@ dependencies = [
  "sha2",
  "toml",
  "ws63-radio-blob",
+ "zeroize",
 ]
 
 [[package]]
