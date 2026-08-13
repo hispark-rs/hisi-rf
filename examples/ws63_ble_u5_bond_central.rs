@@ -18,28 +18,43 @@ fn main() -> ! {
 }
 
 fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
-    restore_bonds(&mut parts);
+    let restored = restore_bonds(&mut parts);
     submit_security(&mut parts);
     start_scan(&mut parts);
     let mut scanning = None;
     let mut peer = None;
     let mut connection = None;
     let mut pair_command = None;
-    let mut pair_accepted = false;
-    let mut paired = false;
+    let mut state_command = None;
+    let mut pair_accepted = restored;
+    let mut paired = restored;
+    let mut state_confirmed = !restored;
     let mut authenticated = false;
-    let mut observed = false;
+    let mut observed = restored;
 
     loop {
         progress(&mut parts);
         while let Some(completion) = parts.ble.try_take_completion().unwrap() {
             let id = completion.id();
-            if completion.into_result().is_err() {
-                firmware::fail(b"RFDBG_RADIO_U5_BLE_COMMAND_ERR\r\n");
-            }
+            let result = completion.into_result();
             if pair_command == Some(id) {
+                if result.is_err() {
+                    firmware::fail(b"RFDBG_RADIO_U5_BLE_COMMAND_ERR\r\n");
+                }
                 pair_accepted = true;
                 firmware::log(b"RFDBG_RADIO_U5_BLE_PAIR_ACCEPTED\r\n");
+            } else if state_command == Some(id) {
+                match result {
+                    Ok(hisi_rf::ws63::BleOperation::PairingState(
+                        hisi_rf::ble::PairingState::Paired,
+                    )) => {
+                        state_confirmed = true;
+                        firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_RESTORED_ACTIVE\r\n");
+                    }
+                    _ => firmware::fail(b"RFDBG_RADIO_U5_BLE_RESTORED_STATE_ERR\r\n"),
+                }
+            } else if result.is_err() {
+                firmware::fail(b"RFDBG_RADIO_U5_BLE_COMMAND_ERR\r\n");
             }
         }
         while let Some(event) = parts.ble.try_next_event() {
@@ -66,9 +81,20 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
                     firmware::log(b"RFDBG_RADIO_U5_BLE_SCAN_MATCH\r\n");
                 }
                 hisi_rf::ws63::BleEvent::Connected { connection: link } => {
-                    pair_command = Some(parts.ble.try_pair(&link).unwrap_or_else(|_| {
-                        firmware::fail(b"RFDBG_RADIO_U5_BLE_PAIR_QUEUE_ERR\r\n")
-                    }));
+                    if restored {
+                        state_command = Some(
+                            parts
+                                .ble
+                                .try_query_pairing_state(link.peer())
+                                .unwrap_or_else(|_| {
+                                    firmware::fail(b"RFDBG_RADIO_U5_BLE_STATE_QUEUE_ERR\r\n")
+                                }),
+                        );
+                    } else {
+                        pair_command = Some(parts.ble.try_pair(&link).unwrap_or_else(|_| {
+                            firmware::fail(b"RFDBG_RADIO_U5_BLE_PAIR_QUEUE_ERR\r\n")
+                        }));
+                    }
                     connection = Some(link);
                     firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_CONNECTED\r\n");
                 }
@@ -94,9 +120,10 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
         }
         if peer.is_some()
             && connection.is_some()
-            && pair_command.is_some()
+            && (pair_command.is_some() || state_command.is_some())
             && pair_accepted
             && paired
+            && state_confirmed
             && authenticated
             && observed
         {
@@ -116,10 +143,16 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
     }
 }
 
-fn restore_bonds(parts: &mut hisi_rf::ws63::RadioParts) {
+fn restore_bonds(parts: &mut hisi_rf::ws63::RadioParts) -> bool {
     match parts.runner.restore_vendor_managed_bonds() {
-        Ok(0) => firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_BOND_EMPTY\r\n"),
-        Ok(_) => firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_BOND_RESTORED\r\n"),
+        Ok(0) => {
+            firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_BOND_EMPTY\r\n");
+            false
+        }
+        Ok(_) => {
+            firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_BOND_RESTORED\r\n");
+            true
+        }
         Err(_) => firmware::fail(b"RFDBG_RADIO_U5_BLE_CENTRAL_BOND_RESTORE_ERR\r\n"),
     }
 }

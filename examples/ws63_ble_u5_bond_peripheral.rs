@@ -18,7 +18,7 @@ fn main() -> ! {
 }
 
 fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
-    restore_bonds(&mut parts);
+    let restored = restore_bonds(&mut parts);
     submit_security(&mut parts);
     let interval = hisi_rf::ble::AdvertisingInterval::try_from_units(0x20).unwrap();
     let config = hisi_rf::ble::AdvertisingConfig::new(
@@ -32,9 +32,9 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
         .unwrap_or_else(|_| firmware::fail(b"RFDBG_RADIO_U5_BLE_ADV_QUEUE_ERR\r\n"));
     let mut advertising = None;
     let mut connection = None;
-    let mut paired = false;
+    let mut paired = restored;
     let mut authenticated = false;
-    let mut observed = false;
+    let mut observed = restored;
 
     loop {
         progress(&mut parts);
@@ -62,6 +62,9 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
                 }
                 hisi_rf::ws63::BleEvent::AuthenticationComplete { result: Ok(()), .. } => {
                     authenticated = true;
+                    if restored {
+                        firmware::log(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_RESTORED_ACTIVE\r\n");
+                    }
                     firmware::log(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_AUTH_OK\r\n");
                 }
                 hisi_rf::ws63::BleEvent::VendorManagedBondObserved { .. } => {
@@ -93,10 +96,16 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
     }
 }
 
-fn restore_bonds(parts: &mut hisi_rf::ws63::RadioParts) {
+fn restore_bonds(parts: &mut hisi_rf::ws63::RadioParts) -> bool {
     match parts.runner.restore_vendor_managed_bonds() {
-        Ok(0) => firmware::log(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_BOND_EMPTY\r\n"),
-        Ok(_) => firmware::log(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_BOND_RESTORED\r\n"),
+        Ok(0) => {
+            firmware::log(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_BOND_EMPTY\r\n");
+            false
+        }
+        Ok(_) => {
+            firmware::log(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_BOND_RESTORED\r\n");
+            true
+        }
         Err(_) => firmware::fail(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_BOND_RESTORE_ERR\r\n"),
     }
 }

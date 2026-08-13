@@ -7,11 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.88] - 2026-08-13
+
 ### Added
 
 - Add credential-free U4 BLE and SLE lifecycle HIL fixtures. Each fixture
   exercises explicit async stop, dropped-guard cleanup, generation reuse, and
   a final explicit stop through the public facade event plane.
+- Extend the U5 bond fixtures so a restored peer is actively queried after
+  reconnect instead of treating persisted metadata alone as an authenticated
+  live connection.
 
 ### Changed
 
@@ -19,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   required by the backend's bounded P-256 pairing compatibility path.
 - Expose the authentication observation as `ltk_present` and document that it
   does not claim complete IRK/CSRK bond material is available to the facade.
+- Update the WS63 backend to `hisi-rf-ws63 0.1.0-alpha.76`, HAL to
+  `0.7.0-alpha.8`, and the firmware fixture runtime to `hisi-riscv-rt 0.5.10`.
 
 ## [0.1.0-alpha.87] - 2026-08-09
 
