@@ -91,10 +91,6 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
                 }
                 hisi_rf::ws63::BleEvent::PairingComplete { result: Ok(()), .. } => {
                     paired = true;
-                    firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_PAIRED\r\n");
-                }
-                hisi_rf::ws63::BleEvent::AuthenticationComplete { result: Ok(()), .. } => {
-                    authenticated = true;
                     if restored && state_command.is_none() {
                         let link = connection.as_ref().unwrap_or_else(|| {
                             firmware::fail(b"RFDBG_RADIO_U5_BLE_STATE_LINK_ERR\r\n")
@@ -108,6 +104,10 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
                                 }),
                         );
                     }
+                    firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_PAIRED\r\n");
+                }
+                hisi_rf::ws63::BleEvent::AuthenticationComplete { result: Ok(()), .. } => {
+                    authenticated = true;
                     firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_AUTH_OK\r\n");
                 }
                 hisi_rf::ws63::BleEvent::VendorManagedBondObserved { .. } => {
@@ -128,7 +128,7 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
             && pair_accepted
             && paired
             && state_confirmed
-            && authenticated
+            && (authenticated || restored)
             && observed
         {
             let diagnostics = parts.runner.bond_observation_diagnostics();

@@ -11,10 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Delay the U5 restored-link pairing-state query until the bonded reconnect has
-  emitted a successful authentication event. Querying from the earlier
-  connection callback could observe the transient pre-encryption state and halt
-  the fixture before the authentication callback was processed.
+- Restart the BLE security procedure after a bonded reconnect, then query the
+  restored pairing state only after its pairing-complete callback. The vendor
+  host does not guarantee a successful authentication callback when it reuses
+  stored keys, so restored-link evidence now follows the pairing-state contract
+  used by the vendor samples instead of waiting forever for an optional event.
 
 ## [0.1.0-alpha.89] - 2026-08-13
 
