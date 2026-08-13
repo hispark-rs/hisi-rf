@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.90] - 2026-08-13
+
+### Fixed
+
+- Delay the U5 restored-link pairing-state query until the bonded reconnect has
+  emitted a successful authentication event. Querying from the earlier
+  connection callback could observe the transient pre-encryption state and halt
+  the fixture before the authentication callback was processed.
+
 ## [0.1.0-alpha.89] - 2026-08-13
 
 ### Fixed

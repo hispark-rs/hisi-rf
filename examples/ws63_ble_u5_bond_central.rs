@@ -81,16 +81,7 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
                     firmware::log(b"RFDBG_RADIO_U5_BLE_SCAN_MATCH\r\n");
                 }
                 hisi_rf::ws63::BleEvent::Connected { connection: link } => {
-                    if restored {
-                        state_command = Some(
-                            parts
-                                .ble
-                                .try_query_pairing_state(link.peer())
-                                .unwrap_or_else(|_| {
-                                    firmware::fail(b"RFDBG_RADIO_U5_BLE_STATE_QUEUE_ERR\r\n")
-                                }),
-                        );
-                    } else {
+                    if !restored {
                         pair_command = Some(parts.ble.try_pair(&link).unwrap_or_else(|_| {
                             firmware::fail(b"RFDBG_RADIO_U5_BLE_PAIR_QUEUE_ERR\r\n")
                         }));
@@ -104,6 +95,19 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
                 }
                 hisi_rf::ws63::BleEvent::AuthenticationComplete { result: Ok(()), .. } => {
                     authenticated = true;
+                    if restored && state_command.is_none() {
+                        let link = connection.as_ref().unwrap_or_else(|| {
+                            firmware::fail(b"RFDBG_RADIO_U5_BLE_STATE_LINK_ERR\r\n")
+                        });
+                        state_command = Some(
+                            parts
+                                .ble
+                                .try_query_pairing_state(link.peer())
+                                .unwrap_or_else(|_| {
+                                    firmware::fail(b"RFDBG_RADIO_U5_BLE_STATE_QUEUE_ERR\r\n")
+                                }),
+                        );
+                    }
                     firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_AUTH_OK\r\n");
                 }
                 hisi_rf::ws63::BleEvent::VendorManagedBondObserved { .. } => {
