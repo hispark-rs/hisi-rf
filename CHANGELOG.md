@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.89] - 2026-08-13
+
+### Fixed
+
+- Update the WS63 backend to `hisi-rf-ws63 0.1.0-alpha.77`, whose BLE final-link
+  contract verifies the real archive metadata for every indirect SMP callback.
+  Pairing no longer routes allocation, AES/CMAC, byte-order, or XOR callbacks
+  to the fail-closed missing-callback sentinel.
+
 ## [0.1.0-alpha.88] - 2026-08-13
 
 ### Added
