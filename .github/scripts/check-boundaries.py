@@ -70,13 +70,14 @@ def check_consumer_release_version(packages: dict[str, dict]) -> None:
     )
     source_base, source_alpha = alpha_release(source_version)
     requested_base, requested_alpha = alpha_release(requested_version)
-    if source_base != requested_base or requested_alpha not in {
-        source_alpha,
-        source_alpha - 1,
-    }:
+    # Alpha sequence numbers may be intentionally skipped. During publish
+    # propagation the fixture therefore accepts the current source or either
+    # of the two immediately preceding alpha numbers, while remaining exactly
+    # pinned to a version that Cargo resolves from crates.io.
+    if source_base != requested_base or not 0 <= source_alpha - requested_alpha <= 2:
         raise ValueError(
-            "external fixture must track the current facade or the immediately "
-            f"previous release during publish propagation: source={source_version}, "
+            "external fixture must track the current facade or a recent published "
+            f"alpha during publish propagation: source={source_version}, "
             f"fixture={requested_version}"
         )
 
