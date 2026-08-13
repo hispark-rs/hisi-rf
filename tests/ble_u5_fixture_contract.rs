@@ -4,6 +4,10 @@ fn restored_pairing_state_is_queried_only_after_authentication() {
     let connected = source
         .find("BleEvent::Connected")
         .expect("U5 central must handle connection events");
+    let secure = source[connected..]
+        .find("try_pair")
+        .map(|offset| connected + offset)
+        .expect("every U5 connection must initiate its security procedure");
     let authenticated = source
         .find("BleEvent::AuthenticationComplete")
         .expect("U5 central must handle authentication events");
@@ -12,5 +16,6 @@ fn restored_pairing_state_is_queried_only_after_authentication() {
         .expect("U5 central must verify the restored pairing state");
 
     assert!(connected < authenticated);
+    assert!(secure < authenticated);
     assert!(authenticated < query);
 }

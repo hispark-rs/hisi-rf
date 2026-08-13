@@ -81,11 +81,11 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
                     firmware::log(b"RFDBG_RADIO_U5_BLE_SCAN_MATCH\r\n");
                 }
                 hisi_rf::ws63::BleEvent::Connected { connection: link } => {
-                    if !restored {
-                        pair_command = Some(parts.ble.try_pair(&link).unwrap_or_else(|_| {
-                            firmware::fail(b"RFDBG_RADIO_U5_BLE_PAIR_QUEUE_ERR\r\n")
-                        }));
-                    }
+                    // The restored bond supplies keys, but the central still has to
+                    // initiate the security procedure for the new connection.
+                    pair_command = Some(parts.ble.try_pair(&link).unwrap_or_else(|_| {
+                        firmware::fail(b"RFDBG_RADIO_U5_BLE_PAIR_QUEUE_ERR\r\n")
+                    }));
                     connection = Some(link);
                     firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_CONNECTED\r\n");
                 }
