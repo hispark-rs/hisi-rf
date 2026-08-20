@@ -741,7 +741,6 @@ pub mod ws63 {
         generation: Option<hisi_rf_core::control::LifecycleId>,
         stopping: Option<hisi_rf_core::control::LifecycleId>,
         peer: Option<crate::ble::BluetoothAddress>,
-        backend_handle: Option<u32>,
         runner: hisi_rf_core::control::LifecycleRunner<BleOperationError>,
     }
 
@@ -771,7 +770,6 @@ pub mod ws63 {
                 generation: None,
                 stopping: None,
                 peer: None,
-                backend_handle: None,
                 runner,
             }
         }
@@ -781,7 +779,6 @@ pub mod ws63 {
             self.generation = None;
             self.stopping = None;
             self.peer = None;
-            self.backend_handle = None;
         }
     }
 
@@ -1335,7 +1332,7 @@ pub mod ws63 {
                     status: u32::MAX,
                 })),
             hisi_rf_ws63::BleB2Event::ConnectionState {
-                conn_id,
+                conn_id: _,
                 address,
                 address_type,
                 connected: true,
@@ -1358,15 +1355,12 @@ pub mod ws63 {
                         lifecycles.connection.peer = Some(peer);
                     }),
                 };
-                guard.ok().map(|inner| {
-                    lifecycles.connection.backend_handle = Some(u32::from(conn_id));
-                    BleEvent::Connected {
-                        connection: BleConnection {
-                            operation,
-                            peer,
-                            inner,
-                        },
-                    }
+                guard.ok().map(|inner| BleEvent::Connected {
+                    connection: BleConnection {
+                        operation,
+                        peer,
+                        inner,
+                    },
                 })
             }
             hisi_rf_ws63::BleB2Event::ConnectionState {
@@ -1436,16 +1430,14 @@ pub mod ws63 {
                     result: ble_status_result(BleOperationErrorKind::Authentication, status),
                 })
             }
-            hisi_rf_ws63::BleB2Event::PasskeyInputRequested { connection_handle } => {
+            hisi_rf_ws63::BleB2Event::PasskeyInputRequested { pairing_context: _ } => {
                 let peer = lifecycles.connection.peer?;
                 let connection = lifecycles.connection.generation?;
-                if lifecycles.connection.backend_handle != Some(connection_handle)
-                    || !lifecycles.connection.runner.is_active(connection)
-                {
+                if !lifecycles.connection.runner.is_active(connection) {
                     return Some(BleEvent::BackendError {
                         operation: lifecycles.connection.operation,
                         stage: 8,
-                        status: connection_handle,
+                        status: u32::MAX,
                     });
                 }
                 lifecycles
@@ -1459,18 +1451,16 @@ pub mod ws63 {
                     }))
             }
             hisi_rf_ws63::BleB2Event::PasskeyDisplayed {
-                connection_handle,
+                pairing_context: _,
                 passkey,
             } => {
                 let peer = lifecycles.connection.peer?;
                 let connection = lifecycles.connection.generation?;
-                if lifecycles.connection.backend_handle != Some(connection_handle)
-                    || !lifecycles.connection.runner.is_active(connection)
-                {
+                if !lifecycles.connection.runner.is_active(connection) {
                     return Some(BleEvent::BackendError {
                         operation: lifecycles.connection.operation,
                         stage: 9,
-                        status: connection_handle,
+                        status: u32::MAX,
                     });
                 }
                 crate::ble::Passkey::try_new(passkey)
@@ -2547,7 +2537,7 @@ pub mod ws63 {
                 responder,
             } = map_ble_lifecycle_event(
                 hisi_rf_ws63::BleB2Event::PasskeyInputRequested {
-                    connection_handle: 7,
+                    pairing_context: 0x00a1_dae8,
                 },
                 &mut lifecycles,
             )
@@ -2559,7 +2549,7 @@ pub mod ws63 {
             assert!(matches!(
                 map_ble_lifecycle_event(
                     hisi_rf_ws63::BleB2Event::PasskeyInputRequested {
-                        connection_handle: 7,
+                        pairing_context: 0x00a1_dae8,
                     },
                     &mut lifecycles,
                 ),
@@ -2586,7 +2576,7 @@ pub mod ws63 {
                 passkey,
             } = map_ble_lifecycle_event(
                 hisi_rf_ws63::BleB2Event::PasskeyDisplayed {
-                    connection_handle: 7,
+                    pairing_context: 0x00a1_dae8,
                     passkey: 654_321,
                 },
                 &mut lifecycles,
@@ -2600,7 +2590,7 @@ pub mod ws63 {
             assert!(matches!(
                 map_ble_lifecycle_event(
                     hisi_rf_ws63::BleB2Event::PasskeyDisplayed {
-                        connection_handle: 7,
+                        pairing_context: 0x00a1_dae8,
                         passkey: 1_000_000,
                     },
                     &mut lifecycles,
@@ -2642,7 +2632,7 @@ pub mod ws63 {
             };
             let BleEvent::PasskeyInputRequested { responder, .. } = map_ble_lifecycle_event(
                 hisi_rf_ws63::BleB2Event::PasskeyInputRequested {
-                    connection_handle: 7,
+                    pairing_context: 0x00a1_dae8,
                 },
                 &mut lifecycles,
             )
@@ -2712,7 +2702,7 @@ pub mod ws63 {
             };
             let BleEvent::PasskeyInputRequested { responder, .. } = map_ble_lifecycle_event(
                 hisi_rf_ws63::BleB2Event::PasskeyInputRequested {
-                    connection_handle: 7,
+                    pairing_context: 0x00a1_dae8,
                 },
                 &mut lifecycles,
             )
