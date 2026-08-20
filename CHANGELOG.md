@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.92] - 2026-08-20
+
+### Added
+
+- Add an opt-in U5 bond-removal HIL contract that removes a restored vendor
+  bond on both peers, verifies `NotPaired` in the same boot, and emits markers
+  for the following reset to prove persistent deletion.
+
 ## [0.1.0-alpha.91] - 2026-08-20
 
 ### Fixed
@@ -1031,7 +1039,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.91...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.92...HEAD
+[0.1.0-alpha.92]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.91...v0.1.0-alpha.92
 [0.1.0-alpha.91]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.90...v0.1.0-alpha.91
 [0.1.0-alpha.90]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.89...v0.1.0-alpha.90
 [0.1.0-alpha.89]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.88...v0.1.0-alpha.89

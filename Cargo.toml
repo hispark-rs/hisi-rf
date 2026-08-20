@@ -1,6 +1,6 @@
 [package]
 name = "hisi-rf"
-version = "0.1.0-alpha.91"
+version = "0.1.0-alpha.92"
 edition = "2024"
 rust-version = "1.91"
 authors = ["sanchuanhehe"]
@@ -150,6 +150,9 @@ profile-sle-ssap = ["sle"]
 # snapshots do not select this migration feature; U4 will define the durable
 # asynchronous event contract.
 u2-hil-diagnostics = []
+# Maintainer-only stateful HIL contract. A restored relationship is removed on
+# both peers and queried as NotPaired; a subsequent reset must start empty.
+u5-bond-removal-hil = ["u2-hil-diagnostics"]
 
 [lints.rust]
 unsafe_op_in_unsafe_fn = "deny"
