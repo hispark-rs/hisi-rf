@@ -16,6 +16,21 @@ use hisi_riscv_rt as _;
 hisi_rf::ws63::declare_radio_storage!(static RADIO_STORAGE);
 
 pub fn run(role: fn(hisi_rf::ws63::RadioParts) -> !) -> ! {
+    run_inner(|parts, _uart| role(parts))
+}
+
+pub fn run_with_uart(
+    role: fn(hisi_rf::ws63::RadioParts, Uart<'static, hisi_hal::peripherals::Uart0<'static>>) -> !,
+) -> ! {
+    run_inner(role)
+}
+
+fn run_inner<R>(
+    role: impl FnOnce(
+        hisi_rf::ws63::RadioParts,
+        Uart<'static, hisi_hal::peripherals::Uart0<'static>>,
+    ) -> R,
+) -> ! {
     let p = Peripherals::take().expect("peripherals already taken");
     let uart = Uart::new_uart0(
         p.UART0,
@@ -68,7 +83,8 @@ pub fn run(role: fn(hisi_rf::ws63::RadioParts) -> !) -> ! {
     match hisi_rf::ws63::init(resources, storage) {
         Ok(controller) => {
             log(b"RFDBG_RADIO_U2_INIT_OK\r\n");
-            role(controller.split())
+            let _ = role(controller.split(), uart);
+            fail(b"RFDBG_RADIO_U2_ROLE_RETURNED\r\n")
         }
         Err(_) => fail(b"RFDBG_RADIO_U2_INIT_ERR\r\n"),
     }
@@ -105,6 +121,18 @@ pub fn log(bytes: &[u8]) {
             core::ptr::write_volatile(DATA, u32::from(byte));
         }
     }
+}
+
+pub fn log_passkey(prefix: &[u8], passkey: hisi_rf::ble::Passkey) {
+    let mut value = passkey.as_u32();
+    let mut digits = [b'0'; 6];
+    for digit in digits.iter_mut().rev() {
+        *digit += (value % 10) as u8;
+        value /= 10;
+    }
+    log(prefix);
+    log(&digits);
+    log(b"\r\n");
 }
 
 pub fn fail(marker: &[u8]) -> ! {

@@ -242,6 +242,12 @@ pub mod ws63 {
     }
 
     #[doc(hidden)]
+    pub struct PairingResponseRequest {
+        responder: PairingResponder,
+        response: PairingResponse,
+    }
+
+    #[doc(hidden)]
     pub enum BleCommand {
         StartAdvertising(crate::ble::AdvertisingConfig),
         StartScanning(crate::ble::ScanConfig),
@@ -249,6 +255,7 @@ pub mod ws63 {
         RegisterGattServer(crate::ble::GattServerDefinition),
         ConfigureSecurity(crate::ble::SecurityConfig),
         Pair(PairRequest),
+        RespondToPairing(PairingResponseRequest),
         QueryPairingState(crate::ble::BluetoothAddress),
         RemoveBond(crate::ble::BluetoothAddress),
     }
@@ -443,6 +450,8 @@ pub mod ws63 {
         ConfigureSecurity,
         /// The BLE host rejected a pairing request.
         Pair,
+        /// A pairing responder was stale or the BLE host rejected its reply.
+        PairingResponse,
         /// Link authentication failed after pairing was accepted.
         Authentication,
         /// The BLE host could not report the peer pairing state.
@@ -491,6 +500,8 @@ pub mod ws63 {
         SecurityConfigured,
         /// Pairing was accepted for asynchronous processing.
         PairingRequested,
+        /// A pairing prompt response was accepted for asynchronous processing.
+        PairingResponseAccepted,
         /// Current state of the requested peer relationship.
         PairingState(crate::ble::PairingState),
         /// The stored peer relationship was removed.
@@ -538,6 +549,32 @@ pub mod ws63 {
         operation: Option<crate::ProtocolCommandId>,
         peer: crate::ble::BluetoothAddress,
         inner: hisi_rf_core::control::LifecycleGuard<BleOperationError>,
+    }
+
+    /// One-shot capability for a specific pairing prompt and link generation.
+    #[must_use = "respond to or reject this pairing prompt"]
+    pub struct PairingResponder {
+        prompt_generation: u32,
+        connection: hisi_rf_core::control::LifecycleId,
+        peer: crate::ble::BluetoothAddress,
+    }
+
+    impl core::fmt::Debug for PairingResponder {
+        fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+            formatter
+                .debug_struct("PairingResponder")
+                .field("peer", &self.peer)
+                .finish_non_exhaustive()
+        }
+    }
+
+    /// Explicit response to an application-owned pairing prompt.
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub enum PairingResponse {
+        /// Supply one validated six-digit passkey.
+        Passkey(crate::ble::Passkey),
+        /// Reject pairing by disconnecting the active peer.
+        Reject,
     }
 
     impl BleConnection {
@@ -649,6 +686,20 @@ pub mod ws63 {
             /// Success or the exact backend status mapped to the pairing stage.
             result: Result<(), BleOperationError>,
         },
+        /// The active peer requires a passkey entered by the application.
+        PasskeyInputRequested {
+            /// Peer bound to the current connection generation.
+            peer: crate::ble::BluetoothAddress,
+            /// One-shot capability for this exact prompt.
+            responder: PairingResponder,
+        },
+        /// The active peer requires this passkey to be displayed to the user.
+        PasskeyDisplayed {
+            /// Peer bound to the current connection generation.
+            peer: crate::ble::BluetoothAddress,
+            /// Validated passkey; its `Debug` output is redacted.
+            passkey: crate::ble::Passkey,
+        },
         /// Authentication completed without exposing long-term key bytes.
         AuthenticationComplete {
             /// Validated peer address copied from the vendor callback.
@@ -690,13 +741,27 @@ pub mod ws63 {
         generation: Option<hisi_rf_core::control::LifecycleId>,
         stopping: Option<hisi_rf_core::control::LifecycleId>,
         peer: Option<crate::ble::BluetoothAddress>,
+        backend_handle: Option<u32>,
         runner: hisi_rf_core::control::LifecycleRunner<BleOperationError>,
+    }
+
+    #[derive(Clone, Copy)]
+    struct PendingPairingPrompt {
+        prompt_generation: u32,
+        connection: hisi_rf_core::control::LifecycleId,
+        peer: crate::ble::BluetoothAddress,
+    }
+
+    struct PairingPromptState {
+        next_generation: u32,
+        pending: Option<PendingPairingPrompt>,
     }
 
     struct BleLifecycles {
         advertising: BleLifecycle,
         scanning: BleLifecycle,
         connection: BleLifecycle,
+        pairing_prompt: PairingPromptState,
     }
 
     impl BleLifecycle {
@@ -706,6 +771,7 @@ pub mod ws63 {
                 generation: None,
                 stopping: None,
                 peer: None,
+                backend_handle: None,
                 runner,
             }
         }
@@ -715,6 +781,55 @@ pub mod ws63 {
             self.generation = None;
             self.stopping = None;
             self.peer = None;
+            self.backend_handle = None;
+        }
+    }
+
+    impl PairingPromptState {
+        const fn new() -> Self {
+            Self {
+                next_generation: 1,
+                pending: None,
+            }
+        }
+
+        fn begin(
+            &mut self,
+            connection: hisi_rf_core::control::LifecycleId,
+            peer: crate::ble::BluetoothAddress,
+        ) -> Option<PairingResponder> {
+            if self.pending.is_some() {
+                return None;
+            }
+            let prompt_generation = self.next_generation;
+            self.next_generation = self.next_generation.wrapping_add(1).max(1);
+            self.pending = Some(PendingPairingPrompt {
+                prompt_generation,
+                connection,
+                peer,
+            });
+            Some(PairingResponder {
+                prompt_generation,
+                connection,
+                peer,
+            })
+        }
+
+        fn take(&mut self, responder: &PairingResponder) -> Option<PendingPairingPrompt> {
+            let pending = self.pending?;
+            if pending.prompt_generation == responder.prompt_generation
+                && pending.connection == responder.connection
+                && pending.peer == responder.peer
+            {
+                self.pending = None;
+                Some(pending)
+            } else {
+                None
+            }
+        }
+
+        fn clear(&mut self) {
+            self.pending = None;
         }
     }
 
@@ -728,6 +843,7 @@ pub mod ws63 {
                 advertising: BleLifecycle::new(advertising),
                 scanning: BleLifecycle::new(scanning),
                 connection: BleLifecycle::new(connection),
+                pairing_prompt: PairingPromptState::new(),
             }
         }
     }
@@ -767,6 +883,10 @@ pub mod ws63 {
             config: crate::ble::SecurityConfig,
         ) -> Result<(), BleOperationError>;
         fn pair(&mut self, peer: crate::ble::BluetoothAddress) -> Result<(), BleOperationError>;
+        fn provide_passkey(
+            &mut self,
+            passkey: crate::ble::Passkey,
+        ) -> Result<(), BleOperationError>;
         fn pairing_state(
             &mut self,
             peer: crate::ble::BluetoothAddress,
@@ -846,6 +966,14 @@ pub mod ws63 {
 
         fn pair(&mut self, peer: crate::ble::BluetoothAddress) -> Result<(), BleOperationError> {
             self.pair(peer).map_err(map_ble_security_error)
+        }
+
+        fn provide_passkey(
+            &mut self,
+            passkey: crate::ble::Passkey,
+        ) -> Result<(), BleOperationError> {
+            self.provide_passkey(passkey)
+                .map_err(map_ble_security_error)
         }
 
         fn pairing_state(
@@ -949,6 +1077,10 @@ pub mod ws63 {
         let (kind, vendor_status) = match error {
             E::Configure(status) => (BleOperationErrorKind::ConfigureSecurity, Some(status)),
             E::Pair(status) => (BleOperationErrorKind::Pair, Some(status)),
+            E::Passkey(status) => (
+                BleOperationErrorKind::PairingResponse,
+                Some(status as i32 as u32),
+            ),
             E::Query(status) => (BleOperationErrorKind::QueryPairingState, Some(status)),
             E::UnknownPairingState(status) => {
                 (BleOperationErrorKind::UnknownPairingState, Some(status))
@@ -1076,6 +1208,27 @@ pub mod ws63 {
                         })
                     }
                 }
+                BleCommand::RespondToPairing(request) => {
+                    let current = lifecycles.connection.peer == Some(request.responder.peer)
+                        && lifecycles.connection.generation == Some(request.responder.connection)
+                        && lifecycles
+                            .connection
+                            .runner
+                            .is_active(request.responder.connection);
+                    let pending = lifecycles.pairing_prompt.take(&request.responder);
+                    if !current || pending.is_none() {
+                        Err(BleOperationError {
+                            kind: BleOperationErrorKind::StaleLifecycle,
+                            vendor_status: None,
+                        })
+                    } else {
+                        match request.response {
+                            PairingResponse::Passkey(passkey) => backend.provide_passkey(passkey),
+                            PairingResponse::Reject => backend.disconnect(request.responder.peer),
+                        }
+                        .map(|()| BleOperation::PairingResponseAccepted)
+                    }
+                }
                 BleCommand::QueryPairingState(peer) => {
                     backend.pairing_state(peer).map(BleOperation::PairingState)
                 }
@@ -1182,6 +1335,7 @@ pub mod ws63 {
                     status: u32::MAX,
                 })),
             hisi_rf_ws63::BleB2Event::ConnectionState {
+                conn_id,
                 address,
                 address_type,
                 connected: true,
@@ -1204,12 +1358,15 @@ pub mod ws63 {
                         lifecycles.connection.peer = Some(peer);
                     }),
                 };
-                guard.ok().map(|inner| BleEvent::Connected {
-                    connection: BleConnection {
-                        operation,
-                        peer,
-                        inner,
-                    },
+                guard.ok().map(|inner| {
+                    lifecycles.connection.backend_handle = Some(u32::from(conn_id));
+                    BleEvent::Connected {
+                        connection: BleConnection {
+                            operation,
+                            peer,
+                            inner,
+                        },
+                    }
                 })
             }
             hisi_rf_ws63::BleB2Event::ConnectionState {
@@ -1226,6 +1383,7 @@ pub mod ws63 {
                 let generation = lifecycles.connection.generation?;
                 let _ = lifecycles.connection.runner.terminate(generation, Ok(()));
                 lifecycles.connection.clear();
+                lifecycles.pairing_prompt.clear();
                 Some(BleEvent::Disconnected {
                     peer,
                     reason: crate::ble::DisconnectReason::from_vendor(reason),
@@ -1244,6 +1402,7 @@ pub mod ws63 {
                 status,
                 ..
             } => {
+                lifecycles.pairing_prompt.clear();
                 let Some(peer) = map_ble_peer(address, address_type) else {
                     return Some(BleEvent::BackendError {
                         operation: None,
@@ -1263,6 +1422,7 @@ pub mod ws63 {
                 ltk_present,
                 ..
             } => {
+                lifecycles.pairing_prompt.clear();
                 let Some(peer) = map_ble_peer(address, address_type) else {
                     return Some(BleEvent::BackendError {
                         operation: None,
@@ -1275,6 +1435,51 @@ pub mod ws63 {
                     ltk_present,
                     result: ble_status_result(BleOperationErrorKind::Authentication, status),
                 })
+            }
+            hisi_rf_ws63::BleB2Event::PasskeyInputRequested { connection_handle } => {
+                let peer = lifecycles.connection.peer?;
+                let connection = lifecycles.connection.generation?;
+                if lifecycles.connection.backend_handle != Some(connection_handle)
+                    || !lifecycles.connection.runner.is_active(connection)
+                {
+                    return Some(BleEvent::BackendError {
+                        operation: lifecycles.connection.operation,
+                        stage: 8,
+                        status: connection_handle,
+                    });
+                }
+                lifecycles
+                    .pairing_prompt
+                    .begin(connection, peer)
+                    .map(|responder| BleEvent::PasskeyInputRequested { peer, responder })
+                    .or(Some(BleEvent::BackendError {
+                        operation: lifecycles.connection.operation,
+                        stage: 8,
+                        status: u32::MAX,
+                    }))
+            }
+            hisi_rf_ws63::BleB2Event::PasskeyDisplayed {
+                connection_handle,
+                passkey,
+            } => {
+                let peer = lifecycles.connection.peer?;
+                let connection = lifecycles.connection.generation?;
+                if lifecycles.connection.backend_handle != Some(connection_handle)
+                    || !lifecycles.connection.runner.is_active(connection)
+                {
+                    return Some(BleEvent::BackendError {
+                        operation: lifecycles.connection.operation,
+                        stage: 9,
+                        status: connection_handle,
+                    });
+                }
+                crate::ble::Passkey::try_new(passkey)
+                    .map(|passkey| BleEvent::PasskeyDisplayed { peer, passkey })
+                    .or(Some(BleEvent::BackendError {
+                        operation: lifecycles.connection.operation,
+                        stage: 9,
+                        status: passkey,
+                    }))
             }
             _ => None,
         }
@@ -1521,6 +1726,34 @@ pub mod ws63 {
                 })
         }
 
+        /// Queue one response to a generation-bound pairing prompt.
+        ///
+        /// The responder is consumed on success. If the command mailbox is
+        /// busy, both values are returned for an explicit retry. The runner
+        /// revalidates prompt and connection generations immediately before
+        /// invoking the backend.
+        pub fn try_respond_to_pairing(
+            &mut self,
+            responder: PairingResponder,
+            response: PairingResponse,
+        ) -> Result<
+            crate::ProtocolCommandId,
+            crate::ProtocolBusy<(PairingResponder, PairingResponse)>,
+        > {
+            self.sender
+                .try_submit(BleCommand::RespondToPairing(PairingResponseRequest {
+                    responder,
+                    response,
+                }))
+                .map(crate::ProtocolCommandId)
+                .map_err(|error| match error.into_inner() {
+                    BleCommand::RespondToPairing(request) => crate::ProtocolBusy {
+                        request: (request.responder, request.response),
+                    },
+                    _ => unreachable!(),
+                })
+        }
+
         /// Queue a pairing-state query for one validated peer.
         pub fn try_query_pairing_state(
             &mut self,
@@ -1758,6 +1991,7 @@ pub mod ws63 {
             gatt_servers: usize,
             security_configurations: usize,
             pairing_requests: usize,
+            passkey_responses: usize,
             pairing_queries: usize,
             bond_removals: usize,
             connections: usize,
@@ -1778,6 +2012,7 @@ pub mod ws63 {
                     gatt_servers: 0,
                     security_configurations: 0,
                     pairing_requests: 0,
+                    passkey_responses: 0,
                     pairing_queries: 0,
                     bond_removals: 0,
                     connections: 0,
@@ -1873,6 +2108,11 @@ pub mod ws63 {
 
             fn pair(&mut self, _: crate::ble::BluetoothAddress) -> Result<(), BleOperationError> {
                 self.pairing_requests += 1;
+                Ok(())
+            }
+
+            fn provide_passkey(&mut self, _: crate::ble::Passkey) -> Result<(), BleOperationError> {
+                self.passkey_responses += 1;
                 Ok(())
             }
 
@@ -2268,6 +2508,175 @@ pub mod ws63 {
                 map_vendor_bond_observation(peer, [9; 6]),
                 BleEvent::BackendError { stage: 7, .. }
             ));
+            drop(connection);
+        }
+
+        #[test]
+        fn passkey_responder_is_one_shot_and_generation_bound() {
+            let state = Box::leak(Box::new(BleControlState::new()));
+            let (sender, mut receiver) = state.claim().unwrap();
+            let events = Box::leak(Box::new(BleEventState::new()));
+            let (_producer, consumer) = events.claim().unwrap();
+            let mut controller = BleController {
+                sender,
+                events: consumer,
+            };
+            let mut backend = FakeBackend {
+                ready: true,
+                ..FakeBackend::default()
+            };
+            let mut lifecycles = ble_lifecycles();
+            let peer = crate::ble::BluetoothAddress::public([1, 2, 3, 4, 5, 6]).unwrap();
+            let BleEvent::Connected { connection } = map_ble_lifecycle_event(
+                hisi_rf_ws63::BleB2Event::ConnectionState {
+                    conn_id: 7,
+                    address: peer.bytes(),
+                    address_type: 0,
+                    connected: true,
+                    pair_state: 0,
+                    reason: 0,
+                },
+                &mut lifecycles,
+            )
+            .unwrap() else {
+                panic!("expected adopted connection");
+            };
+
+            let BleEvent::PasskeyInputRequested {
+                peer: event_peer,
+                responder,
+            } = map_ble_lifecycle_event(
+                hisi_rf_ws63::BleB2Event::PasskeyInputRequested {
+                    connection_handle: 7,
+                },
+                &mut lifecycles,
+            )
+            .unwrap()
+            else {
+                panic!("expected passkey input prompt");
+            };
+            assert_eq!(event_peer, peer);
+            assert!(matches!(
+                map_ble_lifecycle_event(
+                    hisi_rf_ws63::BleB2Event::PasskeyInputRequested {
+                        connection_handle: 7,
+                    },
+                    &mut lifecycles,
+                ),
+                Some(BleEvent::BackendError { stage: 8, .. })
+            ));
+
+            let id = controller
+                .try_respond_to_pairing(
+                    responder,
+                    PairingResponse::Passkey(crate::ble::Passkey::try_new(123_456).unwrap()),
+                )
+                .unwrap();
+            assert!(run_ble_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
+            let completion = controller.try_take_completion().unwrap().unwrap();
+            assert_eq!(completion.id(), id);
+            assert_eq!(
+                completion.into_result(),
+                Ok(BleOperation::PairingResponseAccepted)
+            );
+            assert_eq!(backend.passkey_responses, 1);
+
+            let BleEvent::PasskeyDisplayed {
+                peer: display_peer,
+                passkey,
+            } = map_ble_lifecycle_event(
+                hisi_rf_ws63::BleB2Event::PasskeyDisplayed {
+                    connection_handle: 7,
+                    passkey: 654_321,
+                },
+                &mut lifecycles,
+            )
+            .unwrap()
+            else {
+                panic!("expected display prompt");
+            };
+            assert_eq!(display_peer, peer);
+            assert_eq!(passkey.as_u32(), 654_321);
+            assert!(matches!(
+                map_ble_lifecycle_event(
+                    hisi_rf_ws63::BleB2Event::PasskeyDisplayed {
+                        connection_handle: 7,
+                        passkey: 1_000_000,
+                    },
+                    &mut lifecycles,
+                ),
+                Some(BleEvent::BackendError { stage: 9, .. })
+            ));
+            drop(connection);
+        }
+
+        #[test]
+        fn queued_passkey_response_fails_after_disconnect() {
+            let state = Box::leak(Box::new(BleControlState::new()));
+            let (sender, mut receiver) = state.claim().unwrap();
+            let events = Box::leak(Box::new(BleEventState::new()));
+            let (_producer, consumer) = events.claim().unwrap();
+            let mut controller = BleController {
+                sender,
+                events: consumer,
+            };
+            let mut backend = FakeBackend {
+                ready: true,
+                ..FakeBackend::default()
+            };
+            let mut lifecycles = ble_lifecycles();
+            let peer = crate::ble::BluetoothAddress::public([1, 2, 3, 4, 5, 6]).unwrap();
+            let BleEvent::Connected { connection } = map_ble_lifecycle_event(
+                hisi_rf_ws63::BleB2Event::ConnectionState {
+                    conn_id: 7,
+                    address: peer.bytes(),
+                    address_type: 0,
+                    connected: true,
+                    pair_state: 0,
+                    reason: 0,
+                },
+                &mut lifecycles,
+            )
+            .unwrap() else {
+                panic!("expected adopted connection");
+            };
+            let BleEvent::PasskeyInputRequested { responder, .. } = map_ble_lifecycle_event(
+                hisi_rf_ws63::BleB2Event::PasskeyInputRequested {
+                    connection_handle: 7,
+                },
+                &mut lifecycles,
+            )
+            .unwrap() else {
+                panic!("expected passkey input prompt");
+            };
+            let id = controller
+                .try_respond_to_pairing(
+                    responder,
+                    PairingResponse::Passkey(crate::ble::Passkey::try_new(123_456).unwrap()),
+                )
+                .unwrap();
+            assert!(matches!(
+                map_ble_lifecycle_event(
+                    hisi_rf_ws63::BleB2Event::ConnectionState {
+                        conn_id: 7,
+                        address: peer.bytes(),
+                        address_type: 0,
+                        connected: false,
+                        pair_state: 0,
+                        reason: 1,
+                    },
+                    &mut lifecycles,
+                ),
+                Some(BleEvent::Disconnected { .. })
+            ));
+            assert!(run_ble_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
+            let completion = controller.try_take_completion().unwrap().unwrap();
+            assert_eq!(completion.id(), id);
+            assert_eq!(
+                completion.into_result().unwrap_err().kind(),
+                BleOperationErrorKind::StaleLifecycle
+            );
+            assert_eq!(backend.passkey_responses, 0);
             drop(connection);
         }
 

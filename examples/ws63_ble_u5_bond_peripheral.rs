@@ -88,6 +88,12 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
                     security_completed = true;
                     firmware::log(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_AUTH_OK\r\n");
                 }
+                hisi_rf::ws63::BleEvent::PasskeyDisplayed { passkey, .. } => {
+                    firmware::log_passkey(
+                        b"RFDBG_RADIO_U5_BLE_PERIPHERAL_PASSKEY_DISPLAY=",
+                        passkey,
+                    );
+                }
                 hisi_rf::ws63::BleEvent::VendorManagedBondObserved { .. } => {
                     observed = true;
                     firmware::log(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_BOND_OBSERVED\r\n");
@@ -154,8 +160,8 @@ fn restore_bonds(parts: &mut hisi_rf::ws63::RadioParts) -> bool {
 fn submit_security(parts: &mut hisi_rf::ws63::RadioParts) {
     let config = hisi_rf::ble::SecurityConfig::new(
         hisi_rf::ble::Bonding::Enabled,
-        hisi_rf::ble::IoCapability::NoInputNoOutput,
-        hisi_rf::ble::SecurityRequirement::Encrypted,
+        hisi_rf::ble::IoCapability::DisplayOnly,
+        hisi_rf::ble::SecurityRequirement::SecureConnectionsAuthenticated,
     );
     let command = parts
         .ble

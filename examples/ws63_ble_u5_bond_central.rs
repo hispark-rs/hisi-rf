@@ -14,10 +14,13 @@ const PEER_PAYLOAD: &[u8] = &[
 
 #[entry]
 fn main() -> ! {
-    firmware::run(run)
+    firmware::run_with_uart(run)
 }
 
-fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
+fn run(
+    mut parts: hisi_rf::ws63::RadioParts,
+    uart: hisi_hal::uart::Uart<'static, hisi_hal::peripherals::Uart0<'static>>,
+) -> ! {
     let restored = restore_bonds(&mut parts);
     submit_security(&mut parts);
     start_scan(&mut parts);
@@ -27,6 +30,9 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
     let mut pair_command = None;
     let mut state_command = None;
     let mut remove_command = None;
+    let mut response_command = None;
+    let mut pending_responder = None;
+    let mut passkey_input = PasskeyInput::new();
     let mut pair_accepted = restored;
     let mut paired = restored;
     let mut state_confirmed = !restored;
@@ -76,6 +82,13 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
                         firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_BOND_REMOVED\r\n");
                     }
                     _ => firmware::fail(b"RFDBG_RADIO_U5_BLE_REMOVE_ERR\r\n"),
+                }
+            } else if response_command == Some(id) {
+                match result {
+                    Ok(hisi_rf::ws63::BleOperation::PairingResponseAccepted) => {
+                        firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_PASSKEY_ACCEPTED\r\n");
+                    }
+                    _ => firmware::fail(b"RFDBG_RADIO_U5_BLE_PASSKEY_RESPONSE_ERR\r\n"),
                 }
             } else if result.is_err() {
                 firmware::fail(b"RFDBG_RADIO_U5_BLE_COMMAND_ERR\r\n");
@@ -134,6 +147,10 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
                     authenticated = true;
                     firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_AUTH_OK\r\n");
                 }
+                hisi_rf::ws63::BleEvent::PasskeyInputRequested { responder, .. } => {
+                    pending_responder = Some(responder);
+                    firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_PASSKEY_INPUT\r\n");
+                }
                 hisi_rf::ws63::BleEvent::VendorManagedBondObserved { .. } => {
                     observed = true;
                     firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_BOND_OBSERVED\r\n");
@@ -145,6 +162,22 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
                 }
                 _ => {}
             }
+        }
+        if response_command.is_none()
+            && let Some(passkey) = passkey_input.poll(&uart)
+            && let Some(responder) = pending_responder.take()
+        {
+            response_command = Some(
+                parts
+                    .ble
+                    .try_respond_to_pairing(
+                        responder,
+                        hisi_rf::ws63::PairingResponse::Passkey(passkey),
+                    )
+                    .unwrap_or_else(|_| {
+                        firmware::fail(b"RFDBG_RADIO_U5_BLE_PASSKEY_QUEUE_ERR\r\n")
+                    }),
+            );
         }
         if peer.is_some()
             && connection.is_some()
@@ -192,11 +225,64 @@ fn restore_bonds(parts: &mut hisi_rf::ws63::RadioParts) -> bool {
 fn submit_security(parts: &mut hisi_rf::ws63::RadioParts) {
     let config = hisi_rf::ble::SecurityConfig::new(
         hisi_rf::ble::Bonding::Enabled,
-        hisi_rf::ble::IoCapability::NoInputNoOutput,
-        hisi_rf::ble::SecurityRequirement::Encrypted,
+        hisi_rf::ble::IoCapability::KeyboardOnly,
+        hisi_rf::ble::SecurityRequirement::SecureConnectionsAuthenticated,
     );
     let command = parts.ble.try_configure_security(config).unwrap();
     wait_command(parts, command);
+}
+
+struct PasskeyInput {
+    matched_prefix: usize,
+    digits: [u8; 6],
+    digit_count: usize,
+}
+
+impl PasskeyInput {
+    const PREFIX: &'static [u8] = b"U5PASS=";
+
+    const fn new() -> Self {
+        Self {
+            matched_prefix: 0,
+            digits: [0; 6],
+            digit_count: 0,
+        }
+    }
+
+    fn poll(
+        &mut self,
+        uart: &hisi_hal::uart::Uart<'_, hisi_hal::peripherals::Uart0<'_>>,
+    ) -> Option<hisi_rf::ble::Passkey> {
+        while let Some(byte) = uart.read_byte() {
+            if self.matched_prefix < Self::PREFIX.len() {
+                self.matched_prefix = if byte == Self::PREFIX[self.matched_prefix] {
+                    self.matched_prefix + 1
+                } else {
+                    0
+                };
+                continue;
+            }
+            if byte.is_ascii_digit() && self.digit_count < self.digits.len() {
+                self.digits[self.digit_count] = byte - b'0';
+                self.digit_count += 1;
+                continue;
+            }
+            let passkey = (byte == b'\n' || byte == b'\r')
+                .then(|| {
+                    self.digits
+                        .iter()
+                        .fold(0u32, |value, digit| value * 10 + u32::from(*digit))
+                })
+                .and_then(hisi_rf::ble::Passkey::try_new)
+                .filter(|_| self.digit_count == self.digits.len());
+            self.matched_prefix = 0;
+            self.digit_count = 0;
+            if passkey.is_some() {
+                return passkey;
+            }
+        }
+        None
+    }
 }
 
 fn start_scan(parts: &mut hisi_rf::ws63::RadioParts) {

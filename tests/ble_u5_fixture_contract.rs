@@ -30,6 +30,21 @@ fn restored_peripheral_requires_current_connection_security_completion() {
 }
 
 #[test]
+fn fresh_pairing_uses_authenticated_display_to_keyboard_responder() {
+    let peripheral = include_str!("../examples/ws63_ble_u5_bond_peripheral.rs");
+    let central = include_str!("../examples/ws63_ble_u5_bond_central.rs");
+
+    assert!(peripheral.contains("IoCapability::DisplayOnly"));
+    assert!(peripheral.contains("SecurityRequirement::SecureConnectionsAuthenticated"));
+    assert!(peripheral.contains("BleEvent::PasskeyDisplayed"));
+    assert!(central.contains("IoCapability::KeyboardOnly"));
+    assert!(central.contains("SecurityRequirement::SecureConnectionsAuthenticated"));
+    assert!(central.contains("BleEvent::PasskeyInputRequested"));
+    assert!(central.contains("try_respond_to_pairing"));
+    assert!(central.contains("PairingResponse::Passkey"));
+}
+
+#[test]
 fn removal_fixture_defers_persistence_proof_to_the_next_reset() {
     for (role, source) in [
         (
