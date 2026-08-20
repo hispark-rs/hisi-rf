@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.91] - 2026-08-20
+
+### Fixed
+
+- Update the WS63 backend to `hisi-rf-ws63 0.1.0-alpha.79`, which keeps the
+  release-train Wi-Fi, BLE, and SLE feature profiles warning-free and aligned
+  with `hisi-rf-core 0.1.0-alpha.22`.
+
 ## [0.1.0-alpha.90] - 2026-08-13
 
 ### Fixed
@@ -1023,7 +1031,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.85...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.91...HEAD
+[0.1.0-alpha.91]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.90...v0.1.0-alpha.91
+[0.1.0-alpha.90]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.89...v0.1.0-alpha.90
+[0.1.0-alpha.89]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.88...v0.1.0-alpha.89
+[0.1.0-alpha.88]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.87...v0.1.0-alpha.88
+[0.1.0-alpha.87]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.86...v0.1.0-alpha.87
+[0.1.0-alpha.86]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.85...v0.1.0-alpha.86
 [0.1.0-alpha.85]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.84...v0.1.0-alpha.85
 [0.1.0-alpha.84]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.83...v0.1.0-alpha.84
 [0.1.0-alpha.83]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.82...v0.1.0-alpha.83
