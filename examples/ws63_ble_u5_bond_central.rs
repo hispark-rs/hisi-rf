@@ -39,6 +39,7 @@ fn run(
     let mut response_command = None;
     let mut pending_responder = None;
     let mut passkey_input = PasskeyInput::new();
+    let mut pending_passkey = None;
     let mut response_completed = false;
     let mut disconnected = false;
     let mut negative_reported = false;
@@ -266,11 +267,19 @@ fn run(
                 _ => {}
             }
         }
+        if pending_passkey.is_none()
+            && let Some(passkey) = passkey_input.poll(&uart)
+        {
+            pending_passkey = Some(passkey);
+            firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_PASSKEY_RELAY_RECEIVED\r\n");
+        }
         if response_command.is_none()
             && pairing_mode() == PairingMode::Passkey
-            && let Some(passkey) = passkey_input.poll(&uart)
-            && let Some(responder) = pending_responder.take()
+            && pending_passkey.is_some()
+            && pending_responder.is_some()
         {
+            let passkey = pending_passkey.take().unwrap();
+            let responder = pending_responder.take().unwrap();
             response_command = Some(
                 parts
                     .ble
