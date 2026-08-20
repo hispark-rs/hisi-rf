@@ -30,7 +30,7 @@ fn restored_peripheral_requires_current_connection_security_completion() {
 }
 
 #[test]
-fn removal_fixture_removes_then_queries_not_paired_on_both_peers() {
+fn removal_fixture_defers_persistence_proof_to_the_next_reset() {
     for (role, source) in [
         (
             "central",
@@ -47,17 +47,11 @@ fn removal_fixture_removes_then_queries_not_paired_on_both_peers() {
         let remove_completion = source
             .find("remove_command == Some(id)")
             .unwrap_or_else(|| panic!("{role} must handle bond-removal completion"));
-        let query_after_remove = source[remove_completion..]
-            .find("try_query_pairing_state")
-            .map(|offset| remove_completion + offset)
-            .unwrap_or_else(|| panic!("{role} must query state after removal"));
-        let not_paired = source[query_after_remove..]
-            .find("PairingState::NotPaired")
-            .unwrap_or_else(|| panic!("{role} must require NotPaired after removal"));
-
         assert!(remove_request > 0);
-        assert!(remove_completion < query_after_remove);
-        assert!(not_paired > 0);
+        assert!(remove_completion > 0);
+        assert!(!source.contains("removed_state_command"));
+        assert!(!source.contains("REMOVE_STATE_ERR"));
+        assert!(source.contains("BondRemoved"));
         assert!(source.contains("BOND_REMOVE_OK"));
     }
 }

@@ -1,6 +1,6 @@
 [package]
 name = "hisi-rf"
-version = "0.1.0-alpha.93"
+version = "0.1.0-alpha.94"
 edition = "2024"
 rust-version = "1.91"
 authors = ["sanchuanhehe"]
@@ -72,11 +72,11 @@ required-features = ["chip-ws63", "profile-sle-ssap", "u2-hil-diagnostics"]
 
 [dependencies]
 hisi-rf-core = "=0.1.0-alpha.22"
-hisi-rf-ws63 = { version = "=0.1.0-alpha.79", optional = true, default-features = false }
-hisi-hal = { version = "0.7.0-alpha.8", optional = true, features = ["chip-ws63", "unstable"] }
+hisi-rf-ws63 = { version = "=0.1.0-alpha.80", optional = true, default-features = false }
+hisi-hal = { version = "0.7.0-alpha.9", optional = true, features = ["chip-ws63", "unstable"] }
 
 [target.'cfg(target_arch = "riscv32")'.dev-dependencies]
-hisi-hal = { version = "0.7.0-alpha.8", features = ["chip-ws63", "unstable"] }
+hisi-hal = { version = "0.7.0-alpha.9", features = ["chip-ws63", "unstable"] }
 hisi-panic-handler = { version = "0.1.0", default-features = false, features = ["panic-uart0"] }
 hisi-rf-rtos-driver = "=0.1.0-alpha.19"
 hisi-riscv-rt = { version = "0.5.10", default-features = false, features = [

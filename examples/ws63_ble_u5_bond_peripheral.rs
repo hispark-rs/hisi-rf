@@ -37,7 +37,6 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
     let mut security_completed = false;
     let mut observed = restored;
     let mut remove_command = None;
-    let mut state_command = None;
     let mut removal_confirmed = false;
     let mut reported = false;
 
@@ -57,29 +56,10 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
             } else if remove_command == Some(id) {
                 match result {
                     Ok(hisi_rf::ws63::BleOperation::BondRemoved) => {
+                        removal_confirmed = true;
                         firmware::log(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_BOND_REMOVED\r\n");
-                        let peer = connection
-                            .as_ref()
-                            .unwrap_or_else(|| {
-                                firmware::fail(b"RFDBG_RADIO_U5_BLE_STATE_LINK_ERR\r\n")
-                            })
-                            .peer();
-                        state_command =
-                            Some(parts.ble.try_query_pairing_state(peer).unwrap_or_else(|_| {
-                                firmware::fail(b"RFDBG_RADIO_U5_BLE_STATE_QUEUE_ERR\r\n")
-                            }));
                     }
                     _ => firmware::fail(b"RFDBG_RADIO_U5_BLE_REMOVE_ERR\r\n"),
-                }
-            } else if state_command == Some(id) {
-                match result {
-                    Ok(hisi_rf::ws63::BleOperation::PairingState(
-                        hisi_rf::ble::PairingState::NotPaired,
-                    )) => {
-                        removal_confirmed = true;
-                        firmware::log(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_NOT_PAIRED\r\n");
-                    }
-                    _ => firmware::fail(b"RFDBG_RADIO_U5_BLE_REMOVE_STATE_ERR\r\n"),
                 }
             } else {
                 firmware::fail(b"RFDBG_RADIO_U5_BLE_COMMAND_ERR\r\n");

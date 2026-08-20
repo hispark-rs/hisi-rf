@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.94] - 2026-08-20
+
+### Fixed
+
+- Make U5 bond-removal fixtures prove persistent deletion on the following
+  reset instead of racing vendor disconnect cleanup with an immediate
+  post-remove pairing-state query.
+- Keep the restored central contract explicit by confirming `Paired` before
+  queueing removal, then emit completion markers only after both vendor remove
+  commands finish.
+- Update the WS63 backend to `hisi-rf-ws63 0.1.0-alpha.80` and HAL to
+  `0.7.0-alpha.9` for bounded full-page NV compaction.
+
+### Verified
+
+- Pass a 20/20 two-board reset matrix alternating ten fresh pairings with ten
+  restored-bond removals; the next boot confirmed every persistence
+  transition and no NV write failure marker occurred.
+
 ## [0.1.0-alpha.93] - 2026-08-20
 
 ### Fixed
