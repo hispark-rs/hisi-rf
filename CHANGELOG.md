@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.96] - 2026-08-20
+
+### Added
+
+- Add a one-shot, generation-bound BLE `PairingResponder` for passkey and
+  explicit rejection flows. Stale responders fail closed, and passkeys remain
+  redacted from debug output and persisted HIL logs.
+- Add the U5D authenticated-pairing peripheral/central fixtures with HAL-owned
+  UART input and bounded passkey relay markers.
+
+### Changed
+
+- Update `hisi-rf-core` to `0.1.0-alpha.23` and `hisi-rf-ws63` to
+  `0.1.0-alpha.82` so standalone CI and packaged consumers resolve the same
+  pairing contracts used by the workspace.
+
 ## [0.1.0-alpha.95] - 2026-08-20
 
 ### Fixed

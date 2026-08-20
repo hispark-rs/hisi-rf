@@ -1,6 +1,6 @@
 [package]
 name = "hisi-rf"
-version = "0.1.0-alpha.95"
+version = "0.1.0-alpha.96"
 edition = "2024"
 rust-version = "1.91"
 authors = ["sanchuanhehe"]
@@ -71,8 +71,8 @@ path = "examples/ws63_sle_u3_ssap_server.rs"
 required-features = ["chip-ws63", "profile-sle-ssap", "u2-hil-diagnostics"]
 
 [dependencies]
-hisi-rf-core = "=0.1.0-alpha.22"
-hisi-rf-ws63 = { version = "=0.1.0-alpha.81", optional = true, default-features = false }
+hisi-rf-core = "=0.1.0-alpha.23"
+hisi-rf-ws63 = { version = "=0.1.0-alpha.82", optional = true, default-features = false }
 hisi-hal = { version = "0.7.0-alpha.9", optional = true, features = ["chip-ws63", "unstable"] }
 
 [target.'cfg(target_arch = "riscv32")'.dev-dependencies]
