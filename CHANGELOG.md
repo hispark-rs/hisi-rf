@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.93] - 2026-08-20
+
+### Fixed
+
+- Advance the packaged external consumer fixture to the published alpha.92
+  facade so dependency-boundary CI remains an executable release contract.
+
 ## [0.1.0-alpha.92] - 2026-08-20
 
 ### Added
@@ -1039,7 +1046,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.92...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.93...HEAD
+[0.1.0-alpha.93]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.92...v0.1.0-alpha.93
 [0.1.0-alpha.92]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.91...v0.1.0-alpha.92
 [0.1.0-alpha.91]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.90...v0.1.0-alpha.91
 [0.1.0-alpha.90]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.89...v0.1.0-alpha.90
