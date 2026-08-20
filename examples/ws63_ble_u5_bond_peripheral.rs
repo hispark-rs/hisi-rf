@@ -124,9 +124,30 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
                 {
                     firmware::log(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_NEGATIVE_SECURITY_END\r\n");
                 }
-                hisi_rf::ws63::BleEvent::BackendError { .. }
-                | hisi_rf::ws63::BleEvent::PairingComplete { result: Err(_), .. }
-                | hisi_rf::ws63::BleEvent::AuthenticationComplete { result: Err(_), .. } => {
+                hisi_rf::ws63::BleEvent::PairingComplete {
+                    result: Err(error), ..
+                } => {
+                    firmware::log_u32_hex(
+                        b"RFDBG_RADIO_U5_BLE_PERIPHERAL_PAIR_STATUS=",
+                        error.vendor_status().unwrap_or(u32::MAX),
+                    );
+                    firmware::fail(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_ERR\r\n")
+                }
+                hisi_rf::ws63::BleEvent::AuthenticationComplete {
+                    result: Err(error), ..
+                } => {
+                    firmware::log_u32_hex(
+                        b"RFDBG_RADIO_U5_BLE_PERIPHERAL_AUTH_STATUS=",
+                        error.vendor_status().unwrap_or(u32::MAX),
+                    );
+                    firmware::fail(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_ERR\r\n")
+                }
+                hisi_rf::ws63::BleEvent::BackendError { stage, status, .. } => {
+                    firmware::log_u32_hex(
+                        b"RFDBG_RADIO_U5_BLE_PERIPHERAL_BACKEND_STAGE=",
+                        u32::from(stage),
+                    );
+                    firmware::log_u32_hex(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_BACKEND_STATUS=", status);
                     firmware::fail(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_ERR\r\n")
                 }
                 _ => {}

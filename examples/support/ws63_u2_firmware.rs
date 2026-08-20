@@ -135,6 +135,19 @@ pub fn log_passkey(prefix: &[u8], passkey: hisi_rf::ble::Passkey) {
     log(b"\r\n");
 }
 
+pub fn log_u32_hex(prefix: &[u8], value: u32) {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut digits = [b'0'; 8];
+    for (index, digit) in digits.iter_mut().enumerate() {
+        let shift = 28 - index * 4;
+        *digit = HEX[((value >> shift) & 0xf) as usize];
+    }
+    log(prefix);
+    log(b"0x");
+    log(&digits);
+    log(b"\r\n");
+}
+
 pub fn fail(marker: &[u8]) -> ! {
     log(marker);
     loop {
