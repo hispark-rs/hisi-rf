@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.95] - 2026-08-20
+
+### Fixed
+
+- Update the WS63 backend to `hisi-rf-ws63 0.1.0-alpha.81`, keeping the NV
+  erase-alignment contract warning-free on the pinned nightly without raising
+  its Rust 2024 baseline.
+
 ## [0.1.0-alpha.94] - 2026-08-20
 
 ### Fixed
@@ -1065,7 +1073,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.93...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.95...HEAD
+[0.1.0-alpha.95]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.94...v0.1.0-alpha.95
+[0.1.0-alpha.94]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.93...v0.1.0-alpha.94
 [0.1.0-alpha.93]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.92...v0.1.0-alpha.93
 [0.1.0-alpha.92]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.91...v0.1.0-alpha.92
 [0.1.0-alpha.91]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.90...v0.1.0-alpha.91
