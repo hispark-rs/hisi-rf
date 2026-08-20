@@ -2681,6 +2681,62 @@ pub mod ws63 {
         }
 
         #[test]
+        fn pairing_rejection_consumes_prompt_and_disconnects_current_peer() {
+            let state = Box::leak(Box::new(BleControlState::new()));
+            let (sender, mut receiver) = state.claim().unwrap();
+            let events = Box::leak(Box::new(BleEventState::new()));
+            let (_producer, consumer) = events.claim().unwrap();
+            let mut controller = BleController {
+                sender,
+                events: consumer,
+            };
+            let mut backend = FakeBackend {
+                ready: true,
+                ..FakeBackend::default()
+            };
+            let mut lifecycles = ble_lifecycles();
+            let peer = crate::ble::BluetoothAddress::public([1, 2, 3, 4, 5, 6]).unwrap();
+            let BleEvent::Connected { connection } = map_ble_lifecycle_event(
+                hisi_rf_ws63::BleB2Event::ConnectionState {
+                    conn_id: 7,
+                    address: peer.bytes(),
+                    address_type: 0,
+                    connected: true,
+                    pair_state: 0,
+                    reason: 0,
+                },
+                &mut lifecycles,
+            )
+            .unwrap() else {
+                panic!("expected adopted connection");
+            };
+            let BleEvent::PasskeyInputRequested { responder, .. } = map_ble_lifecycle_event(
+                hisi_rf_ws63::BleB2Event::PasskeyInputRequested {
+                    connection_handle: 7,
+                },
+                &mut lifecycles,
+            )
+            .unwrap() else {
+                panic!("expected passkey input prompt");
+            };
+
+            let id = controller
+                .try_respond_to_pairing(responder, PairingResponse::Reject)
+                .unwrap();
+            assert!(run_ble_once(&mut receiver, &mut backend, &mut lifecycles).unwrap());
+            let completion = controller.try_take_completion().unwrap().unwrap();
+            assert_eq!(completion.id(), id);
+            assert_eq!(
+                completion.into_result(),
+                Ok(BleOperation::PairingResponseAccepted)
+            );
+            assert_eq!(backend.disconnections, 1);
+            assert_eq!(backend.passkey_responses, 0);
+            assert!(lifecycles.pairing_prompt.pending.is_none());
+            drop(connection);
+        }
+
+        #[test]
         fn queued_pairing_fails_closed_after_connection_generation_ends() {
             let state = Box::leak(Box::new(BleControlState::new()));
             let (sender, mut receiver) = state.claim().unwrap();
