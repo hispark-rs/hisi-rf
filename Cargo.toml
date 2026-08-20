@@ -153,6 +153,10 @@ u2-hil-diagnostics = []
 # Maintainer-only stateful HIL contract. A restored relationship is removed on
 # both peers and queried as NotPaired; a subsequent reset must start empty.
 u5-bond-removal-hil = ["u2-hil-diagnostics"]
+# Maintainer-only U5D negative lifecycle fixtures. Both modes require an empty
+# vendor bond store and are intentionally separate from the normal passkey path.
+u5-pairing-reject-hil = ["u2-hil-diagnostics"]
+u5-pairing-stale-hil = ["u2-hil-diagnostics"]
 
 [lints.rust]
 unsafe_op_in_unsafe_fn = "deny"

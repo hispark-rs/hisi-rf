@@ -4,6 +4,9 @@
 use hisi_panic_handler as _;
 use hisi_riscv_rt::entry;
 
+#[cfg(all(feature = "u5-pairing-reject-hil", feature = "u5-pairing-stale-hil"))]
+compile_error!("select exactly one U5D negative pairing mode");
+
 #[path = "support/ws63_u2_firmware.rs"]
 #[allow(dead_code)]
 mod firmware;
@@ -19,6 +22,9 @@ fn main() -> ! {
 
 fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
     let restored = restore_bonds(&mut parts);
+    if restored && negative_pairing_mode() {
+        firmware::fail(b"RFDBG_RADIO_U5_BLE_NEGATIVE_REQUIRES_EMPTY\r\n");
+    }
     submit_security(&mut parts);
     let interval = hisi_rf::ble::AdvertisingInterval::try_from_units(0x20).unwrap();
     let config = hisi_rf::ble::AdvertisingConfig::new(
@@ -39,6 +45,7 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
     let mut remove_command = None;
     let mut removal_confirmed = false;
     let mut reported = false;
+    let mut disconnected = false;
 
     loop {
         progress(&mut parts);
@@ -76,6 +83,9 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
                     firmware::log(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_CONNECTED\r\n");
                 }
                 hisi_rf::ws63::BleEvent::PairingComplete { result: Ok(()), .. } => {
+                    if negative_pairing_mode() {
+                        firmware::fail(b"RFDBG_RADIO_U5_BLE_NEGATIVE_PAIRED_ERR\r\n");
+                    }
                     paired = true;
                     security_completed = true;
                     if restored {
@@ -84,6 +94,9 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
                     firmware::log(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_PAIRED\r\n");
                 }
                 hisi_rf::ws63::BleEvent::AuthenticationComplete { result: Ok(()), .. } => {
+                    if negative_pairing_mode() {
+                        firmware::fail(b"RFDBG_RADIO_U5_BLE_NEGATIVE_AUTH_ERR\r\n");
+                    }
                     authenticated = true;
                     security_completed = true;
                     firmware::log(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_AUTH_OK\r\n");
@@ -95,8 +108,21 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
                     );
                 }
                 hisi_rf::ws63::BleEvent::VendorManagedBondObserved { .. } => {
+                    if negative_pairing_mode() {
+                        firmware::fail(b"RFDBG_RADIO_U5_BLE_NEGATIVE_BOND_ERR\r\n");
+                    }
                     observed = true;
                     firmware::log(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_BOND_OBSERVED\r\n");
+                }
+                hisi_rf::ws63::BleEvent::Disconnected { .. } => {
+                    disconnected = true;
+                    firmware::log(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_NEGATIVE_DISCONNECTED\r\n");
+                }
+                hisi_rf::ws63::BleEvent::PairingComplete { result: Err(_), .. }
+                | hisi_rf::ws63::BleEvent::AuthenticationComplete { result: Err(_), .. }
+                    if negative_pairing_mode() =>
+                {
+                    firmware::log(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_NEGATIVE_SECURITY_END\r\n");
                 }
                 hisi_rf::ws63::BleEvent::BackendError { .. }
                 | hisi_rf::ws63::BleEvent::PairingComplete { result: Err(_), .. }
@@ -105,6 +131,15 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
                 }
                 _ => {}
             }
+        }
+        if negative_pairing_mode() && disconnected && !reported {
+            assert_negative_conservation(&parts);
+            if cfg!(feature = "u5-pairing-reject-hil") {
+                firmware::log(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_REJECT_OK\r\n");
+            } else {
+                firmware::log(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_STALE_OK\r\n");
+            }
+            reported = true;
         }
         if advertising.is_some()
             && connection.is_some()
@@ -140,6 +175,27 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
                 reported = true;
             }
         }
+    }
+}
+
+const fn negative_pairing_mode() -> bool {
+    cfg!(any(
+        feature = "u5-pairing-reject-hil",
+        feature = "u5-pairing-stale-hil"
+    ))
+}
+
+fn assert_negative_conservation(parts: &hisi_rf::ws63::RadioParts) {
+    let events = parts.ble.event_diagnostics();
+    let bonds = parts.runner.bond_observation_diagnostics();
+    if events.accepted != events.consumed
+        || events.dropped != 0
+        || events.pending != 0
+        || bonds.received != bonds.processed + bonds.dropped + bonds.pending
+        || bonds.dropped != 0
+        || bonds.pending != 0
+    {
+        firmware::fail(b"RFDBG_RADIO_U5_BLE_NEGATIVE_CONSERVATION_ERR\r\n");
     }
 }
 

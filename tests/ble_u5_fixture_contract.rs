@@ -45,6 +45,27 @@ fn fresh_pairing_uses_authenticated_display_to_keyboard_responder() {
 }
 
 #[test]
+fn negative_pairing_modes_are_explicit_and_fail_closed() {
+    let manifest = include_str!("../Cargo.toml");
+    let peripheral = include_str!("../examples/ws63_ble_u5_bond_peripheral.rs");
+    let central = include_str!("../examples/ws63_ble_u5_bond_central.rs");
+
+    for feature in ["u5-pairing-reject-hil", "u5-pairing-stale-hil"] {
+        assert!(manifest.contains(feature));
+        assert!(peripheral.contains(feature));
+        assert!(central.contains(feature));
+    }
+    assert!(central.contains("PairingResponse::Reject"));
+    assert!(central.contains("CENTRAL_REJECT_ACCEPTED"));
+    assert!(central.contains("BleOperationErrorKind::StaleLifecycle"));
+    assert!(central.contains("link.disconnect()"));
+    assert!(peripheral.contains("NEGATIVE_REQUIRES_EMPTY"));
+    assert!(central.contains("NEGATIVE_REQUIRES_EMPTY"));
+    assert!(peripheral.contains("NEGATIVE_CONSERVATION_ERR"));
+    assert!(central.contains("NEGATIVE_CONSERVATION_ERR"));
+}
+
+#[test]
 fn removal_fixture_defers_persistence_proof_to_the_next_reset() {
     for (role, source) in [
         (

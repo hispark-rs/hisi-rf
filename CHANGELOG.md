@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add maintainer-only U5D reject and stale-generation pairing fixtures, with
+  explicit empty-bond preconditions and event/bond conservation markers.
+- Build the passkey, reject, and stale-generation peripheral/central fixtures
+  independently in CI so each release-unit commit proves all three RV32 paths.
+
 ## [0.1.0-alpha.96] - 2026-08-20
 
 ### Added

@@ -4,6 +4,9 @@
 use hisi_panic_handler as _;
 use hisi_riscv_rt::entry;
 
+#[cfg(all(feature = "u5-pairing-reject-hil", feature = "u5-pairing-stale-hil"))]
+compile_error!("select exactly one U5D negative pairing mode");
+
 #[path = "support/ws63_u2_firmware.rs"]
 #[allow(dead_code)]
 mod firmware;
@@ -22,6 +25,9 @@ fn run(
     uart: hisi_hal::uart::Uart<'static, hisi_hal::peripherals::Uart0<'static>>,
 ) -> ! {
     let restored = restore_bonds(&mut parts);
+    if restored && negative_pairing_mode() {
+        firmware::fail(b"RFDBG_RADIO_U5_BLE_NEGATIVE_REQUIRES_EMPTY\r\n");
+    }
     submit_security(&mut parts);
     start_scan(&mut parts);
     let mut scanning = None;
@@ -33,6 +39,9 @@ fn run(
     let mut response_command = None;
     let mut pending_responder = None;
     let mut passkey_input = PasskeyInput::new();
+    let mut response_completed = false;
+    let mut disconnected = false;
+    let mut negative_reported = false;
     let mut pair_accepted = restored;
     let mut paired = restored;
     let mut state_confirmed = !restored;
@@ -84,9 +93,26 @@ fn run(
                     _ => firmware::fail(b"RFDBG_RADIO_U5_BLE_REMOVE_ERR\r\n"),
                 }
             } else if response_command == Some(id) {
-                match result {
-                    Ok(hisi_rf::ws63::BleOperation::PairingResponseAccepted) => {
+                match (pairing_mode(), result) {
+                    (
+                        PairingMode::Passkey,
+                        Ok(hisi_rf::ws63::BleOperation::PairingResponseAccepted),
+                    ) => {
+                        response_completed = true;
                         firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_PASSKEY_ACCEPTED\r\n");
+                    }
+                    (
+                        PairingMode::Reject,
+                        Ok(hisi_rf::ws63::BleOperation::PairingResponseAccepted),
+                    ) => {
+                        response_completed = true;
+                        firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_REJECT_ACCEPTED\r\n");
+                    }
+                    (PairingMode::Stale, Err(error))
+                        if error.kind() == hisi_rf::ws63::BleOperationErrorKind::StaleLifecycle =>
+                    {
+                        response_completed = true;
+                        firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_STALE_REJECTED\r\n");
                     }
                     _ => firmware::fail(b"RFDBG_RADIO_U5_BLE_PASSKEY_RESPONSE_ERR\r\n"),
                 }
@@ -127,6 +153,9 @@ fn run(
                     firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_CONNECTED\r\n");
                 }
                 hisi_rf::ws63::BleEvent::PairingComplete { result: Ok(()), .. } => {
+                    if negative_pairing_mode() {
+                        firmware::fail(b"RFDBG_RADIO_U5_BLE_NEGATIVE_PAIRED_ERR\r\n");
+                    }
                     paired = true;
                     if restored && state_command.is_none() {
                         let link = connection.as_ref().unwrap_or_else(|| {
@@ -144,16 +173,69 @@ fn run(
                     firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_PAIRED\r\n");
                 }
                 hisi_rf::ws63::BleEvent::AuthenticationComplete { result: Ok(()), .. } => {
+                    if negative_pairing_mode() {
+                        firmware::fail(b"RFDBG_RADIO_U5_BLE_NEGATIVE_AUTH_ERR\r\n");
+                    }
                     authenticated = true;
                     firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_AUTH_OK\r\n");
                 }
                 hisi_rf::ws63::BleEvent::PasskeyInputRequested { responder, .. } => {
-                    pending_responder = Some(responder);
                     firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_PASSKEY_INPUT\r\n");
+                    match pairing_mode() {
+                        PairingMode::Passkey => pending_responder = Some(responder),
+                        PairingMode::Reject => {
+                            response_command = Some(
+                                parts
+                                    .ble
+                                    .try_respond_to_pairing(
+                                        responder,
+                                        hisi_rf::ws63::PairingResponse::Reject,
+                                    )
+                                    .unwrap_or_else(|_| {
+                                        firmware::fail(b"RFDBG_RADIO_U5_BLE_PASSKEY_QUEUE_ERR\r\n")
+                                    }),
+                            );
+                        }
+                        PairingMode::Stale => {
+                            let link = connection.take().unwrap_or_else(|| {
+                                firmware::fail(b"RFDBG_RADIO_U5_BLE_STATE_LINK_ERR\r\n")
+                            });
+                            firmware::wait_with_runner(link.disconnect(), || progress(&mut parts))
+                                .unwrap_or_else(|_| {
+                                    firmware::fail(b"RFDBG_RADIO_U5_BLE_STALE_DISCONNECT_ERR\r\n")
+                                });
+                            response_command = Some(
+                                parts
+                                    .ble
+                                    .try_respond_to_pairing(
+                                        responder,
+                                        hisi_rf::ws63::PairingResponse::Passkey(
+                                            hisi_rf::ble::Passkey::try_new(0).unwrap(),
+                                        ),
+                                    )
+                                    .unwrap_or_else(|_| {
+                                        firmware::fail(b"RFDBG_RADIO_U5_BLE_PASSKEY_QUEUE_ERR\r\n")
+                                    }),
+                            );
+                        }
+                    }
+                }
+                hisi_rf::ws63::BleEvent::Disconnected { .. } => {
+                    disconnected = true;
+                    firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_NEGATIVE_DISCONNECTED\r\n");
                 }
                 hisi_rf::ws63::BleEvent::VendorManagedBondObserved { .. } => {
+                    if negative_pairing_mode() {
+                        firmware::fail(b"RFDBG_RADIO_U5_BLE_NEGATIVE_BOND_ERR\r\n");
+                    }
                     observed = true;
                     firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_BOND_OBSERVED\r\n");
+                }
+                hisi_rf::ws63::BleEvent::PairingComplete { result: Err(_), .. }
+                | hisi_rf::ws63::BleEvent::AuthenticationComplete { result: Err(_), .. }
+                    if negative_pairing_mode() =>
+                {
+                    firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_NEGATIVE_SECURITY_END\r\n");
                 }
                 hisi_rf::ws63::BleEvent::BackendError { .. }
                 | hisi_rf::ws63::BleEvent::PairingComplete { result: Err(_), .. }
@@ -164,6 +246,7 @@ fn run(
             }
         }
         if response_command.is_none()
+            && pairing_mode() == PairingMode::Passkey
             && let Some(passkey) = passkey_input.poll(&uart)
             && let Some(responder) = pending_responder.take()
         {
@@ -178,6 +261,15 @@ fn run(
                         firmware::fail(b"RFDBG_RADIO_U5_BLE_PASSKEY_QUEUE_ERR\r\n")
                     }),
             );
+        }
+        if negative_pairing_mode() && response_completed && disconnected && !negative_reported {
+            assert_negative_conservation(&parts);
+            match pairing_mode() {
+                PairingMode::Reject => firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_REJECT_OK\r\n"),
+                PairingMode::Stale => firmware::log(b"RFDBG_RADIO_U5_BLE_CENTRAL_STALE_OK\r\n"),
+                PairingMode::Passkey => unreachable!(),
+            }
+            negative_reported = true;
         }
         if peer.is_some()
             && connection.is_some()
@@ -205,6 +297,41 @@ fn run(
                 progress(&mut parts);
             }
         }
+    }
+}
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum PairingMode {
+    Passkey,
+    Reject,
+    Stale,
+}
+
+const fn pairing_mode() -> PairingMode {
+    if cfg!(feature = "u5-pairing-reject-hil") {
+        PairingMode::Reject
+    } else if cfg!(feature = "u5-pairing-stale-hil") {
+        PairingMode::Stale
+    } else {
+        PairingMode::Passkey
+    }
+}
+
+const fn negative_pairing_mode() -> bool {
+    !matches!(pairing_mode(), PairingMode::Passkey)
+}
+
+fn assert_negative_conservation(parts: &hisi_rf::ws63::RadioParts) {
+    let events = parts.ble.event_diagnostics();
+    let bonds = parts.runner.bond_observation_diagnostics();
+    if events.accepted != events.consumed
+        || events.dropped != 0
+        || events.pending != 0
+        || bonds.received != bonds.processed + bonds.dropped + bonds.pending
+        || bonds.dropped != 0
+        || bonds.pending != 0
+    {
+        firmware::fail(b"RFDBG_RADIO_U5_BLE_NEGATIVE_CONSERVATION_ERR\r\n");
     }
 }
 
