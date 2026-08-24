@@ -7,12 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.97] - 2026-08-24
+
 ### Added
 
 - Add maintainer-only U5D reject and stale-generation pairing fixtures, with
   explicit empty-bond preconditions and event/bond conservation markers.
 - Build the passkey, reject, and stale-generation peripheral/central fixtures
   independently in CI so each release-unit commit proves all three RV32 paths.
+
+### Fixed
+
+- Link the WS63 Secure Connections public-key generation and ECDH wrappers into
+  BLE facade firmware so the host and hardware P-256 backend derive matching
+  MacKey and DHKey values.
+- Retain relayed passkey prompts until the application consumes or rejects them,
+  and bind each responder to the active connection generation.
+
+### Changed
+
+- Update `hisi-rf-ws63` to `0.1.0-alpha.83`, whose standalone release resolves
+  the published `ws63-radio-sys 0.1.0-alpha.21` pairing-context contract.
+
+### Verified
+
+- Pass a 3/3 two-board fresh/restored authenticated-pairing smoke and a 20/20
+  restored-bond reset matrix on real WS63 silicon.
 
 ## [0.1.0-alpha.96] - 2026-08-20
 
@@ -1096,7 +1116,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.95...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.97...HEAD
+[0.1.0-alpha.97]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.96...v0.1.0-alpha.97
+[0.1.0-alpha.96]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.95...v0.1.0-alpha.96
 [0.1.0-alpha.95]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.94...v0.1.0-alpha.95
 [0.1.0-alpha.94]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.93...v0.1.0-alpha.94
 [0.1.0-alpha.93]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.92...v0.1.0-alpha.93

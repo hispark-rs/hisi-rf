@@ -110,9 +110,9 @@ dependencies = [
 
 [[package]]
 name = "crc32fast"
-version = "1.5.0"
+version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9481c1c90cbf2ac953f07c8d4a58aa3945c425b7185c9154d67a65e4230da511"
+checksum = "8498c871161e1742aaa9d52551b2d6ebdd4c3d45a3be423e3728f33b955be550"
 dependencies = [
  "cfg-if",
 ]
@@ -158,9 +158,9 @@ dependencies = [
 
 [[package]]
 name = "darling"
-version = "0.24.0"
+version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88490bf1b990d87eaaa7ac8aa887f629a08e7359765b4911faf63c3763347d23"
+checksum = "ed17f5901b6630b993ca003def43f2f8ef4014fc13b047b57aad617ff32bc2ec"
 dependencies = [
  "darling_core",
  "darling_macro",
@@ -168,26 +168,26 @@ dependencies = [
 
 [[package]]
 name = "darling_core"
-version = "0.24.0"
+version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "084e274f91c482280130e1e34e0b8d6e66776a060d7b6de7b84289ca778868c4"
+checksum = "6837e2cf7485aaae18f86181d2f0e9a7ed297a025e220aeabf63fdebd3a2ddff"
 dependencies = [
  "ident_case",
  "proc-macro2",
  "quote",
  "strsim",
- "syn 3.0.3",
+ "syn 3.0.4",
 ]
 
 [[package]]
 name = "darling_macro"
-version = "0.24.0"
+version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "68f5792fa0d41cd2325ce0ffa64f0a340eaebd4971a3a0c5e1ffd2cc488a355e"
+checksum = "2ac7135c3ef02b2f7833bbeb1be5ba7f966dcde8a87c6b87f65a778d71a02785"
 dependencies = [
  "darling_core",
  "quote",
- "syn 3.0.3",
+ "syn 3.0.4",
 ]
 
 [[package]]
@@ -529,7 +529,7 @@ checksum = "82838ac70a30951282f15df5741eeb38f748f5347d419c91b93751ceccc49876"
 
 [[package]]
 name = "hisi-rf"
-version = "0.1.0-alpha.96"
+version = "0.1.0-alpha.97"
 dependencies = [
  "critical-section",
  "hisi-hal",
@@ -554,9 +554,9 @@ dependencies = [
 
 [[package]]
 name = "hisi-rf-link"
-version = "0.1.0-alpha.20"
+version = "0.1.0-alpha.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "442c41cf65eb55e123dbb4db38324fe3be570f924de5deedb30292c668b62e38"
+checksum = "fa7c032dc3f982c0935ececd52d1839efaca5c76ddd0c2a8a5b94f6000d8fcf7"
 
 [[package]]
 name = "hisi-rf-rtos-driver"
@@ -569,9 +569,9 @@ dependencies = [
 
 [[package]]
 name = "hisi-rf-ws63"
-version = "0.1.0-alpha.82"
+version = "0.1.0-alpha.83"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11dae628c347c203abb4551cf78a54ccf15d51bfe8c8b02ace1d2871e2acf225"
+checksum = "19db8edfc6dda100c7efc840b4da1ca332257ba0ee1809207146c9efa54f7cc1"
 dependencies = [
  "ar_archive_writer",
  "critical-section",
@@ -694,7 +694,7 @@ dependencies = [
  "indoc",
  "proc-macro2",
  "quote",
- "syn 3.0.3",
+ "syn 3.0.4",
 ]
 
 [[package]]
@@ -966,7 +966,7 @@ checksum = "e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.3",
+ "syn 3.0.4",
 ]
 
 [[package]]
@@ -1075,9 +1075,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "3.0.3"
+version = "3.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "53e9bae58849f64dfa4f5d5ae372c8341f7305f82a3868709269343628b659a3"
+checksum = "e6275cddf4610d1775e6d1fe9469b2e77d0f39fd98fb7450901b821e0c53649f"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1176,9 +1176,9 @@ dependencies = [
 
 [[package]]
 name = "ws63-radio-blob"
-version = "0.1.0-alpha.20"
+version = "0.1.0-alpha.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd15301229e487eed0bf9daa6e6c7948b3aa46fabddf0df08d9ebcf5a9a94dce"
+checksum = "91111c0025a4095624cdbeb516e91c484981549ffe94077274946974d8f3d91a"
 dependencies = [
  "ruzstd",
  "serde",
@@ -1188,9 +1188,9 @@ dependencies = [
 
 [[package]]
 name = "ws63-radio-sys"
-version = "0.1.0-alpha.20"
+version = "0.1.0-alpha.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be82f7736cc9e054d0de9e811ff025ebf96ef95572e2cb0c69d12a891f6fb23e"
+checksum = "eb319d1c51e30948406017479b465588db2aac34ea2acc34678158624e653723"
 dependencies = [
  "hisi-rf-link",
  "hisi-rom-sys-ws63",
