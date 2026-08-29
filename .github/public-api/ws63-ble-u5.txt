@@ -188,6 +188,8 @@ pub hisi_rf::RadioProfile::BlePeripheral
 pub hisi_rf::RadioProfile::SleAnnounce
 pub hisi_rf::RadioProfile::SleSeek
 pub hisi_rf::RadioProfile::SleSsap
+impl hisi_rf::RadioProfile
+pub const fn hisi_rf::RadioProfile::as_str(self) -> &'static str
 pub struct hisi_rf::ProtocolBusy<T>
 impl<T> hisi_rf::ProtocolBusy<T>
 pub fn hisi_rf::ProtocolBusy<T>::into_inner(self) -> T
@@ -216,5 +218,7 @@ pub hisi_rf::RadioResourceReport::schema: u16
 pub hisi_rf::RadioResourceReport::task_stack_bytes: usize
 impl hisi_rf::RadioResourceReport
 pub const fn hisi_rf::RadioResourceReport::minimum_owned_bytes(self) -> usize
+pub fn hisi_rf::RadioResourceReport::write_json(self, &mut impl core::fmt::Write) -> core::fmt::Result
 pub const hisi_rf::EVENT_CAPACITY: usize
+pub const hisi_rf::RADIO_RESOURCE_REPORT_SCHEMA: &str
 pub type hisi_rf::WifiController = hisi_rf_core::wifi::WifiController<EVENT_CAPACITY>
