@@ -357,7 +357,7 @@ pub mod ws63 {
         feature = "profile-ble-dual-role"
     )
 ))]
-pub mod ws63 {
+mod ws63_ble {
     pub use crate::declare_radio_storage;
 
     #[doc(hidden)]
@@ -3295,6 +3295,19 @@ pub mod ws63 {
     }
 }
 
+/// WS63 BLE composition selected through a BLE-only named profile.
+#[cfg(all(
+    feature = "chip-ws63",
+    any(
+        feature = "profile-ble-peripheral",
+        feature = "profile-ble-central",
+        feature = "profile-ble-dual-role"
+    )
+))]
+pub mod ws63 {
+    pub use super::ws63_ble::*;
+}
+
 /// WS63 SLE U4 composition preview.
 ///
 /// This profile establishes facade-owned storage, initialization, typed
@@ -3310,7 +3323,7 @@ pub mod ws63 {
         feature = "profile-sle-ssap"
     )
 ))]
-pub mod ws63 {
+mod ws63_sle {
     pub use crate::declare_radio_storage;
 
     #[doc(hidden)]
@@ -4667,6 +4680,19 @@ pub mod ws63 {
     }
 }
 
+/// WS63 SLE composition selected through a SLE-only named profile.
+#[cfg(all(
+    feature = "chip-ws63",
+    any(
+        feature = "profile-sle-announce",
+        feature = "profile-sle-seek",
+        feature = "profile-sle-ssap"
+    )
+))]
+pub mod ws63 {
+    pub use super::ws63_sle::*;
+}
+
 #[cfg(feature = "incremental-backend-experiment")]
 pub use hisi_rf_core::{
     CancelDirective, CancelOutcome, CommandArbiter, CommandArbiterAction, CommandArbiterError,
@@ -4691,7 +4717,7 @@ pub type IncrementalRadioRunner<B> = hisi_rf_core::IncrementalRadioRunner<B, EVE
     feature = "smoltcp",
     any(feature = "wpa2-personal", feature = "wpa3-personal")
 ))]
-pub mod ws63 {
+mod ws63_wifi {
     pub use crate::declare_radio_storage;
     pub use crate::ws63_diagnostics::{
         RADIO_DIAGNOSTICS_SCHEMA, RadioDiagnosticsSnapshot, RunnerDiagnosticsSnapshot,
@@ -5019,6 +5045,16 @@ pub mod ws63 {
             self.0.wait_diagnostics()
         }
     }
+}
+
+/// WS63 station composition selected through a Wi-Fi named profile.
+#[cfg(all(
+    feature = "chip-ws63",
+    feature = "smoltcp",
+    any(feature = "wpa2-personal", feature = "wpa3-personal")
+))]
+pub mod ws63 {
+    pub use super::ws63_wifi::*;
 }
 
 /// Declare one caller-owned WS63 radio composition for the selected profile.
