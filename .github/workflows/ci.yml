@@ -46,6 +46,10 @@ jobs:
         run: cargo check -Zbuild-std=core,alloc --locked --target riscv32imfc-unknown-none-elf --features chip-ws63,profile-ble-dual-role
       - name: Test WS63 BLE U2 facade contract
         run: cargo test --locked --target x86_64-unknown-linux-gnu --test radio_u2_contract --features chip-ws63,profile-ble-dual-role
+      - name: Test WS63 BLE named profile contracts
+        run: |
+          cargo test --locked --target x86_64-unknown-linux-gnu --test radio_u2_contract --features chip-ws63,profile-ble-peripheral
+          cargo test --locked --target x86_64-unknown-linux-gnu --test radio_u2_contract --features chip-ws63,profile-ble-central
       - name: Test WS63 BLE U5 pairing fixture contract
         run: cargo test --locked --target x86_64-unknown-linux-gnu --test ble_u5_fixture_contract --features chip-ws63,profile-ble-dual-role
       - name: Check WS63 BLE U5 passkey fixtures
@@ -58,6 +62,10 @@ jobs:
         run: cargo check -Zbuild-std=core,alloc --locked --target riscv32imfc-unknown-none-elf --features chip-ws63,profile-sle-ssap
       - name: Test WS63 SLE U2 facade contract
         run: cargo test --locked --target x86_64-unknown-linux-gnu --test radio_u2_contract --features chip-ws63,profile-sle-ssap
+      - name: Test WS63 SLE named profile contracts
+        run: |
+          cargo test --locked --target x86_64-unknown-linux-gnu --test radio_u2_contract --features chip-ws63,profile-sle-announce
+          cargo test --locked --target x86_64-unknown-linux-gnu --test radio_u2_contract --features chip-ws63,profile-sle-seek
       - name: Build public facade documentation
         run: cargo doc --locked --features chip-ws63,profile-wifi-wpa2-smoltcp --no-deps
       - name: Check WPA2 dependency and public API boundaries
@@ -108,7 +116,23 @@ jobs:
             echo "hisi-rf unexpectedly accepted unproven BLE/SLE coexistence" >&2
             exit 1
           fi
-          grep -E "(the BLE migration profile must be the only selected radio profile|select exactly one standalone WS63 BGLE protocol profile)" "${log}"
+          grep -E "(select exactly one BLE role and no other radio profile|select exactly one standalone WS63 BGLE protocol profile)" "${log}"
+      - name: Reject conflicting BLE role profiles
+        run: |
+          log="${RUNNER_TEMP}/hisi-rf-ble-role-conflict.log"
+          if cargo check --locked --features chip-ws63,profile-ble-peripheral,profile-ble-central 2>"${log}"; then
+            echo "hisi-rf unexpectedly accepted conflicting BLE roles" >&2
+            exit 1
+          fi
+          grep -F "select exactly one BLE or SLE named profile" "${log}"
+      - name: Reject conflicting SLE role profiles
+        run: |
+          log="${RUNNER_TEMP}/hisi-rf-sle-role-conflict.log"
+          if cargo check --locked --features chip-ws63,profile-sle-announce,profile-sle-seek 2>"${log}"; then
+            echo "hisi-rf unexpectedly accepted conflicting SLE roles" >&2
+            exit 1
+          fi
+          grep -F "select exactly one BLE or SLE named profile" "${log}"
       - name: Package the current published chip backend
         run: cargo package --locked --features chip-ws63,profile-wifi-wpa2-smoltcp
 

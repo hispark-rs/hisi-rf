@@ -164,6 +164,7 @@ pub fn hisi_rf::ws63::RadioRunner::run_once(&mut self) -> core::result::Result<b
 pub struct hisi_rf::ws63::RadioStorage
 impl hisi_rf::ws63::RadioStorage
 pub fn hisi_rf::ws63::RadioStorage::install(&'static self) -> core::result::Result<hisi_rf::ws63::InstalledRadioStorage, hisi_rf::ws63::InitError>
+pub const fn hisi_rf::ws63::RadioStorage::report(&self) -> hisi_rf::RadioResourceReport
 pub struct hisi_rf::ws63::Resources
 impl hisi_rf::ws63::Resources
 pub const fn hisi_rf::ws63::Resources::new(hisi_hal::peripherals::ws63_only::Efuse<'static>, hisi_hal::peripherals::ws63_only::Km<'static>, hisi_hal::peripherals::ws63_only::Spacc<'static>, hisi_hal::peripherals::ws63_only::Pke<'static>, hisi_hal::peripherals::Trng<'static>) -> Self
@@ -175,10 +176,18 @@ impl core::fmt::Debug for hisi_rf::ws63::Scanner
 pub fn hisi_rf::ws63::Scanner::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub const hisi_rf::ws63::RADIO_ARENA_BYTES: usize
 pub fn hisi_rf::ws63::init(hisi_rf::ws63::Resources, hisi_rf::ws63::InstalledRadioStorage) -> core::result::Result<hisi_rf::ws63::RadioController, hisi_rf::ws63::InitError>
+pub const fn hisi_rf::ws63::resource_report() -> hisi_rf::RadioResourceReport
 pub macro hisi_rf::declare_radio_storage!
 pub enum hisi_rf::ProtocolError
 pub hisi_rf::ProtocolError::CompletionOwnership
 pub hisi_rf::ProtocolError::StaleCompletion
+pub enum hisi_rf::RadioProfile
+pub hisi_rf::RadioProfile::BleCentral
+pub hisi_rf::RadioProfile::BleDualRole
+pub hisi_rf::RadioProfile::BlePeripheral
+pub hisi_rf::RadioProfile::SleAnnounce
+pub hisi_rf::RadioProfile::SleSeek
+pub hisi_rf::RadioProfile::SleSsap
 pub struct hisi_rf::ProtocolBusy<T>
 impl<T> hisi_rf::ProtocolBusy<T>
 pub fn hisi_rf::ProtocolBusy<T>::into_inner(self) -> T
@@ -195,5 +204,17 @@ pub hisi_rf::ProtocolEventDiagnostics::consumed: u32
 pub hisi_rf::ProtocolEventDiagnostics::dropped: u32
 pub hisi_rf::ProtocolEventDiagnostics::high_water: usize
 pub hisi_rf::ProtocolEventDiagnostics::pending: usize
+pub struct hisi_rf::RadioResourceReport
+pub hisi_rf::RadioResourceReport::arena_bytes: usize
+pub hisi_rf::RadioResourceReport::backend_event_capacity: usize
+pub hisi_rf::RadioResourceReport::control_bytes: usize
+pub hisi_rf::RadioResourceReport::dynamic_task_slots: usize
+pub hisi_rf::RadioResourceReport::minimum_task_stack_bytes: usize
+pub hisi_rf::RadioResourceReport::profile: hisi_rf::RadioProfile
+pub hisi_rf::RadioResourceReport::public_event_capacity: usize
+pub hisi_rf::RadioResourceReport::schema: u16
+pub hisi_rf::RadioResourceReport::task_stack_bytes: usize
+impl hisi_rf::RadioResourceReport
+pub const fn hisi_rf::RadioResourceReport::minimum_owned_bytes(self) -> usize
 pub const hisi_rf::EVENT_CAPACITY: usize
 pub type hisi_rf::WifiController = hisi_rf_core::wifi::WifiController<EVENT_CAPACITY>

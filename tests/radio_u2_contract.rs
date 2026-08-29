@@ -1,6 +1,13 @@
 //! Facade-owned U2 control contract for BLE and SLE migration profiles.
 
-#![cfg(any(feature = "profile-ble-dual-role", feature = "profile-sle-ssap"))]
+#![cfg(any(
+    feature = "profile-ble-peripheral",
+    feature = "profile-ble-central",
+    feature = "profile-ble-dual-role",
+    feature = "profile-sle-announce",
+    feature = "profile-sle-seek",
+    feature = "profile-sle-ssap"
+))]
 
 hisi_rf::declare_radio_storage!(static RADIO_STORAGE);
 
@@ -21,9 +28,29 @@ fn facade_owns_the_radio_lifecycle() {
     assert_type::<hisi_rf::ProtocolCommandId>();
     assert_type::<hisi_rf::ProtocolEventDiagnostics>();
     assert_type::<hisi_rf::ProtocolError>();
+    assert_type::<hisi_rf::RadioProfile>();
+    assert_type::<hisi_rf::RadioResourceReport>();
+
+    let report = RADIO_STORAGE.report();
+    assert_eq!(report.schema, 1);
+    assert_eq!(report.arena_bytes, hisi_rf::ws63::RADIO_ARENA_BYTES);
+    assert!(report.control_bytes > 0);
+    assert_eq!(report.dynamic_task_slots, 4);
+    assert_eq!(report.task_stack_bytes, 10_240);
+    assert_eq!(report.minimum_task_stack_bytes, 512);
+    assert_eq!(report.backend_event_capacity, 32);
+    assert_eq!(report.public_event_capacity, hisi_rf::EVENT_CAPACITY);
+    assert_eq!(
+        report.minimum_owned_bytes(),
+        report.arena_bytes + report.control_bytes
+    );
 }
 
-#[cfg(feature = "profile-ble-dual-role")]
+#[cfg(any(
+    feature = "profile-ble-peripheral",
+    feature = "profile-ble-central",
+    feature = "profile-ble-dual-role"
+))]
 #[test]
 fn ble_profile_exposes_only_the_ble_part() {
     assert_type::<hisi_rf::ws63::BleController>();
@@ -34,7 +61,9 @@ fn ble_profile_exposes_only_the_ble_part() {
     assert_type::<hisi_rf::ws63::Scanner>();
     assert_type::<hisi_rf::ble::AdvertisingConfig>();
     assert_type::<hisi_rf::ble::ScanConfig>();
+    #[cfg(any(feature = "profile-ble-peripheral", feature = "profile-ble-dual-role"))]
     let _ = hisi_rf::ws63::BleController::try_start_advertising;
+    #[cfg(any(feature = "profile-ble-central", feature = "profile-ble-dual-role"))]
     let _ = hisi_rf::ws63::BleController::try_start_scanning;
     let _ = hisi_rf::ws63::BleController::try_take_completion;
     let _ = hisi_rf::ws63::BleController::try_next_event;
@@ -46,7 +75,11 @@ fn ble_profile_exposes_only_the_ble_part() {
     let _ = hisi_rf::ws63::Scanner::stop;
 }
 
-#[cfg(feature = "profile-sle-ssap")]
+#[cfg(any(
+    feature = "profile-sle-announce",
+    feature = "profile-sle-seek",
+    feature = "profile-sle-ssap"
+))]
 #[test]
 fn sle_profile_exposes_only_the_sle_part() {
     assert_type::<hisi_rf::ws63::SleController>();
@@ -57,7 +90,9 @@ fn sle_profile_exposes_only_the_sle_part() {
     assert_type::<hisi_rf::ws63::Seeker>();
     assert_type::<hisi_rf::sle::AnnounceConfig>();
     assert_type::<hisi_rf::sle::SeekConfig>();
+    #[cfg(any(feature = "profile-sle-announce", feature = "profile-sle-ssap"))]
     let _ = hisi_rf::ws63::SleController::try_start_announce;
+    #[cfg(any(feature = "profile-sle-seek", feature = "profile-sle-ssap"))]
     let _ = hisi_rf::ws63::SleController::try_start_seek;
     let _ = hisi_rf::ws63::SleController::try_take_completion;
     let _ = hisi_rf::ws63::SleController::try_next_event;

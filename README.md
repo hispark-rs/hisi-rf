@@ -8,7 +8,7 @@ an explicit `chip-*` feature.
 ```toml
 [dependencies]
 hisi-rf = {
-    version = "0.1.0-alpha.83",
+    version = "0.1.0-alpha.98",
     features = ["chip-ws63", "profile-wifi-wpa2-smoltcp"]
 }
 ```
@@ -22,9 +22,13 @@ remain outside the facade API. Application code should prefer the named
 orthogonal `wifi`/`smoltcp`/security features remain available for maintainer
 matrices. An Embassy Net profile will be added only with a working backend.
 
-BLE and SLE currently expose U1 composition previews through
-`profile-ble-dual-role` and `profile-sle-ssap`. Both profiles use the same
-facade-owned lifecycle shape:
+BLE and SLE expose role-specific compositions through
+`profile-ble-peripheral`, `profile-ble-central`, `profile-ble-dual-role`,
+`profile-sle-announce`, `profile-sle-seek`, and `profile-sle-ssap`. Selecting a
+narrow profile removes role-inapplicable controller methods at compile time.
+All six currently use the same pinned WS63 BGLE archive and therefore report
+the same physical task/arena budget; the facade does not invent memory savings
+that the target archive cannot yet deliver. They share this caller-owned shape:
 
 ```rust,ignore
 hisi_rf::declare_radio_storage!(static RADIO_STORAGE);
@@ -36,9 +40,18 @@ let _protocol = parts.ble; // `parts.sle` for `profile-sle-ssap`
 let runner = parts.runner;
 ```
 
-These profiles deliberately provide ownership and initialization only. Their
-typed GAP/GATT/SSAP commands and event streams are not stable yet; applications
-must not bypass the facade and name the internal `BleB*` or `SleS*` stage API.
+The same storage object reports the exact admission facts without allocation:
+
+```rust,ignore
+let report = RADIO_STORAGE.report();
+assert_eq!(report.profile, hisi_rf::RadioProfile::BlePeripheral);
+assert_eq!(report.dynamic_task_slots, 4);
+```
+
+These profiles provide typed GAP/GATT/SSAP commands, bounded event streams, and
+generation-tagged lifecycle guards. The surface remains alpha until its stable
+graduation review; applications must not bypass the facade and name the
+internal `BleB*` or `SleS*` stage API.
 
 The profile owns its bounded state and crypto DMA scratch through explicit
 application storage:

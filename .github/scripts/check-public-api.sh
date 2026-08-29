@@ -40,7 +40,11 @@ cargo metadata --locked --format-version 1 --no-deps >/dev/null
 generate chip-ws63,profile-wifi-wpa2-smoltcp,incremental-embassy-wait "$tmp/wpa2.txt"
 generate chip-ws63,profile-wifi-wpa3-smoltcp,incremental-embassy-wait "$tmp/wpa3.txt"
 generate chip-ws63,profile-ble-dual-role "$tmp/ble.txt"
+generate chip-ws63,profile-ble-peripheral "$tmp/ble-peripheral.txt"
+generate chip-ws63,profile-ble-central "$tmp/ble-central.txt"
 generate chip-ws63,profile-sle-ssap "$tmp/sle.txt"
+generate chip-ws63,profile-sle-announce "$tmp/sle-announce.txt"
+generate chip-ws63,profile-sle-seek "$tmp/sle-seek.txt"
 
 if ! diff -u "$tmp/wpa2.txt" "$tmp/wpa3.txt"; then
     echo "ERROR: named WS63 security profiles expose different facade APIs" >&2
@@ -63,10 +67,43 @@ if ! diff -u "$SLE_BASELINE" "$tmp/sle.txt"; then
     exit 1
 fi
 
+require_api() {
+    local output="$1"
+    local pattern="$2"
+    if ! grep -F "$pattern" "$output" >/dev/null; then
+        echo "ERROR: expected API is missing from $(basename "$output"): $pattern" >&2
+        exit 1
+    fi
+}
+
+reject_api() {
+    local output="$1"
+    local pattern="$2"
+    if grep -F "$pattern" "$output" >/dev/null; then
+        echo "ERROR: role-inapplicable API leaked into $(basename "$output"): $pattern" >&2
+        exit 1
+    fi
+}
+
+require_api "$tmp/ble-peripheral.txt" "BleController::try_start_advertising"
+reject_api "$tmp/ble-peripheral.txt" "BleController::try_start_scanning"
+reject_api "$tmp/ble-peripheral.txt" "BleController::try_connect"
+require_api "$tmp/ble-central.txt" "BleController::try_start_scanning"
+require_api "$tmp/ble-central.txt" "BleController::try_connect"
+reject_api "$tmp/ble-central.txt" "BleController::try_start_advertising"
+reject_api "$tmp/ble-central.txt" "BleController::try_register_gatt_server"
+require_api "$tmp/sle-announce.txt" "SleController::try_start_announce"
+reject_api "$tmp/sle-announce.txt" "SleController::try_start_seek"
+reject_api "$tmp/sle-announce.txt" "SleController::try_register_ssap_server"
+require_api "$tmp/sle-seek.txt" "SleController::try_start_seek"
+reject_api "$tmp/sle-seek.txt" "SleController::try_start_announce"
+reject_api "$tmp/sle-seek.txt" "SleController::try_register_ssap_server"
+
 if grep -E 'hisi_rf_ws63|ws63_radio_sys|hisi_rf_rtos_driver|BleB[123]|SleS[123]' \
-    "$tmp/ble.txt" "$tmp/sle.txt"; then
+    "$tmp/ble.txt" "$tmp/ble-peripheral.txt" "$tmp/ble-central.txt" \
+    "$tmp/sle.txt" "$tmp/sle-announce.txt" "$tmp/sle-seek.txt"; then
     echo "ERROR: the public radio facade exposes a WS63 implementation type" >&2
     exit 1
 fi
 
-echo "hisi-rf public API matches the Wi-Fi, BLE U5, and SLE U4 facade baselines"
+echo "hisi-rf public API matches the Wi-Fi, BLE, SLE, and role-profile contracts"

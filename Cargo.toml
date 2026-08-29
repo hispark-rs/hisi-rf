@@ -1,6 +1,6 @@
 [package]
 name = "hisi-rf"
-version = "0.1.0-alpha.97"
+version = "0.1.0-alpha.98"
 edition = "2024"
 rust-version = "1.91"
 authors = ["sanchuanhehe"]
@@ -72,7 +72,7 @@ required-features = ["chip-ws63", "profile-sle-ssap", "u2-hil-diagnostics"]
 
 [dependencies]
 hisi-rf-core = "=0.1.0-alpha.23"
-hisi-rf-ws63 = { version = "=0.1.0-alpha.83", optional = true, default-features = false }
+hisi-rf-ws63 = { version = "=0.1.0-alpha.84", optional = true, default-features = false }
 hisi-hal = { version = "0.7.0-alpha.9", optional = true, features = ["chip-ws63", "unstable"] }
 
 [target.'cfg(target_arch = "riscv32")'.dev-dependencies]
@@ -141,10 +141,14 @@ profile-wifi-wpa3-softap = [
     "smoltcp",
     "hisi-rf-ws63/upstream-authenticator-wpa3",
 ]
-# U4 composition previews. These add bounded lifecycle events, generation-tagged
-# cancellation, and active guards on top of the static typed GATT/SSAP databases.
-# The surface remains experimental until its HIL and stable-graduation gates close.
+# Named BLE/SLE profiles keep role selection visible in Cargo metadata. They
+# currently share the same pinned WS63 archive and physical admission budget;
+# the facade removes role-inapplicable control methods at compile time.
+profile-ble-peripheral = ["ble"]
+profile-ble-central = ["ble"]
 profile-ble-dual-role = ["ble"]
+profile-sle-announce = ["sle"]
+profile-sle-seek = ["sle"]
 profile-sle-ssap = ["sle"]
 # Maintainer-only facade lifecycle evidence. Normal applications and public API
 # snapshots do not select this migration feature; U4 will define the durable

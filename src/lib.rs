@@ -26,26 +26,40 @@ compile_error!("select exactly one chip feature, for example `chip-ws63`");
         feature = "profile-wifi-wpa3-smoltcp",
         feature = "profile-wifi-wpa2-softap",
         feature = "profile-wifi-wpa3-softap",
+        feature = "profile-ble-peripheral",
+        feature = "profile-ble-central",
         feature = "profile-ble-dual-role",
+        feature = "profile-sle-announce",
+        feature = "profile-sle-seek",
         feature = "profile-sle-ssap"
     ))
 ))]
 compile_error!("select exactly one WS63 named profile, for example `profile-wifi-wpa2-smoltcp`");
 
 #[cfg(all(
-    feature = "profile-ble-dual-role",
+    any(
+        feature = "profile-ble-peripheral",
+        feature = "profile-ble-central",
+        feature = "profile-ble-dual-role"
+    ),
     any(
         feature = "profile-sle-ssap",
+        feature = "profile-sle-announce",
+        feature = "profile-sle-seek",
         feature = "profile-wifi-wpa2-smoltcp",
         feature = "profile-wifi-wpa3-smoltcp",
         feature = "profile-wifi-wpa2-softap",
         feature = "profile-wifi-wpa3-softap"
     )
 ))]
-compile_error!("the BLE migration profile must be the only selected radio profile");
+compile_error!("select exactly one BLE role and no other radio profile");
 
 #[cfg(all(
-    feature = "profile-sle-ssap",
+    any(
+        feature = "profile-sle-announce",
+        feature = "profile-sle-seek",
+        feature = "profile-sle-ssap"
+    ),
     any(
         feature = "profile-wifi-wpa2-smoltcp",
         feature = "profile-wifi-wpa3-smoltcp",
@@ -53,7 +67,17 @@ compile_error!("the BLE migration profile must be the only selected radio profil
         feature = "profile-wifi-wpa3-softap"
     )
 ))]
-compile_error!("the SLE migration profile must be the only selected radio profile");
+compile_error!("select exactly one SLE role and no other radio profile");
+
+#[cfg(any(
+    all(feature = "profile-ble-peripheral", feature = "profile-ble-central"),
+    all(feature = "profile-ble-peripheral", feature = "profile-ble-dual-role"),
+    all(feature = "profile-ble-central", feature = "profile-ble-dual-role"),
+    all(feature = "profile-sle-announce", feature = "profile-sle-seek"),
+    all(feature = "profile-sle-announce", feature = "profile-sle-ssap"),
+    all(feature = "profile-sle-seek", feature = "profile-sle-ssap")
+))]
+compile_error!("select exactly one BLE or SLE named profile");
 
 #[cfg(all(feature = "wpa2-personal", feature = "wpa3-personal"))]
 compile_error!("select exactly one Personal security profile");
@@ -121,6 +145,56 @@ pub struct ProtocolEventDiagnostics {
     pub pending: usize,
     /// Largest observed queue occupancy.
     pub high_water: usize,
+}
+
+/// Compile-time radio composition selected by the application.
+#[cfg(any(feature = "ble", feature = "sle"))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RadioProfile {
+    /// BLE peripheral role: advertising, GATT server, and pairing responder.
+    BlePeripheral,
+    /// BLE central role: scanning, connecting, GATT client, and pairing initiator.
+    BleCentral,
+    /// BLE peripheral and central roles in one firmware image.
+    BleDualRole,
+    /// SLE announce-only role.
+    SleAnnounce,
+    /// SLE seek-only role.
+    SleSeek,
+    /// SLE announce/seek plus SSAP role.
+    SleSsap,
+}
+
+/// Allocation-free resource contract for one named BLE/SLE profile.
+#[cfg(any(feature = "ble", feature = "sle"))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RadioResourceReport {
+    /// Report schema. Consumers must reject unknown schema revisions.
+    pub schema: u16,
+    /// Compile-time profile represented by this report.
+    pub profile: RadioProfile,
+    /// Shared caller-owned arena required before radio initialization.
+    pub arena_bytes: usize,
+    /// Facade/backend control state stored outside the arena.
+    pub control_bytes: usize,
+    /// Dynamic RTOS task slots admitted for the pinned archive profile.
+    pub dynamic_task_slots: usize,
+    /// Sum of the heterogeneous vendor task stack reservations.
+    pub task_stack_bytes: usize,
+    /// Smallest individual vendor task stack reservation.
+    pub minimum_task_stack_bytes: usize,
+    /// Events retained by the chip backend before facade delivery.
+    pub backend_event_capacity: usize,
+    /// Unsolicited events retained by the public facade.
+    pub public_event_capacity: usize,
+}
+
+#[cfg(any(feature = "ble", feature = "sle"))]
+impl RadioResourceReport {
+    /// Minimum caller-owned bytes represented by this static report.
+    pub const fn minimum_owned_bytes(self) -> usize {
+        self.arena_bytes + self.control_bytes
+    }
 }
 
 #[cfg(any(feature = "ble", feature = "sle"))]
@@ -230,7 +304,14 @@ pub mod ws63 {
 /// registration and bounded asynchronous lifecycle events are supported;
 /// generation-tagged cancellation and active lifecycle guards are supported.
 /// Applications must not bypass this facade to depend on internal stage APIs.
-#[cfg(all(feature = "chip-ws63", feature = "profile-ble-dual-role"))]
+#[cfg(all(
+    feature = "chip-ws63",
+    any(
+        feature = "profile-ble-peripheral",
+        feature = "profile-ble-central",
+        feature = "profile-ble-dual-role"
+    )
+))]
 pub mod ws63 {
     pub use crate::declare_radio_storage;
 
@@ -267,6 +348,12 @@ pub mod ws63 {
 
     /// Caller-owned bytes shared by the pinned BLE controller and host tasks.
     pub const RADIO_ARENA_BYTES: usize = hisi_rf_ws63::BLE_B1_ARENA_BYTES;
+    #[cfg(feature = "profile-ble-peripheral")]
+    const SELECTED_PROFILE: crate::RadioProfile = crate::RadioProfile::BlePeripheral;
+    #[cfg(feature = "profile-ble-central")]
+    const SELECTED_PROFILE: crate::RadioProfile = crate::RadioProfile::BleCentral;
+    #[cfg(feature = "profile-ble-dual-role")]
+    const SELECTED_PROFILE: crate::RadioProfile = crate::RadioProfile::BleDualRole;
     /// Smallest stack admitted by the pinned BLE task inventory.
     #[cfg(feature = "u2-hil-diagnostics")]
     #[doc(hidden)]
@@ -347,6 +434,29 @@ pub mod ws63 {
                     connection: self.connection,
                 })
                 .map_err(|_| InitError::new())
+        }
+
+        /// Return the allocation-free contract for the selected BLE profile.
+        pub const fn report(&self) -> crate::RadioResourceReport {
+            resource_report()
+        }
+    }
+
+    /// Return the allocation-free contract for the selected BLE profile.
+    pub const fn resource_report() -> crate::RadioResourceReport {
+        crate::RadioResourceReport {
+            schema: 1,
+            profile: SELECTED_PROFILE,
+            arena_bytes: RADIO_ARENA_BYTES,
+            control_bytes: core::mem::size_of::<__private::BleB1ControlStorage>()
+                + core::mem::size_of::<BleControlState>()
+                + core::mem::size_of::<BleEventState>()
+                + 3 * core::mem::size_of::<BleLifecycleState>(),
+            dynamic_task_slots: hisi_rf_ws63::BLE_B1_TASK_COUNT,
+            task_stack_bytes: hisi_rf_ws63::BLE_B1_TASK_STACK_BYTES,
+            minimum_task_stack_bytes: hisi_rf_ws63::BLE_B1_MINIMUM_TASK_STACK_BYTES,
+            backend_event_capacity: hisi_rf_ws63::BLE_B2_EVENT_CAPACITY,
+            public_event_capacity: crate::EVENT_CAPACITY,
         }
     }
 
@@ -1610,6 +1720,7 @@ pub mod ws63 {
         /// A busy mailbox returns ownership of `config`. Success only means the
         /// runner accepted the command; call [`Self::try_take_completion`] for
         /// the synchronous WS63 host result.
+        #[cfg(any(feature = "profile-ble-peripheral", feature = "profile-ble-dual-role"))]
         pub fn try_start_advertising(
             &mut self,
             config: crate::ble::AdvertisingConfig,
@@ -1629,6 +1740,7 @@ pub mod ws63 {
         /// A busy mailbox returns ownership of `config`. Success only means the
         /// runner accepted the command; call [`Self::try_take_completion`] for
         /// the synchronous WS63 host result.
+        #[cfg(any(feature = "profile-ble-central", feature = "profile-ble-dual-role"))]
         pub fn try_start_scanning(
             &mut self,
             config: crate::ble::ScanConfig,
@@ -1643,6 +1755,7 @@ pub mod ws63 {
         }
 
         /// Queue a connection request for one validated scan identity.
+        #[cfg(any(feature = "profile-ble-central", feature = "profile-ble-dual-role"))]
         pub fn try_connect(
             &mut self,
             peer: crate::ble::BluetoothAddress,
@@ -1658,6 +1771,7 @@ pub mod ws63 {
         }
 
         /// Queue registration of one validated static GATT database.
+        #[cfg(any(feature = "profile-ble-peripheral", feature = "profile-ble-dual-role"))]
         pub fn try_register_gatt_server(
             &mut self,
             definition: crate::ble::GattServerDefinition,
@@ -1696,6 +1810,7 @@ pub mod ws63 {
         /// The runner validates the generation again immediately before it
         /// touches the backend. A queued request therefore fails closed if the
         /// link disconnects or starts cancellation first.
+        #[cfg(any(feature = "profile-ble-central", feature = "profile-ble-dual-role"))]
         pub fn try_pair(
             &mut self,
             connection: &BleConnection,
@@ -1722,6 +1837,7 @@ pub mod ws63 {
         /// busy, both values are returned for an explicit retry. The runner
         /// revalidates prompt and connection generations immediately before
         /// invoking the backend.
+        #[cfg(any(feature = "profile-ble-peripheral", feature = "profile-ble-dual-role"))]
         pub fn try_respond_to_pairing(
             &mut self,
             responder: PairingResponder,
@@ -3141,7 +3257,14 @@ pub mod ws63 {
 /// completion means the WS63 host synchronously accepted or rejected the
 /// request. Static typed SSAP registration and bounded asynchronous lifecycle
 /// events, generation-tagged cancellation, and active guards are supported.
-#[cfg(all(feature = "chip-ws63", feature = "profile-sle-ssap"))]
+#[cfg(all(
+    feature = "chip-ws63",
+    any(
+        feature = "profile-sle-announce",
+        feature = "profile-sle-seek",
+        feature = "profile-sle-ssap"
+    )
+))]
 pub mod ws63 {
     pub use crate::declare_radio_storage;
 
@@ -3159,6 +3282,12 @@ pub mod ws63 {
 
     /// Caller-owned bytes shared by the pinned SLE controller and host tasks.
     pub const RADIO_ARENA_BYTES: usize = hisi_rf_ws63::SLE_S1_ARENA_BYTES;
+    #[cfg(feature = "profile-sle-announce")]
+    const SELECTED_PROFILE: crate::RadioProfile = crate::RadioProfile::SleAnnounce;
+    #[cfg(feature = "profile-sle-seek")]
+    const SELECTED_PROFILE: crate::RadioProfile = crate::RadioProfile::SleSeek;
+    #[cfg(feature = "profile-sle-ssap")]
+    const SELECTED_PROFILE: crate::RadioProfile = crate::RadioProfile::SleSsap;
     /// Smallest stack admitted by the pinned SLE task inventory.
     #[cfg(feature = "u2-hil-diagnostics")]
     #[doc(hidden)]
@@ -3233,6 +3362,29 @@ pub mod ws63 {
                     seek: self.seek,
                 })
                 .map_err(|_| InitError::new())
+        }
+
+        /// Return the allocation-free contract for the selected SLE profile.
+        pub const fn report(&self) -> crate::RadioResourceReport {
+            resource_report()
+        }
+    }
+
+    /// Return the allocation-free contract for the selected SLE profile.
+    pub const fn resource_report() -> crate::RadioResourceReport {
+        crate::RadioResourceReport {
+            schema: 1,
+            profile: SELECTED_PROFILE,
+            arena_bytes: RADIO_ARENA_BYTES,
+            control_bytes: core::mem::size_of::<__private::SleS1ControlStorage>()
+                + core::mem::size_of::<SleControlState>()
+                + core::mem::size_of::<SleEventState>()
+                + 2 * core::mem::size_of::<SleLifecycleState>(),
+            dynamic_task_slots: hisi_rf_ws63::SLE_S1_TASK_COUNT,
+            task_stack_bytes: hisi_rf_ws63::SLE_S1_TASK_STACK_BYTES,
+            minimum_task_stack_bytes: hisi_rf_ws63::SLE_S1_MINIMUM_TASK_STACK_BYTES,
+            backend_event_capacity: hisi_rf_ws63::SLE_S1_EVENT_CAPACITY,
+            public_event_capacity: crate::EVENT_CAPACITY,
         }
     }
 
@@ -3845,6 +3997,7 @@ pub mod ws63 {
         /// A busy mailbox returns ownership of `config`. Success only means the
         /// runner accepted the command; call [`Self::try_take_completion`] for
         /// the synchronous WS63 host result.
+        #[cfg(any(feature = "profile-sle-announce", feature = "profile-sle-ssap"))]
         pub fn try_start_announce(
             &mut self,
             config: crate::sle::AnnounceConfig,
@@ -3864,6 +4017,7 @@ pub mod ws63 {
         /// A busy mailbox returns ownership of `config`. Success only means the
         /// runner accepted the command; call [`Self::try_take_completion`] for
         /// the synchronous WS63 host result.
+        #[cfg(any(feature = "profile-sle-seek", feature = "profile-sle-ssap"))]
         pub fn try_start_seek(
             &mut self,
             config: crate::sle::SeekConfig,
@@ -3880,6 +4034,7 @@ pub mod ws63 {
         }
 
         /// Queue registration of one validated static SSAP database.
+        #[cfg(feature = "profile-sle-ssap")]
         pub fn try_register_ssap_server(
             &mut self,
             definition: crate::sle::SsapServerDefinition,
@@ -4846,7 +5001,14 @@ macro_rules! declare_radio_storage {
 }
 
 /// Declare caller-owned storage for the BLE U1 migration profile.
-#[cfg(all(feature = "chip-ws63", feature = "profile-ble-dual-role"))]
+#[cfg(all(
+    feature = "chip-ws63",
+    any(
+        feature = "profile-ble-peripheral",
+        feature = "profile-ble-central",
+        feature = "profile-ble-dual-role"
+    )
+))]
 #[macro_export]
 macro_rules! declare_radio_storage {
     ($(#[$meta:meta])* $vis:vis static $name:ident) => {
@@ -4882,7 +5044,14 @@ macro_rules! declare_radio_storage {
 }
 
 /// Declare caller-owned storage for the SLE U1 migration profile.
-#[cfg(all(feature = "chip-ws63", feature = "profile-sle-ssap"))]
+#[cfg(all(
+    feature = "chip-ws63",
+    any(
+        feature = "profile-sle-announce",
+        feature = "profile-sle-seek",
+        feature = "profile-sle-ssap"
+    )
+))]
 #[macro_export]
 macro_rules! declare_radio_storage {
     ($(#[$meta:meta])* $vis:vis static $name:ident) => {

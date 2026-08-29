@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.98] - 2026-08-29
+
+### Added
+
+- Add named `profile-ble-peripheral`, `profile-ble-central`,
+  `profile-sle-announce`, and `profile-sle-seek` compositions alongside the
+  existing dual-role and SSAP profiles.
+- Add an allocation-free `RadioResourceReport` for BLE/SLE caller-owned arena,
+  control state, RTOS task slots/stacks, and bounded event queues.
+
+### Changed
+
+- Remove role-inapplicable control methods at compile time: peripheral builds
+  do not expose scan/connect, central builds do not expose advertise/GATT
+  server registration, and announce/seek builds expose only their selected SLE
+  operation.
+- Update `hisi-rf-ws63` to `0.1.0-alpha.84` so report values come from the same
+  constants used by backend resource admission.
+
 ## [0.1.0-alpha.97] - 2026-08-24
 
 ### Added
