@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.99] - 2026-08-29
+
+### Added
+
+- Add deterministic, allocation-free JSON serialization for BLE/SLE
+  `RadioResourceReport`, including a versioned schema and stable named-profile
+  identifiers for template and CI consumers.
+
 ## [0.1.0-alpha.98] - 2026-08-29
 
 ### Added

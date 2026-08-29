@@ -165,6 +165,25 @@ pub enum RadioProfile {
     SleSsap,
 }
 
+#[cfg(any(feature = "ble", feature = "sle"))]
+impl RadioProfile {
+    /// Stable machine-readable profile name used by resource reports.
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::BlePeripheral => "ble-peripheral",
+            Self::BleCentral => "ble-central",
+            Self::BleDualRole => "ble-dual-role",
+            Self::SleAnnounce => "sle-announce",
+            Self::SleSeek => "sle-seek",
+            Self::SleSsap => "sle-ssap",
+        }
+    }
+}
+
+/// Schema identifier emitted by BLE/SLE resource reports.
+#[cfg(any(feature = "ble", feature = "sle"))]
+pub const RADIO_RESOURCE_REPORT_SCHEMA: &str = "hisi-rf-radio-resource-report/v1";
+
 /// Allocation-free resource contract for one named BLE/SLE profile.
 #[cfg(any(feature = "ble", feature = "sle"))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -194,6 +213,32 @@ impl RadioResourceReport {
     /// Minimum caller-owned bytes represented by this static report.
     pub const fn minimum_owned_bytes(self) -> usize {
         self.arena_bytes + self.control_bytes
+    }
+
+    /// Write the deterministic machine-readable resource contract as JSON.
+    pub fn write_json(self, output: &mut impl core::fmt::Write) -> core::fmt::Result {
+        write!(
+            output,
+            concat!(
+                "{{\"schema\":\"{}\",\"schema_revision\":{},",
+                "\"profile\":\"{}\",\"arena_bytes\":{},",
+                "\"control_bytes\":{},\"minimum_owned_bytes\":{},",
+                "\"dynamic_task_slots\":{},\"task_stack_bytes\":{},",
+                "\"minimum_task_stack_bytes\":{},",
+                "\"backend_event_capacity\":{},\"public_event_capacity\":{}}}"
+            ),
+            RADIO_RESOURCE_REPORT_SCHEMA,
+            self.schema,
+            self.profile.as_str(),
+            self.arena_bytes,
+            self.control_bytes,
+            self.minimum_owned_bytes(),
+            self.dynamic_task_slots,
+            self.task_stack_bytes,
+            self.minimum_task_stack_bytes,
+            self.backend_event_capacity,
+            self.public_event_capacity,
+        )
     }
 }
 

@@ -44,6 +44,12 @@ fn facade_owns_the_radio_lifecycle() {
         report.minimum_owned_bytes(),
         report.arena_bytes + report.control_bytes
     );
+    let mut json = String::new();
+    report.write_json(&mut json).unwrap();
+    assert!(json.contains("\"schema\":\"hisi-rf-radio-resource-report/v1\""));
+    assert!(json.contains(&format!("\"profile\":\"{}\"", report.profile.as_str())));
+    assert!(json.contains("\"dynamic_task_slots\":4"));
+    assert!(json.contains("\"task_stack_bytes\":10240"));
 }
 
 #[cfg(any(
