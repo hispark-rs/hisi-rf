@@ -7,11 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.101] - 2026-08-29
+
 ### Added
 
 - Extend the crates.io-only external-consumer gate with complete BLE peripheral
   and SLE announce firmware, including locked offline rebuilds on Linux, macOS,
   and Windows through the public `hisi-rf` facade.
+
+### Changed
+
+- Separate the WS63 named-profile implementations so role-specific method sets
+  stay compile-time visible without duplicating the shared facade state.
+- Update `hisi-rf-ws63` to `0.1.0-alpha.86`,
+  `hisi-rf-rtos-driver` to `0.1.0-alpha.20`, and `hisi-rtos` to
+  `0.1.0-alpha.25` for the owner-bound coexistence admission and shared-platform
+  initialization fixes.
 
 ## [0.1.0-alpha.100] - 2026-08-29
 

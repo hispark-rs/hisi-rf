@@ -529,7 +529,7 @@ checksum = "82838ac70a30951282f15df5741eeb38f748f5347d419c91b93751ceccc49876"
 
 [[package]]
 name = "hisi-rf"
-version = "0.1.0-alpha.100"
+version = "0.1.0-alpha.101"
 dependencies = [
  "critical-section",
  "hisi-hal",
@@ -560,18 +560,18 @@ checksum = "fa7c032dc3f982c0935ececd52d1839efaca5c76ddd0c2a8a5b94f6000d8fcf7"
 
 [[package]]
 name = "hisi-rf-rtos-driver"
-version = "0.1.0-alpha.19"
+version = "0.1.0-alpha.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3c9e2bd31859f4fb022df129c1cc47e89927028308111ff0d59bb58857a6ce6"
+checksum = "9b9f22d49176e5a70c1efbe2e51bb033595a1d5ed9a8367c3a8e45ae47781039"
 dependencies = [
  "critical-section",
 ]
 
 [[package]]
 name = "hisi-rf-ws63"
-version = "0.1.0-alpha.85"
+version = "0.1.0-alpha.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "126ef282b94a982915787ef16b2ec13e1bf47db9d4cb04389660da462ded2f12"
+checksum = "1e5315b4ceee5e22a18611eab84a23a0039e6b2fd4b7b6fe642fb16ded7377b3"
 dependencies = [
  "ar_archive_writer",
  "critical-section",
@@ -622,9 +622,9 @@ checksum = "5fc2f9dded6797c89610a734aab74bdb96c9a44399fc38e40bb61ee337a8559d"
 
 [[package]]
 name = "hisi-rtos"
-version = "0.1.0-alpha.24"
+version = "0.1.0-alpha.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eeda1e1ad4de3fdb57e17b5081a559fb41f77c29d5128e7843bd19e05021a52f"
+checksum = "dd4282a8f58d94cb0d9aab352e4d2acdfc31f7c6d4a1d7940bf9c6b9d475389f"
 dependencies = [
  "critical-section",
  "hisi-alloc",
@@ -658,9 +658,9 @@ checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
 name = "indexmap"
-version = "2.14.0"
+version = "2.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d466e9454f08e4a911e14806c24e16fba1b4c121d1ea474396f396069cf949d9"
+checksum = "07aa2048142242915a31d35844fb311e0e53fcca590c3a0a40dcf1b841fa09eb"
 dependencies = [
  "equivalent",
  "hashbrown 0.17.1",
@@ -1117,9 +1117,9 @@ dependencies = [
 
 [[package]]
 name = "twox-hash"
-version = "2.1.3"
+version = "2.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8464ec13c3691491391d9fce00f6416c9a48e46972f72d7865688be2080192c9"
+checksum = "5283634e518fe9e82c7b20520bb4bc209009fd16c82077c802f8111ecbb0117a"
 
 [[package]]
 name = "typenum"
