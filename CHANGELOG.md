@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.100] - 2026-08-29
+
+### Fixed
+
+- Update `hisi-rf-ws63` to `0.1.0-alpha.85` so host-only resource-report
+  consumers link on Windows without requiring the RV32 runtime IRQ dispatcher.
+
 ## [0.1.0-alpha.99] - 2026-08-29
 
 ### Added
