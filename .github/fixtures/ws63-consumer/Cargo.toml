@@ -18,7 +18,7 @@ incremental-contract = [
 ]
 
 [dependencies]
-hisi-rf = { version = "=0.1.0-alpha.100", features = ["chip-ws63"] }
+hisi-rf = { version = "=0.1.0-alpha.101", features = ["chip-ws63"] }
 hisi-hal = { version = "0.7.0-alpha.9", features = ["chip-ws63", "unstable"] }
 hisi-riscv-rt = { version = "0.5.10", default-features = false, features = [
     "chip-ws63",
@@ -27,7 +27,7 @@ hisi-riscv-rt = { version = "0.5.10", default-features = false, features = [
     "ws63-bgle-32k",
     "ws63-radio-main-stack-32k",
 ] }
-hisi-rtos = { version = "=0.1.0-alpha.24", features = ["chip-ws63"] }
+hisi-rtos = { version = "=0.1.0-alpha.25", features = ["chip-ws63"] }
 
 [[bin]]
 name = "radio"
