@@ -9,14 +9,17 @@ publish = false
 [features]
 wpa2-personal = ["hisi-rf/profile-wifi-wpa2-smoltcp"]
 wpa3-personal = ["hisi-rf/profile-wifi-wpa3-smoltcp"]
+radio-consumer = []
+ble-peripheral = ["radio-consumer", "hisi-rf/profile-ble-peripheral"]
+sle-announce = ["radio-consumer", "hisi-rf/profile-sle-announce"]
 incremental-contract = [
     "hisi-rf/incremental-backend-experiment",
     "hisi-rf/incremental-embassy-wait",
 ]
 
 [dependencies]
-hisi-rf = { version = "=0.1.0-alpha.99", features = ["chip-ws63"] }
-hisi-hal = { version = "0.7.0-alpha.8", features = ["chip-ws63", "unstable"] }
+hisi-rf = { version = "=0.1.0-alpha.100", features = ["chip-ws63"] }
+hisi-hal = { version = "0.7.0-alpha.9", features = ["chip-ws63", "unstable"] }
 hisi-riscv-rt = { version = "0.5.10", default-features = false, features = [
     "chip-ws63",
     "bundled-memory-x",
@@ -24,6 +27,12 @@ hisi-riscv-rt = { version = "0.5.10", default-features = false, features = [
     "ws63-bgle-32k",
     "ws63-radio-main-stack-32k",
 ] }
+hisi-rtos = { version = "=0.1.0-alpha.24", features = ["chip-ws63"] }
+
+[[bin]]
+name = "radio"
+path = "src/bin/radio.rs"
+required-features = ["radio-consumer"]
 
 [profile.release]
 opt-level = "s"

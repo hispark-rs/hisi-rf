@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Extend the crates.io-only external-consumer gate with complete BLE peripheral
+  and SLE announce firmware, including locked offline rebuilds on Linux, macOS,
+  and Windows through the public `hisi-rf` facade.
+
 ## [0.1.0-alpha.100] - 2026-08-29
 
 ### Fixed

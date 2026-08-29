@@ -145,21 +145,51 @@ jobs:
           - os: ubuntu-latest
             profile: wpa2-personal
             named-profile: profile-wifi-wpa2-smoltcp
+            fixture_bin: hisi-rf-ws63-external-consumer
           - os: ubuntu-latest
             profile: wpa3-personal
             named-profile: profile-wifi-wpa3-smoltcp
+            fixture_bin: hisi-rf-ws63-external-consumer
           - os: macos-14
             profile: wpa2-personal
             named-profile: profile-wifi-wpa2-smoltcp
+            fixture_bin: hisi-rf-ws63-external-consumer
           - os: macos-14
             profile: wpa3-personal
             named-profile: profile-wifi-wpa3-smoltcp
+            fixture_bin: hisi-rf-ws63-external-consumer
           - os: windows-latest
             profile: wpa2-personal
             named-profile: profile-wifi-wpa2-smoltcp
+            fixture_bin: hisi-rf-ws63-external-consumer
           - os: windows-latest
             profile: wpa3-personal
             named-profile: profile-wifi-wpa3-smoltcp
+            fixture_bin: hisi-rf-ws63-external-consumer
+          - os: ubuntu-latest
+            profile: ble-peripheral
+            named-profile: profile-ble-peripheral
+            fixture_bin: radio
+          - os: macos-14
+            profile: ble-peripheral
+            named-profile: profile-ble-peripheral
+            fixture_bin: radio
+          - os: windows-latest
+            profile: ble-peripheral
+            named-profile: profile-ble-peripheral
+            fixture_bin: radio
+          - os: ubuntu-latest
+            profile: sle-announce
+            named-profile: profile-sle-announce
+            fixture_bin: radio
+          - os: macos-14
+            profile: sle-announce
+            named-profile: profile-sle-announce
+            fixture_bin: radio
+          - os: windows-latest
+            profile: sle-announce
+            named-profile: profile-sle-announce
+            fixture_bin: radio
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
@@ -171,12 +201,13 @@ jobs:
       - name: Build the facade-selected WS63 dependency graph
         run: cargo build -Zbuild-std=core --locked --release --target riscv32imfc-unknown-none-elf --features chip-ws63,${{ matrix.named-profile }}
       - name: Link a complete firmware through the public facade
+        if: matrix.fixture_bin != 'radio'
         run: cargo build -Zbuild-std=core --locked --release --target riscv32imfc-unknown-none-elf --example ws63_plain_firmware --features chip-ws63,${{ matrix.named-profile }}
       - name: Build the released facade from an external crates.io-only fixture
         working-directory: .github/fixtures/ws63-consumer
         env:
           CARGO_TARGET_DIR: ${{ runner.temp }}/hisi rf build 构建/long external consumer path/${{ matrix.profile }}
-        run: cargo build --release --locked --features ${{ matrix.profile }}
+        run: cargo build --release --locked --features ${{ matrix.profile }} --bin ${{ matrix.fixture_bin }}
       - name: Check the released opt-in incremental contract externally
         if: matrix.os == 'ubuntu-latest' && matrix.profile == 'wpa2-personal'
         working-directory: .github/fixtures/ws63-consumer

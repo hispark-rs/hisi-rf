@@ -20,6 +20,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 CONSUMER = ROOT / ".github" / "fixtures" / "ws63-consumer"
 TARGET = "riscv32imfc-unknown-none-elf"
+RADIO_PROFILES = {"ble-peripheral", "sle-announce"}
+
+
 def run(command: list[str], *, env: dict[str, str] | None = None) -> None:
     subprocess.run(command, cwd=CONSUMER, env=env, check=True)
 
@@ -35,6 +38,8 @@ def consumer_command(profile: str, *, offline: bool = True) -> list[str]:
     ]
     if offline:
         command.insert(4, "--offline")
+    if profile in RADIO_PROFILES:
+        command.extend(["--bin", "radio"])
     return command
 
 
@@ -152,7 +157,7 @@ def main() -> int:
     readonly = subparsers.add_parser("readonly")
     readonly.add_argument(
         "--profile",
-        choices=("wpa2-personal", "wpa3-personal"),
+        choices=("wpa2-personal", "wpa3-personal", "ble-peripheral", "sle-announce"),
         required=True,
     )
     subparsers.add_parser("concurrent")
