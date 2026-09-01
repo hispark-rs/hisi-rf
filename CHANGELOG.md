@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.104] - 2026-09-01
+
+### Changed
+
+- Align the WS63 facade with `hisi-rf-ws63 0.1.0-alpha.94`, including the
+  retained coexistence scan candidate and the v12 page-rounded BLE/SLE
+  resource contract whose final link is verified on macOS, Linux, and Windows.
+
 ## [0.1.0-alpha.103] - 2026-09-01
 
 ### Changed
