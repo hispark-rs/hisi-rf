@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.108] - 2026-09-01
+
+### Added
+
+- Add maintainer-only WPA2 SoftAP plus BLE/SLE coexistence profiles behind the
+  public facade so HIL applications no longer depend on chip backend or sys
+  crates directly.
+
+### Changed
+
+- Align with `hisi-rf-ws63 0.1.0-alpha.98`, including the bounded SLE address
+  and connection-state ABI exports used by the coexistence fixture.
+
 ## [0.1.0-alpha.107] - 2026-09-01
 
 ### Fixed

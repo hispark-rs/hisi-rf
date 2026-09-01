@@ -1,6 +1,6 @@
 [package]
 name = "hisi-rf"
-version = "0.1.0-alpha.107"
+version = "0.1.0-alpha.108"
 edition = "2024"
 rust-version = "1.91"
 authors = ["sanchuanhehe"]
@@ -72,7 +72,7 @@ required-features = ["chip-ws63", "profile-sle-ssap", "u2-hil-diagnostics"]
 
 [dependencies]
 hisi-rf-core = "=0.1.0-alpha.23"
-hisi-rf-ws63 = { version = "=0.1.0-alpha.97", optional = true, default-features = false }
+hisi-rf-ws63 = { version = "=0.1.0-alpha.98", optional = true, default-features = false }
 hisi-hal = { version = "0.7.0-alpha.9", optional = true, features = ["chip-ws63", "unstable"] }
 
 [target.'cfg(target_arch = "riscv32")'.dev-dependencies]
@@ -140,6 +140,22 @@ profile-wifi-wpa2-softap = [
 profile-wifi-wpa3-softap = [
     "smoltcp",
     "hisi-rf-ws63/upstream-authenticator-wpa3",
+]
+# Maintainer HIL profiles proving one admitted SoftAP composition can sustain
+# connected local traffic while a second radio protocol remains connected.
+# The backend types remain behind the facade's doc-hidden fixture module until
+# the full public coexistence event/resource contract graduates.
+profile-wifi-wpa2-softap-ble-coexistence = [
+    "profile-wifi-wpa2-softap",
+    "ble",
+    "hisi-rf-ws63/coexistence-wifi-ble",
+    "hisi-rf-ws63/firmware-example",
+]
+profile-wifi-wpa2-softap-sle-coexistence = [
+    "profile-wifi-wpa2-softap",
+    "sle",
+    "hisi-rf-ws63/coexistence-wifi-sle",
+    "hisi-rf-ws63/firmware-example",
 ]
 # Named BLE/SLE profiles keep role selection visible in Cargo metadata. They
 # currently share the same pinned WS63 archive and physical admission budget;

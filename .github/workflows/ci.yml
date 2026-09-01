@@ -32,6 +32,10 @@ jobs:
         run: cargo check -Zbuild-std=core,alloc --locked --target riscv32imfc-unknown-none-elf --features chip-ws63,profile-wifi-wpa2-softap
       - name: Check WS63 WPA3 SoftAP composition
         run: cargo check -Zbuild-std=core,alloc --locked --target riscv32imfc-unknown-none-elf --features chip-ws63,profile-wifi-wpa3-softap
+      - name: Check WS63 WPA2 SoftAP plus BLE coexistence composition
+        run: cargo check -Zbuild-std=core,alloc --locked --target riscv32imfc-unknown-none-elf --features chip-ws63,profile-wifi-wpa2-softap-ble-coexistence
+      - name: Check WS63 WPA2 SoftAP plus SLE coexistence composition
+        run: cargo check -Zbuild-std=core,alloc --locked --target riscv32imfc-unknown-none-elf --features chip-ws63,profile-wifi-wpa2-softap-sle-coexistence
       - name: Check WS63 WPA2 incremental composition
         run: cargo check -Zbuild-std=core --locked --target riscv32imfc-unknown-none-elf --features chip-ws63,profile-wifi-wpa2-smoltcp,incremental-backend-experiment
       - name: Check WS63 WPA2 incremental Embassy wait composition

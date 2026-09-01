@@ -243,6 +243,10 @@ impl RadioResourceReport {
 }
 
 #[cfg(any(feature = "ble", feature = "sle"))]
+#[allow(
+    dead_code,
+    reason = "coexistence HIL profiles forward backend events through a doc-hidden fixture surface"
+)]
 fn protocol_event_diagnostics(
     value: hisi_rf_core::control::EventQueueDiagnostics,
 ) -> ProtocolEventDiagnostics {
@@ -325,6 +329,32 @@ pub mod ws63 {
         InstalledAccessPointStorage, NativeAuthenticatorError, declare_access_point_storage,
         init_access_point, netif, netif_smoltcp,
     };
+
+    /// Maintainer-only coexistence fixture surface.
+    ///
+    /// Applications still depend only on `hisi-rf`; chip integration crates
+    /// remain transitive. These stage types are intentionally doc-hidden until
+    /// the public `RadioController` coexistence lifecycle graduates.
+    #[cfg(any(
+        feature = "profile-wifi-wpa2-softap-ble-coexistence",
+        feature = "profile-wifi-wpa2-softap-sle-coexistence"
+    ))]
+    #[doc(hidden)]
+    pub mod __coexistence {
+        pub use hisi_rf_ws63::{Profile, RadioArenaStorage, RadioStorage, Resources, Storage};
+
+        #[cfg(feature = "profile-wifi-wpa2-softap-ble-coexistence")]
+        pub use hisi_rf_ws63::{
+            BleB1Controller, BleB2Event, WifiWpa2AccessPointBleCoexistence,
+            init_access_point_ble_coexistence,
+        };
+
+        #[cfg(feature = "profile-wifi-wpa2-softap-sle-coexistence")]
+        pub use hisi_rf_ws63::{
+            SLE_CONNECTION_STATE_CONNECTED, SleAddress, SleS1Controller, SleS1Event,
+            WifiWpa2AccessPointSleCoexistence, init_access_point_sle_coexistence,
+        };
+    }
     #[cfg(feature = "profile-wifi-wpa3-softap")]
     pub use hisi_rf_ws63::{
         hardware_p256_curve_diagnostic_snapshot, hardware_p256_diagnostic_snapshot,
