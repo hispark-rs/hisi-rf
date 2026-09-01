@@ -341,7 +341,10 @@ pub mod ws63 {
     ))]
     #[doc(hidden)]
     pub mod __coexistence {
-        pub use hisi_rf_ws63::{Profile, RadioArenaStorage, RadioStorage, Resources, Storage};
+        pub use hisi_rf_ws63::{
+            Profile, RadioArenaStorage, RadioStorage, Resources, RfHeapMetrics, Storage,
+            rf_heap_metrics,
+        };
 
         #[cfg(feature = "profile-wifi-wpa2-softap-ble-coexistence")]
         pub use hisi_rf_ws63::{
