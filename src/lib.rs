@@ -5093,13 +5093,6 @@ mod ws63_wifi {
         feature = "smoltcp",
         any(feature = "wpa2-personal", feature = "wpa3-personal")
     ))]
-    pub use hisi_rf_ws63::Ws63IncrementalWaitDiagnostics;
-
-    #[cfg(all(
-        feature = "incremental-embassy-wait",
-        feature = "smoltcp",
-        any(feature = "wpa2-personal", feature = "wpa3-personal")
-    ))]
     /// WS63 parts for the selected public profile.
     pub struct RadioParts {
         /// Async Wi-Fi control and data plane.
@@ -5166,8 +5159,8 @@ mod ws63_wifi {
         }
 
         /// Snapshot the WS63 wait bridge.
-        pub fn wait_diagnostics(&self) -> Ws63IncrementalWaitDiagnostics {
-            self.0.wait_diagnostics()
+        pub fn wait_diagnostics(&self) -> WaitDiagnosticsSnapshot {
+            WaitDiagnosticsSnapshot::from_backend(self.0.wait_diagnostics())
         }
     }
 }
@@ -5319,6 +5312,6 @@ mod tests {
     #[cfg(feature = "incremental-embassy-wait")]
     #[test]
     fn facade_exposes_the_explicit_ws63_embassy_wait_bridge() {
-        let _: Option<super::ws63::Ws63IncrementalWaitDiagnostics> = None;
+        let _: Option<super::ws63::WaitDiagnosticsSnapshot> = None;
     }
 }

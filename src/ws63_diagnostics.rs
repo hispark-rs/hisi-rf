@@ -45,8 +45,8 @@ pub struct WaitDiagnosticsSnapshot {
 }
 
 #[cfg(feature = "incremental-embassy-wait")]
-impl From<Ws63IncrementalWaitDiagnostics> for WaitDiagnosticsSnapshot {
-    fn from(value: Ws63IncrementalWaitDiagnostics) -> Self {
+impl WaitDiagnosticsSnapshot {
+    pub(crate) fn from_backend(value: Ws63IncrementalWaitDiagnostics) -> Self {
         Self {
             active: true,
             backend_signals: value.backend_signals,
@@ -142,7 +142,9 @@ impl RadioDiagnosticsSnapshot {
                 controller.incremental_runner_diagnostics(),
             ),
             control: controller.blocking_runner_diagnostics(),
-            wait: hisi_rf_ws63::incremental_wait_diagnostics().into(),
+            wait: WaitDiagnosticsSnapshot::from_backend(
+                hisi_rf_ws63::incremental_wait_diagnostics(),
+            ),
             events: controller.event_diagnostics(),
             blocking_calls: hisi_rf_ws63::blocking_backend_metrics(),
             scan: hisi_rf_ws63::upstream_supplicant_scan_diagnostics(),
@@ -185,7 +187,7 @@ mod tests {
             ready_polls: 6,
             timer_ready_polls: 7,
         };
-        let snapshot = WaitDiagnosticsSnapshot::from(raw);
+        let snapshot = WaitDiagnosticsSnapshot::from_backend(raw);
         assert!(snapshot.active);
         assert_eq!(snapshot.backend_signals, 1);
         assert_eq!(snapshot.l2_rx_signals, 2);

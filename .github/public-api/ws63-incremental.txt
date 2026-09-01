@@ -92,7 +92,6 @@ pub use hisi_rf::ws63::WifiRxToken
 pub use hisi_rf::ws63::WifiTxToken
 pub use hisi_rf::ws63::WifiWpa2Smoltcp
 pub use hisi_rf::ws63::WifiWpa3Smoltcp
-pub use hisi_rf::ws63::Ws63IncrementalWaitDiagnostics
 pub use hisi_rf::ws63::association_timing_diagnostics
 pub use hisi_rf::ws63::declare_radio_arena
 pub use hisi_rf::ws63::rf_heap_metrics
@@ -131,7 +130,7 @@ impl hisi_rf::ws63::RadioRunner
 pub fn hisi_rf::ws63::RadioRunner::diagnostics(&self) -> hisi_rf_core::incremental::facade::IncrementalRunnerDiagnostics
 pub fn hisi_rf::ws63::RadioRunner::next_deadline_us(&self) -> core::option::Option<u64>
 pub fn hisi_rf::ws63::RadioRunner::run_once(&mut self, hisi_rf_core::incremental::WaitSet) -> core::result::Result<hisi_rf_core::incremental::driver::IncrementalDriverEvent, hisi_rf_core::incremental::facade::IncrementalRadioRunnerError>
-pub fn hisi_rf::ws63::RadioRunner::wait_diagnostics(&self) -> hisi_rf_ws63::incremental_wait::Ws63IncrementalWaitDiagnostics
+pub fn hisi_rf::ws63::RadioRunner::wait_diagnostics(&self) -> hisi_rf::ws63::WaitDiagnosticsSnapshot
 pub fn hisi_rf::ws63::RadioRunner::wait_intent(&self) -> hisi_rf_core::incremental::driver::IncrementalWaitIntent
 pub async fn hisi_rf::ws63::RadioRunner::wait_ready(&mut self) -> core::result::Result<hisi_rf_core::incremental::WaitSet, hisi_rf_core::incremental::IncrementalWaitError<core::convert::Infallible>>
 pub struct hisi_rf::ws63::RadioStorage
@@ -153,8 +152,6 @@ pub hisi_rf::ws63::WaitDiagnosticsSnapshot::poll_calls: u32
 pub hisi_rf::ws63::WaitDiagnosticsSnapshot::ready_polls: u32
 pub hisi_rf::ws63::WaitDiagnosticsSnapshot::timer_ready_polls: u32
 pub hisi_rf::ws63::WaitDiagnosticsSnapshot::waker_notifications: u32
-impl core::convert::From<hisi_rf_ws63::incremental_wait::Ws63IncrementalWaitDiagnostics> for hisi_rf::ws63::WaitDiagnosticsSnapshot
-pub fn hisi_rf::ws63::WaitDiagnosticsSnapshot::from(hisi_rf_ws63::incremental_wait::Ws63IncrementalWaitDiagnostics) -> Self
 pub struct hisi_rf::ws63::WifiParts
 pub hisi_rf::ws63::WifiParts::controller: hisi_rf::WifiController
 pub hisi_rf::ws63::WifiParts::device: hisi_rf_ws63::composition::WifiDevice
