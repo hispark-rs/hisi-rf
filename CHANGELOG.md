@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.113] - 2026-09-01
+
 ### Fixed
 
 - Preserve the bounded last-frame diagnostic accessors when wrapping the WS63
@@ -1271,7 +1273,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.112...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.113...HEAD
+[0.1.0-alpha.113]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.112...v0.1.0-alpha.113
 [0.1.0-alpha.112]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.111...v0.1.0-alpha.112
 [0.1.0-alpha.111]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.110...v0.1.0-alpha.111
 [0.1.0-alpha.110]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.109...v0.1.0-alpha.110
