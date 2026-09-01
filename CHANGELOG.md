@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.102] - 2026-09-01
+
+### Fixed
+
+- Align the public facade with `hisi-rf-ws63 0.1.0-alpha.90`, whose
+  `ws63-radio-sys 0.1.0-alpha.25` dependency matches the current parent release
+  train and avoids duplicate native `links = "ws63_radio_sys"` packages.
+
 ## [0.1.0-alpha.101] - 2026-08-29
 
 ### Added
@@ -1167,7 +1175,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.97...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.102...HEAD
+[0.1.0-alpha.102]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.101...v0.1.0-alpha.102
+[0.1.0-alpha.101]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.100...v0.1.0-alpha.101
+[0.1.0-alpha.100]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.99...v0.1.0-alpha.100
+[0.1.0-alpha.99]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.98...v0.1.0-alpha.99
+[0.1.0-alpha.98]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.97...v0.1.0-alpha.98
 [0.1.0-alpha.97]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.96...v0.1.0-alpha.97
 [0.1.0-alpha.96]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.95...v0.1.0-alpha.96
 [0.1.0-alpha.95]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.94...v0.1.0-alpha.95
