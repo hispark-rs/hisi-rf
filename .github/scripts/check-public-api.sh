@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 BASELINE="$ROOT/.github/public-api/ws63-incremental.txt"
+WPA3_BASELINE="$ROOT/.github/public-api/ws63-incremental-wpa3.txt"
 BLE_BASELINE="$ROOT/.github/public-api/ws63-ble-u5.txt"
 SLE_BASELINE="$ROOT/.github/public-api/ws63-sle-u4.txt"
 EXPECTED_VERSION="cargo-public-api 0.52.0"
@@ -46,13 +47,14 @@ generate chip-ws63,profile-sle-ssap "$tmp/sle.txt"
 generate chip-ws63,profile-sle-announce "$tmp/sle-announce.txt"
 generate chip-ws63,profile-sle-seek "$tmp/sle-seek.txt"
 
-if ! diff -u "$tmp/wpa2.txt" "$tmp/wpa3.txt"; then
-    echo "ERROR: named WS63 security profiles expose different facade APIs" >&2
+if ! diff -u "$BASELINE" "$tmp/wpa2.txt"; then
+    echo "ERROR: the hisi-rf public API changed" >&2
+    echo "Review the diff; update the baseline only as part of an intentional API change." >&2
     exit 1
 fi
 
-if ! diff -u "$BASELINE" "$tmp/wpa2.txt"; then
-    echo "ERROR: the hisi-rf public API changed" >&2
+if ! diff -u "$WPA3_BASELINE" "$tmp/wpa3.txt"; then
+    echo "ERROR: the WPA3 hisi-rf public API changed" >&2
     echo "Review the diff; update the baseline only as part of an intentional API change." >&2
     exit 1
 fi

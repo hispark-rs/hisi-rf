@@ -1,5 +1,7 @@
 //! Versioned, allocation-free diagnostics for the WS63 facade.
 
+use core::fmt;
+
 #[cfg(feature = "incremental-backend-experiment")]
 use crate::IncrementalRunnerDiagnostics;
 use crate::{BlockingRunnerDiagnostics, EventDiagnostics};
@@ -7,8 +9,189 @@ use crate::{BlockingRunnerDiagnostics, EventDiagnostics};
 use hisi_rf_ws63::Ws63IncrementalWaitDiagnostics;
 use hisi_rf_ws63::{
     BlockingBackendMetrics, DataPathDiagnostics, DhcpDiagnostics, L2ProtocolDiagnostics,
-    ResourceReport, RxQueueDiagnostics, ScanDiagnostics,
+    RxQueueDiagnostics, ScanDiagnostics,
 };
+
+/// Versioned, allocation-free resource contract for the selected WS63 profile.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ResourceReport {
+    /// Report schema consumed by CI and tooling.
+    pub schema: &'static str,
+    /// Selected chip backend.
+    pub chip: &'static str,
+    /// Selected named profile.
+    pub profile: &'static str,
+    /// Profile metadata revision.
+    pub profile_revision: &'static str,
+    /// Security backend selected by the profile.
+    pub security: &'static str,
+    /// Network adapter selected by the profile.
+    pub network: &'static str,
+    /// Radio integration backend.
+    pub radio_backend: &'static str,
+    /// Supplicant implementation.
+    pub supplicant_backend: &'static str,
+    /// Cryptographic backend.
+    pub crypto_backend: &'static str,
+    /// Minimum runtime contract required before startup.
+    pub runtime_contract: &'static str,
+    /// Task admission mechanism.
+    pub task_admission: &'static str,
+    /// Number of bounded public events.
+    pub event_capacity: usize,
+    /// Total caller-owned bytes.
+    pub caller_owned_bytes: usize,
+    /// Bytes held by bounded control and crypto state.
+    pub control_storage_bytes: usize,
+    /// Writable bytes used by the immutable composition handle.
+    pub composition_handle_bytes: usize,
+    /// Bytes used by chip-neutral radio state.
+    pub radio_state_bytes: usize,
+    /// Bytes used by SPACC DMA scratch.
+    pub crypto_dma_bytes: usize,
+    /// Bytes reserved by the shared arena backing object.
+    pub arena_storage_bytes: usize,
+    /// Linker-owned Wi-Fi packet RAM bytes.
+    pub linker_packet_ram_bytes: usize,
+    /// HIL-verified main-stack envelope.
+    pub main_stack_bytes_required: usize,
+    /// Dynamic tasks required by the selected profile.
+    pub dynamic_tasks_required: usize,
+    /// Vendor task slots from the pinned archive inventory.
+    pub vendor_task_slots: usize,
+    /// Stack bytes reserved for each vendor task.
+    pub vendor_stack_bytes_per_task: usize,
+    /// Incremental-worker slots, when present.
+    pub worker_task_slots: Option<usize>,
+    /// Stack bytes reserved for each incremental worker.
+    pub worker_stack_bytes_per_task: Option<usize>,
+    /// Dynamic task slots owned by a coexisting stack.
+    pub coexistence_task_slots: usize,
+    /// Stack bytes owned by a coexisting stack.
+    pub coexistence_stack_bytes: usize,
+    /// Runtime-internal task count, when modeled.
+    pub runtime_internal_tasks: Option<usize>,
+    /// Total task-stack bytes, when profile-owned.
+    pub task_stack_bytes: Option<usize>,
+    /// Smallest admitted task stack.
+    pub minimum_task_stack_bytes: Option<usize>,
+    /// RTOS synchronization-object headroom.
+    pub runtime_object_headroom_bytes: Option<usize>,
+    /// Scheduler arena bytes.
+    pub runtime_arena_bytes: Option<usize>,
+    /// Supplicant arena bytes, when independently owned.
+    pub supplicant_arena_bytes: Option<usize>,
+    /// Shared RF arena bytes.
+    pub shared_rf_arena_bytes: Option<usize>,
+    /// Final linked flash bytes, when supplied by image tooling.
+    pub flash_bytes: Option<usize>,
+    /// Whether task, stack, and arena totals completed HIL calibration.
+    pub runtime_resources_calibrated: bool,
+}
+
+impl ResourceReport {
+    pub(crate) const fn from_backend(value: hisi_rf_ws63::ResourceReport) -> Self {
+        Self {
+            schema: value.schema,
+            chip: value.chip,
+            profile: value.profile,
+            profile_revision: value.profile_revision,
+            security: value.security,
+            network: value.network,
+            radio_backend: value.radio_backend,
+            supplicant_backend: value.supplicant_backend,
+            crypto_backend: value.crypto_backend,
+            runtime_contract: value.runtime_contract,
+            task_admission: value.task_admission,
+            event_capacity: value.event_capacity,
+            caller_owned_bytes: value.caller_owned_bytes,
+            control_storage_bytes: value.control_storage_bytes,
+            composition_handle_bytes: value.composition_handle_bytes,
+            radio_state_bytes: value.radio_state_bytes,
+            crypto_dma_bytes: value.crypto_dma_bytes,
+            arena_storage_bytes: value.arena_storage_bytes,
+            linker_packet_ram_bytes: value.linker_packet_ram_bytes,
+            main_stack_bytes_required: value.main_stack_bytes_required,
+            dynamic_tasks_required: value.dynamic_tasks_required,
+            vendor_task_slots: value.vendor_task_slots,
+            vendor_stack_bytes_per_task: value.vendor_stack_bytes_per_task,
+            worker_task_slots: value.worker_task_slots,
+            worker_stack_bytes_per_task: value.worker_stack_bytes_per_task,
+            coexistence_task_slots: value.coexistence_task_slots,
+            coexistence_stack_bytes: value.coexistence_stack_bytes,
+            runtime_internal_tasks: value.runtime_internal_tasks,
+            task_stack_bytes: value.task_stack_bytes,
+            minimum_task_stack_bytes: value.minimum_task_stack_bytes,
+            runtime_object_headroom_bytes: value.runtime_object_headroom_bytes,
+            runtime_arena_bytes: value.runtime_arena_bytes,
+            supplicant_arena_bytes: value.supplicant_arena_bytes,
+            shared_rf_arena_bytes: value.shared_rf_arena_bytes,
+            flash_bytes: value.flash_bytes,
+            runtime_resources_calibrated: value.runtime_resources_calibrated,
+        }
+    }
+
+    /// Write deterministic JSON without allocation.
+    pub fn write_json(self, output: &mut impl fmt::Write) -> fmt::Result {
+        write!(
+            output,
+            concat!(
+                "{{\"schema\":\"{}\",\"chip\":\"{}\",\"profile\":\"{}\",",
+                "\"profile_revision\":\"{}\",\"security\":\"{}\",",
+                "\"network\":\"{}\",\"radio_backend\":\"{}\",",
+                "\"supplicant_backend\":\"{}\",\"crypto_backend\":\"{}\",",
+                "\"runtime_contract\":\"{}\",\"task_admission\":\"{}\",",
+                "\"event_capacity\":{},\"caller_owned_bytes\":{},",
+                "\"control_storage_bytes\":{},\"composition_handle_bytes\":{},",
+                "\"radio_state_bytes\":{},\"crypto_dma_bytes\":{},",
+                "\"arena_storage_bytes\":{},\"linker_packet_ram_bytes\":{},",
+                "\"main_stack_bytes_required\":{},\"dynamic_tasks_required\":{},",
+                "\"vendor_task_slots\":{},\"vendor_stack_bytes_per_task\":{},",
+                "\"worker_task_slots\":{},\"worker_stack_bytes_per_task\":{},",
+                "\"coexistence_task_slots\":{},\"coexistence_stack_bytes\":{},",
+                "\"runtime_internal_tasks\":{},\"task_stack_bytes\":{},",
+                "\"minimum_task_stack_bytes\":{},\"runtime_object_headroom_bytes\":{},",
+                "\"runtime_arena_bytes\":{},\"supplicant_arena_bytes\":null,",
+                "\"shared_rf_arena_bytes\":{},\"flash_bytes\":null,",
+                "\"runtime_resources_calibrated\":{}}}"
+            ),
+            self.schema,
+            self.chip,
+            self.profile,
+            self.profile_revision,
+            self.security,
+            self.network,
+            self.radio_backend,
+            self.supplicant_backend,
+            self.crypto_backend,
+            self.runtime_contract,
+            self.task_admission,
+            self.event_capacity,
+            self.caller_owned_bytes,
+            self.control_storage_bytes,
+            self.composition_handle_bytes,
+            self.radio_state_bytes,
+            self.crypto_dma_bytes,
+            self.arena_storage_bytes,
+            self.linker_packet_ram_bytes,
+            self.main_stack_bytes_required,
+            self.dynamic_tasks_required,
+            self.vendor_task_slots,
+            self.vendor_stack_bytes_per_task,
+            self.worker_task_slots.unwrap_or(0),
+            self.worker_stack_bytes_per_task.unwrap_or(0),
+            self.coexistence_task_slots,
+            self.coexistence_stack_bytes,
+            self.runtime_internal_tasks.unwrap_or(0),
+            self.task_stack_bytes.unwrap_or(0),
+            self.minimum_task_stack_bytes.unwrap_or(0),
+            self.runtime_object_headroom_bytes.unwrap_or(0),
+            self.runtime_arena_bytes.unwrap_or(0),
+            self.shared_rf_arena_bytes.unwrap_or(0),
+            self.runtime_resources_calibrated,
+        )
+    }
+}
 
 /// Versioned schema for a complete public WS63 radio diagnostic snapshot.
 pub const RADIO_DIAGNOSTICS_SCHEMA: &str = "hisi-rf-radio-diagnostics/v8";
@@ -159,20 +342,35 @@ impl RadioDiagnosticsSnapshot {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::string::String;
 
     #[test]
     fn schema_references_existing_error_and_resource_truth() {
         assert_eq!(RADIO_DIAGNOSTICS_SCHEMA, "hisi-rf-radio-diagnostics/v8");
         assert_eq!(crate::DIAGNOSTIC_SCHEMA, "hisi-rf-error/v3");
-        let report = hisi_rf_ws63::resource_report::<
+        let report = ResourceReport::from_backend(hisi_rf_ws63::resource_report::<
             hisi_rf_ws63::SelectedProfile,
             { crate::EVENT_CAPACITY },
-        >();
+        >());
         assert_eq!(report.schema, "hisi-rf-resource-report/v13");
         #[cfg(all(feature = "wpa2-personal", not(feature = "incremental-embassy-wait")))]
         assert!(report.runtime_resources_calibrated);
         #[cfg(any(feature = "wpa3-personal", feature = "incremental-embassy-wait"))]
         assert!(!report.runtime_resources_calibrated);
+    }
+
+    #[test]
+    fn resource_report_projection_preserves_the_machine_contract() {
+        let backend = hisi_rf_ws63::resource_report::<
+            hisi_rf_ws63::SelectedProfile,
+            { crate::EVENT_CAPACITY },
+        >();
+        let facade = ResourceReport::from_backend(backend);
+        let mut backend_json = String::new();
+        let mut facade_json = String::new();
+        backend.write_json(&mut backend_json).unwrap();
+        facade.write_json(&mut facade_json).unwrap();
+        assert_eq!(facade_json, backend_json);
     }
 
     #[cfg(feature = "incremental-embassy-wait")]

@@ -17,20 +17,25 @@ static RTOS_ARENA: hisi_rtos::SchedulerArena<{ hisi_rf::ws63::SELECTED_RUNTIME_A
 #[entry]
 fn main() -> ! {
     let peripherals = unsafe { hisi_hal::peripherals::Peripherals::steal() };
-    let (control, arena) = RADIO_STORAGE
+    let installed = RADIO_STORAGE
         .install()
-        .expect("install caller-owned radio storage")
-        .into_init_parts();
-    let resources = hisi_rf::ws63::Resources::<hisi_rf::ws63::SelectedProfile>::builder(
-        peripherals.EFUSE,
-        arena,
-    )
-    .crypto(peripherals.KM, peripherals.SPACC, peripherals.TRNG);
+        .expect("install caller-owned radio storage");
     #[cfg(feature = "wpa2-personal")]
-    let resources = resources.build();
+    let resources = installed.resources(
+        peripherals.EFUSE,
+        peripherals.KM,
+        peripherals.SPACC,
+        peripherals.TRNG,
+    );
     #[cfg(feature = "wpa3-personal")]
-    let resources = resources.pke(peripherals.PKE).build();
-    let _radio = hisi_rf::ws63::init(hisi_rf::RadioConfig::default(), resources, control)
+    let resources = installed.resources(
+        peripherals.EFUSE,
+        peripherals.KM,
+        peripherals.SPACC,
+        peripherals.PKE,
+        peripherals.TRNG,
+    );
+    let _radio = hisi_rf::ws63::init(hisi_rf::RadioConfig::default(), resources)
         .expect("fresh static radio state");
 
     loop {

@@ -63,20 +63,21 @@ hisi_rf::ws63::declare_radio_storage!(
 );
 ```
 
-Before starting `hisi-rtos`, call `RADIO_STORAGE.install()` once and use its
-allocation functions for the runtime. After RTOS startup,
-`into_init_parts()` transfers the arena capability to the typed chip-resource
-builder and lends the bounded control state to radio initialization. This
-temporal split preserves the real linker/runtime boundary without exposing two
-application-owned statics.
+Before starting `hisi-rtos`, call `RADIO_STORAGE.install()` once and pass its
+`RuntimeAllocator` capability to the runtime selected by the application.
+After RTOS startup, consume the installed storage with `resources(...)`; the
+facade binds the arena and bounded control state to the selected security
+profile without exposing backend arena or profile types.
 
 The storage-bound controller splits into the Wi-Fi handles and the mandatory
 bounded runner:
 
 ```rust,ignore
-let (control, arena) = RADIO_STORAGE.install()?.into_init_parts();
-let resources = build_resources(arena);
-let controller = hisi_rf::ws63::init(config, resources, control)?;
+let installed = RADIO_STORAGE.install()?;
+let allocator = installed.runtime_allocator();
+start_selected_runtime(allocator)?;
+let resources = bind_profile_resources(installed, peripherals);
+let controller = hisi_rf::ws63::init(config, resources)?;
 let parts = controller.split(
     hisi_rf::WorkBudget::try_new(8, 100_000).expect("non-zero work budget")
 );

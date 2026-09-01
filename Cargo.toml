@@ -113,7 +113,7 @@ incremental-embassy-wait = [
     "incremental-backend-experiment",
     "hisi-rf-ws63?/incremental-embassy-wait",
 ]
-wifi = ["hisi-rf-ws63?/wifi"]
+wifi = ["hisi-rf-ws63?/wifi", "dep:hisi-hal"]
 smoltcp = ["hisi-rf-core/smoltcp", "hisi-rf-ws63?/smoltcp"]
 wpa2-personal = ["wifi", "hisi-rf-ws63?/wpa2-personal"]
 wpa3-personal = ["wifi", "hisi-rf-ws63?/wpa3-personal"]

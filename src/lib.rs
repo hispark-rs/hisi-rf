@@ -4870,8 +4870,8 @@ pub type IncrementalRadioRunner<B> = hisi_rf_core::IncrementalRadioRunner<B, EVE
 mod ws63_wifi {
     pub use crate::declare_radio_storage;
     pub use crate::ws63_diagnostics::{
-        RADIO_DIAGNOSTICS_SCHEMA, RadioDiagnosticsSnapshot, RunnerDiagnosticsSnapshot,
-        WaitDiagnosticsSnapshot,
+        RADIO_DIAGNOSTICS_SCHEMA, RadioDiagnosticsSnapshot, ResourceReport,
+        RunnerDiagnosticsSnapshot, WaitDiagnosticsSnapshot,
     };
     #[allow(deprecated)]
     pub use hisi_rf_ws63::SELECTED_TASK_STACK_ARENA_BYTES;
@@ -4884,15 +4884,13 @@ mod ws63_wifi {
         any(feature = "wpa2-personal", feature = "wpa3-personal")
     ))]
     pub use hisi_rf_ws63::{
-        ArenaAdmissionError, AssociationIoctlMetrics, AssociationTimingDiagnostics,
-        BlockingBackendMetrics, BlockingBootstrapMetrics, BlockingOperationMetrics, BootstrapStage,
-        BootstrapStageMetrics, CryptoReady, DataPathDiagnostics, DhcpDiagnostics, InitError,
-        InitErrorKind, InstalledRadioArena, L2ProtocolDiagnostics, MissingCrypto, MissingPke,
-        PkeNotRequired, PkeReady, RadioArena, RadioArenaStorage, ResourceReport, Resources,
-        ResourcesBuilder, RfHeapMetrics, RxQueueDiagnostics, SELECTED_MINIMUM_TASK_STACK_BYTES,
-        SELECTED_RF_ARENA_BYTES, SELECTED_RUNTIME_ARENA_BYTES, ScanDiagnostics, SelectedProfile,
-        WifiDevice, WifiRxToken, WifiTxToken, WifiWpa2Smoltcp, WifiWpa3Smoltcp,
-        association_timing_diagnostics, blocking_backend_metrics, rf_heap_metrics,
+        AssociationIoctlMetrics, AssociationTimingDiagnostics, BlockingBackendMetrics,
+        BlockingBootstrapMetrics, BlockingOperationMetrics, BootstrapStage, BootstrapStageMetrics,
+        DataPathDiagnostics, DhcpDiagnostics, L2ProtocolDiagnostics, RadioArena, RadioArenaStorage,
+        RfHeapMetrics, RxQueueDiagnostics, SELECTED_MINIMUM_TASK_STACK_BYTES,
+        SELECTED_RF_ARENA_BYTES, SELECTED_RUNTIME_ARENA_BYTES, ScanDiagnostics, WifiDevice,
+        WifiRxToken, WifiTxToken, association_timing_diagnostics, blocking_backend_metrics,
+        rf_heap_metrics,
     };
     #[cfg(feature = "ws63-station-pm-diagnostics")]
     #[doc(hidden)]
@@ -4922,7 +4920,7 @@ mod ws63_wifi {
 
     /// Caller-owned control storage for the selected WS63 profile.
     pub struct Storage {
-        inner: hisi_rf_ws63::Storage<SelectedProfile, EVENT_CAPACITY>,
+        inner: hisi_rf_ws63::Storage<hisi_rf_ws63::SelectedProfile, EVENT_CAPACITY>,
     }
 
     impl Storage {
@@ -4935,7 +4933,7 @@ mod ws63_wifi {
 
         /// Return the selected profile's deterministic resource report.
         pub const fn report(&self) -> ResourceReport {
-            self.inner.report()
+            ResourceReport::from_backend(self.inner.report())
         }
     }
 
@@ -4944,7 +4942,10 @@ mod ws63_wifi {
         feature = "incremental-embassy-wait"
     ))]
     const SELECTED_RESOURCE_REPORT: ResourceReport =
-        hisi_rf_ws63::resource_report::<SelectedProfile, EVENT_CAPACITY>();
+        ResourceReport::from_backend(hisi_rf_ws63::resource_report::<
+            hisi_rf_ws63::SelectedProfile,
+            EVENT_CAPACITY,
+        >());
 
     /// Capture the complete public diagnostic view from task-split Wi-Fi handles.
     #[cfg(any(
@@ -4991,8 +4992,12 @@ mod ws63_wifi {
         }
 
         /// Install the caller-owned composition exactly once.
-        pub fn install(&'static self) -> Result<InstalledRadioStorage, ArenaAdmissionError> {
-            let arena = self.arena.claim_for::<SelectedProfile>()?.install()?;
+        pub fn install(&'static self) -> Result<InstalledRadioStorage, InitError> {
+            let arena = self
+                .arena
+                .claim_for::<hisi_rf_ws63::SelectedProfile>()
+                .and_then(|claim| claim.install())
+                .map_err(InitError::storage)?;
             Ok(InstalledRadioStorage {
                 control: self.control,
                 arena,
@@ -5008,18 +5013,24 @@ mod ws63_wifi {
     /// Installed storage capability for the selected WS63 profile.
     pub struct InstalledRadioStorage {
         control: &'static Storage,
-        arena: InstalledRadioArena<SelectedProfile>,
+        arena: hisi_rf_ws63::InstalledRadioArena<hisi_rf_ws63::SelectedProfile>,
     }
 
     impl InstalledRadioStorage {
         unsafe fn allocate(size: usize) -> *mut u8 {
             // SAFETY: this method preserves the backend allocator's contract.
-            unsafe { InstalledRadioArena::<SelectedProfile>::allocate(size) }
+            unsafe {
+                hisi_rf_ws63::InstalledRadioArena::<hisi_rf_ws63::SelectedProfile>::allocate(size)
+            }
         }
 
         unsafe fn deallocate(pointer: *mut u8) {
             // SAFETY: the caller upholds the backend deallocation contract.
-            unsafe { InstalledRadioArena::<SelectedProfile>::deallocate(pointer) };
+            unsafe {
+                hisi_rf_ws63::InstalledRadioArena::<hisi_rf_ws63::SelectedProfile>::deallocate(
+                    pointer,
+                )
+            };
         }
 
         /// Return the installed allocator capability for the selected runtime.
@@ -5027,9 +5038,112 @@ mod ws63_wifi {
             crate::RuntimeAllocator::new(Self::allocate, Self::deallocate)
         }
 
-        /// Split storage at the post-RTOS radio initialization boundary.
-        pub fn into_init_parts(self) -> (&'static Storage, InstalledRadioArena<SelectedProfile>) {
-            (self.control, self.arena)
+        /// Bind the WPA2 profile's uniquely owned WS63 capabilities.
+        #[cfg(feature = "wpa2-personal")]
+        pub fn resources(
+            self,
+            efuse: hisi_hal::peripherals::Efuse<'static>,
+            km: hisi_hal::peripherals::Km<'static>,
+            spacc: hisi_hal::peripherals::Spacc<'static>,
+            trng: hisi_hal::peripherals::Trng<'static>,
+        ) -> Resources {
+            Resources {
+                control: self.control,
+                inner: hisi_rf_ws63::Resources::<hisi_rf_ws63::SelectedProfile>::builder(
+                    efuse, self.arena,
+                )
+                .crypto(km, spacc, trng)
+                .build(),
+            }
+        }
+
+        /// Bind the WPA3 profile's uniquely owned WS63 capabilities.
+        #[cfg(feature = "wpa3-personal")]
+        pub fn resources(
+            self,
+            efuse: hisi_hal::peripherals::Efuse<'static>,
+            km: hisi_hal::peripherals::Km<'static>,
+            spacc: hisi_hal::peripherals::Spacc<'static>,
+            pke: hisi_hal::peripherals::Pke<'static>,
+            trng: hisi_hal::peripherals::Trng<'static>,
+        ) -> Resources {
+            Resources {
+                control: self.control,
+                inner: hisi_rf_ws63::Resources::<hisi_rf_ws63::SelectedProfile>::builder(
+                    efuse, self.arena,
+                )
+                .crypto(km, spacc, trng)
+                .pke(pke)
+                .build(),
+            }
+        }
+    }
+
+    /// Facade-owned WS63 capabilities ready for radio initialization.
+    pub struct Resources {
+        control: &'static Storage,
+        inner: hisi_rf_ws63::Resources<hisi_rf_ws63::SelectedProfile>,
+    }
+
+    /// Stable category of a WS63 radio initialization failure.
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub enum InitErrorKind {
+        /// The caller-owned arena could not satisfy the selected profile.
+        StorageAdmission,
+        /// The installed runtime cannot satisfy the profile contract.
+        Runtime,
+        /// The runtime could not atomically reserve the profile's task slots.
+        TaskAdmission,
+        /// The caller-owned storage was already consumed.
+        StorageAlreadyClaimed,
+        /// The chip-neutral controller rejected initialization.
+        Core,
+    }
+
+    /// Secret-free WS63 radio initialization failure.
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub struct InitError {
+        kind: InitErrorKind,
+        diagnostic: crate::Diagnostic,
+    }
+
+    impl InitError {
+        fn storage(error: hisi_rf_ws63::ArenaAdmissionError) -> Self {
+            Self {
+                kind: InitErrorKind::StorageAdmission,
+                diagnostic: error.diagnostic(),
+            }
+        }
+
+        fn backend(error: hisi_rf_ws63::InitError) -> Self {
+            let kind = match error.kind() {
+                hisi_rf_ws63::InitErrorKind::Runtime => InitErrorKind::Runtime,
+                hisi_rf_ws63::InitErrorKind::TaskAdmission => InitErrorKind::TaskAdmission,
+                hisi_rf_ws63::InitErrorKind::StorageAlreadyClaimed => {
+                    InitErrorKind::StorageAlreadyClaimed
+                }
+                hisi_rf_ws63::InitErrorKind::Core => InitErrorKind::Core,
+            };
+            Self {
+                kind,
+                diagnostic: error.diagnostic(),
+            }
+        }
+
+        /// Return the stable failure category.
+        pub const fn kind(self) -> InitErrorKind {
+            self.kind
+        }
+
+        /// Return the shared secret-free diagnostic payload.
+        pub const fn diagnostic(self) -> crate::Diagnostic {
+            self.diagnostic
+        }
+    }
+
+    impl core::fmt::Display for InitError {
+        fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+            self.diagnostic.fmt(formatter)
         }
     }
 
@@ -5071,7 +5185,7 @@ mod ws63_wifi {
         allow(dead_code, reason = "split is enabled by incremental-embassy-wait")
     )]
     pub struct RadioController(
-        hisi_rf_ws63::IncrementalRadioController<SelectedProfile, EVENT_CAPACITY>,
+        hisi_rf_ws63::IncrementalRadioController<hisi_rf_ws63::SelectedProfile, EVENT_CAPACITY>,
     );
 
     #[cfg(all(
@@ -5101,10 +5215,11 @@ mod ws63_wifi {
     /// Initialize the selected bounded WS63 profile.
     pub fn init(
         config: crate::RadioConfig,
-        resources: Resources<SelectedProfile>,
-        storage: &'static Storage,
+        resources: Resources,
     ) -> Result<RadioController, InitError> {
-        hisi_rf_ws63::init_incremental(config, resources, &storage.inner).map(RadioController)
+        hisi_rf_ws63::init_incremental(config, resources.inner, &resources.control.inner)
+            .map(RadioController)
+            .map_err(InitError::backend)
     }
 
     #[cfg(all(
@@ -5309,13 +5424,10 @@ macro_rules! declare_radio_storage {
     any(feature = "wpa2-personal", feature = "wpa3-personal")
 ))]
 mod tests {
-    type TestProfile = super::ws63::SelectedProfile;
-    type TestStorage = super::ws63::Storage;
     type TestController = super::ws63::RadioController;
     type TestInit = fn(
         super::RadioConfig,
-        super::ws63::Resources<TestProfile>,
-        &'static TestStorage,
+        super::ws63::Resources,
     ) -> Result<TestController, super::ws63::InitError>;
 
     #[test]

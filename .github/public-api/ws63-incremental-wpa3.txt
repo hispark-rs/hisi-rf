@@ -103,7 +103,7 @@ impl core::fmt::Display for hisi_rf::ws63::InitError
 pub fn hisi_rf::ws63::InitError::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
 pub struct hisi_rf::ws63::InstalledRadioStorage
 impl hisi_rf::ws63::InstalledRadioStorage
-pub fn hisi_rf::ws63::InstalledRadioStorage::resources(self, hisi_hal::peripherals::ws63_only::Efuse<'static>, hisi_hal::peripherals::ws63_only::Km<'static>, hisi_hal::peripherals::ws63_only::Spacc<'static>, hisi_hal::peripherals::Trng<'static>) -> hisi_rf::ws63::Resources
+pub fn hisi_rf::ws63::InstalledRadioStorage::resources(self, hisi_hal::peripherals::ws63_only::Efuse<'static>, hisi_hal::peripherals::ws63_only::Km<'static>, hisi_hal::peripherals::ws63_only::Spacc<'static>, hisi_hal::peripherals::ws63_only::Pke<'static>, hisi_hal::peripherals::Trng<'static>) -> hisi_rf::ws63::Resources
 pub const fn hisi_rf::ws63::InstalledRadioStorage::runtime_allocator(&self) -> hisi_rf::RuntimeAllocator
 pub struct hisi_rf::ws63::RadioController(_)
 impl hisi_rf::ws63::RadioController
