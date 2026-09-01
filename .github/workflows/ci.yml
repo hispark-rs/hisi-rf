@@ -80,6 +80,8 @@ jobs:
         run: cargo install cargo-public-api --version 0.52.0 --locked
       - name: Check facade public API snapshot
         run: .github/scripts/check-public-api.sh
+      - name: Check U8 stable-graduation decision
+        run: uv run --script .github/scripts/check-stable-graduation.py
       - name: Reject a missing chip selection
         run: |
           log="${RUNNER_TEMP}/hisi-rf-missing-chip.log"
