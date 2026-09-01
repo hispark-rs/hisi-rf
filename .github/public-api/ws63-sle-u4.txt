@@ -34,13 +34,17 @@ pub use hisi_rf::WifiL2Capabilities
 pub use hisi_rf::sle
 pub mod hisi_rf::ws63
 pub macro hisi_rf::ws63::declare_radio_storage!
+pub enum hisi_rf::ws63::SleBackendStage
+pub hisi_rf::ws63::SleBackendStage::Enable
+pub hisi_rf::ws63::SleBackendStage::StartAnnounce
+pub hisi_rf::ws63::SleBackendStage::StartSeek
 pub enum hisi_rf::ws63::SleEvent
 pub hisi_rf::ws63::SleEvent::AnnounceStarted
 pub hisi_rf::ws63::SleEvent::AnnounceStarted::announcer: hisi_rf::ws63::Announcer
 pub hisi_rf::ws63::SleEvent::BackendError
 pub hisi_rf::ws63::SleEvent::BackendError::operation: core::option::Option<hisi_rf::ProtocolCommandId>
-pub hisi_rf::ws63::SleEvent::BackendError::stage: u8
-pub hisi_rf::ws63::SleEvent::BackendError::status: u32
+pub hisi_rf::ws63::SleEvent::BackendError::stage: hisi_rf::ws63::SleBackendStage
+pub hisi_rf::ws63::SleEvent::BackendError::status: hisi_rf::VendorStatus
 pub hisi_rf::ws63::SleEvent::SeekReady
 pub hisi_rf::ws63::SleEvent::SeekReady::seeker: hisi_rf::ws63::Seeker
 pub enum hisi_rf::ws63::SleOperation
@@ -156,6 +160,9 @@ pub hisi_rf::RadioResourceReport::task_stack_bytes: usize
 impl hisi_rf::RadioResourceReport
 pub const fn hisi_rf::RadioResourceReport::minimum_owned_bytes(self) -> usize
 pub fn hisi_rf::RadioResourceReport::write_json(self, &mut impl core::fmt::Write) -> core::fmt::Result
+pub struct hisi_rf::VendorStatus(_)
+impl hisi_rf::VendorStatus
+pub const fn hisi_rf::VendorStatus::get(self) -> u32
 pub const hisi_rf::EVENT_CAPACITY: usize
 pub const hisi_rf::RADIO_RESOURCE_REPORT_SCHEMA: &str
 pub type hisi_rf::WifiController = hisi_rf_core::wifi::WifiController<EVENT_CAPACITY>

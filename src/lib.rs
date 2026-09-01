@@ -131,6 +131,27 @@ impl ProtocolCommandId {
     }
 }
 
+/// Opaque status returned by a chip radio backend.
+///
+/// Applications should branch on the typed operation or event stage first and
+/// retain this value for diagnostics. Its numeric meaning remains backend and
+/// archive-version specific.
+#[cfg(any(feature = "ble", feature = "sle"))]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct VendorStatus(u32);
+
+#[cfg(any(feature = "ble", feature = "sle"))]
+impl VendorStatus {
+    const fn from_raw(value: u32) -> Self {
+        Self(value)
+    }
+
+    /// Return the lossless backend value for diagnostics and support reports.
+    pub const fn get(self) -> u32 {
+        self.0
+    }
+}
+
 /// Conservation snapshot for the public unsolicited-event queue.
 #[cfg(any(feature = "ble", feature = "sle"))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -654,6 +675,31 @@ mod ws63_ble {
         UnsupportedTarget,
     }
 
+    /// Facade-owned stage for an asynchronous BLE backend failure.
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub enum BleBackendStage {
+        /// Controller/host enable callback.
+        Enable,
+        /// Advertising start callback.
+        StartAdvertising,
+        /// Scanning start callback.
+        StartScanning,
+        /// Peer address or advertising payload decoding.
+        DecodePeer,
+        /// Connection callback did not match the owned peer generation.
+        ConnectionOwnership,
+        /// Pairing callback contained an invalid peer identity.
+        PairingPeer,
+        /// Authentication callback contained an invalid peer identity.
+        AuthenticationPeer,
+        /// Vendor bond observation did not match the authenticated peer.
+        BondObservation,
+        /// Pairing prompt did not match an active connection generation.
+        PairingPrompt,
+        /// Displayed or entered passkey was invalid for the active generation.
+        Passkey,
+    }
+
     /// Fail-closed BLE command rejection with an optional vendor status.
     #[derive(Clone, Copy, Debug, Eq, PartialEq)]
     pub struct BleOperationError {
@@ -904,10 +950,10 @@ mod ws63_ble {
         BackendError {
             /// Correlated command when the runner still owns its lifecycle.
             operation: Option<crate::ProtocolCommandId>,
-            /// Stable facade stage identifier.
-            stage: u8,
-            /// Lossless vendor status.
-            status: u32,
+            /// Typed facade stage; no vendor stage number escapes this API.
+            stage: BleBackendStage,
+            /// Lossless backend status for diagnostics.
+            status: crate::VendorStatus,
         },
     }
 
@@ -1455,8 +1501,8 @@ mod ws63_ble {
                 lifecycles.advertising.clear();
                 Some(BleEvent::BackendError {
                     operation,
-                    stage: 1,
-                    status,
+                    stage: BleBackendStage::StartAdvertising,
+                    status: crate::VendorStatus::from_raw(status),
                 })
             }
             hisi_rf_ws63::BleB2Event::AdvertisingStopped { status, .. } => {
@@ -1493,8 +1539,8 @@ mod ws63_ble {
                 lifecycles.scanning.clear();
                 Some(BleEvent::BackendError {
                     operation,
-                    stage: 2,
-                    status,
+                    stage: BleBackendStage::StartScanning,
+                    status: crate::VendorStatus::from_raw(status),
                 })
             }
             hisi_rf_ws63::BleB2Event::ScanResult {
@@ -1516,8 +1562,8 @@ mod ws63_ble {
                 })
                 .or(Some(BleEvent::BackendError {
                     operation: lifecycles.scanning.operation,
-                    stage: 3,
-                    status: u32::MAX,
+                    stage: BleBackendStage::DecodePeer,
+                    status: crate::VendorStatus::from_raw(u32::MAX),
                 })),
             hisi_rf_ws63::BleB2Event::ConnectionState {
                 conn_id: _,
@@ -1531,8 +1577,8 @@ mod ws63_ble {
                 {
                     return Some(BleEvent::BackendError {
                         operation: lifecycles.connection.operation,
-                        stage: 4,
-                        status: u32::MAX,
+                        stage: BleBackendStage::ConnectionOwnership,
+                        status: crate::VendorStatus::from_raw(u32::MAX),
                     });
                 }
                 let operation = lifecycles.connection.operation;
@@ -1574,8 +1620,8 @@ mod ws63_ble {
             hisi_rf_ws63::BleB2Event::Enabled { status } if status != 0 => {
                 Some(BleEvent::BackendError {
                     operation: None,
-                    stage: 0,
-                    status,
+                    stage: BleBackendStage::Enable,
+                    status: crate::VendorStatus::from_raw(status),
                 })
             }
             hisi_rf_ws63::BleB2Event::PairingComplete {
@@ -1588,8 +1634,8 @@ mod ws63_ble {
                 let Some(peer) = map_ble_peer(address, address_type) else {
                     return Some(BleEvent::BackendError {
                         operation: None,
-                        stage: 5,
-                        status: u32::MAX,
+                        stage: BleBackendStage::PairingPeer,
+                        status: crate::VendorStatus::from_raw(u32::MAX),
                     });
                 };
                 Some(BleEvent::PairingComplete {
@@ -1608,8 +1654,8 @@ mod ws63_ble {
                 let Some(peer) = map_ble_peer(address, address_type) else {
                     return Some(BleEvent::BackendError {
                         operation: None,
-                        stage: 6,
-                        status: u32::MAX,
+                        stage: BleBackendStage::AuthenticationPeer,
+                        status: crate::VendorStatus::from_raw(u32::MAX),
                     });
                 };
                 Some(BleEvent::AuthenticationComplete {
@@ -1624,8 +1670,8 @@ mod ws63_ble {
                 if !lifecycles.connection.runner.is_active(connection) {
                     return Some(BleEvent::BackendError {
                         operation: lifecycles.connection.operation,
-                        stage: 8,
-                        status: u32::MAX,
+                        stage: BleBackendStage::PairingPrompt,
+                        status: crate::VendorStatus::from_raw(u32::MAX),
                     });
                 }
                 lifecycles
@@ -1634,8 +1680,8 @@ mod ws63_ble {
                     .map(|responder| BleEvent::PasskeyInputRequested { peer, responder })
                     .or(Some(BleEvent::BackendError {
                         operation: lifecycles.connection.operation,
-                        stage: 8,
-                        status: u32::MAX,
+                        stage: BleBackendStage::PairingPrompt,
+                        status: crate::VendorStatus::from_raw(u32::MAX),
                     }))
             }
             hisi_rf_ws63::BleB2Event::PasskeyDisplayed {
@@ -1647,16 +1693,16 @@ mod ws63_ble {
                 if !lifecycles.connection.runner.is_active(connection) {
                     return Some(BleEvent::BackendError {
                         operation: lifecycles.connection.operation,
-                        stage: 9,
-                        status: u32::MAX,
+                        stage: BleBackendStage::Passkey,
+                        status: crate::VendorStatus::from_raw(u32::MAX),
                     });
                 }
                 crate::ble::Passkey::try_new(passkey)
                     .map(|passkey| BleEvent::PasskeyDisplayed { peer, passkey })
                     .or(Some(BleEvent::BackendError {
                         operation: lifecycles.connection.operation,
-                        stage: 9,
-                        status: passkey,
+                        stage: BleBackendStage::Passkey,
+                        status: crate::VendorStatus::from_raw(passkey),
                     }))
             }
             _ => None,
@@ -1696,8 +1742,8 @@ mod ws63_ble {
         } else {
             BleEvent::BackendError {
                 operation: None,
-                stage: 7,
-                status: u32::MAX,
+                stage: BleBackendStage::BondObservation,
+                status: crate::VendorStatus::from_raw(u32::MAX),
             }
         }
     }
@@ -2483,8 +2529,8 @@ mod ws63_ble {
                 producer
                     .try_publish(BleEvent::BackendError {
                         operation: None,
-                        stage: 0,
-                        status: 1,
+                        stage: BleBackendStage::Enable,
+                        status: crate::VendorStatus::from_raw(1),
                     })
                     .unwrap();
             }
@@ -2492,8 +2538,8 @@ mod ws63_ble {
                 producer
                     .try_publish(BleEvent::BackendError {
                         operation: None,
-                        stage: 0,
-                        status: 1,
+                        stage: BleBackendStage::Enable,
+                        status: crate::VendorStatus::from_raw(1),
                     })
                     .is_err()
             );
@@ -2681,7 +2727,10 @@ mod ws63_ble {
                     },
                     &mut lifecycles,
                 ),
-                Some(BleEvent::BackendError { stage: 5, .. })
+                Some(BleEvent::BackendError {
+                    stage: BleBackendStage::PairingPeer,
+                    ..
+                })
             ));
 
             assert!(matches!(
@@ -2690,7 +2739,10 @@ mod ws63_ble {
             ));
             assert!(matches!(
                 map_vendor_bond_observation(peer, [9; 6]),
-                BleEvent::BackendError { stage: 7, .. }
+                BleEvent::BackendError {
+                    stage: BleBackendStage::BondObservation,
+                    ..
+                }
             ));
             drop(connection);
         }
@@ -2747,7 +2799,10 @@ mod ws63_ble {
                     },
                     &mut lifecycles,
                 ),
-                Some(BleEvent::BackendError { stage: 8, .. })
+                Some(BleEvent::BackendError {
+                    stage: BleBackendStage::PairingPrompt,
+                    ..
+                })
             ));
 
             let id = controller
@@ -2789,7 +2844,10 @@ mod ws63_ble {
                     },
                     &mut lifecycles,
                 ),
-                Some(BleEvent::BackendError { stage: 9, .. })
+                Some(BleEvent::BackendError {
+                    stage: BleBackendStage::Passkey,
+                    ..
+                })
             ));
             drop(connection);
         }
@@ -3258,8 +3316,8 @@ mod ws63_ble {
                 producer
                     .try_publish(BleEvent::BackendError {
                         operation: None,
-                        stage: 0,
-                        status: 1,
+                        stage: BleBackendStage::Enable,
+                        status: crate::VendorStatus::from_raw(1),
                     })
                     .unwrap();
             }
@@ -3575,6 +3633,17 @@ mod ws63_sle {
         SsapDatabase,
     }
 
+    /// Facade-owned stage for an asynchronous SLE backend failure.
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub enum SleBackendStage {
+        /// Controller/host enable callback.
+        Enable,
+        /// Announce start callback.
+        StartAnnounce,
+        /// Seek start callback.
+        StartSeek,
+    }
+
     /// Fail-closed SLE command rejection with an optional vendor status.
     #[derive(Clone, Copy, Debug, Eq, PartialEq)]
     pub struct SleOperationError {
@@ -3690,10 +3759,10 @@ mod ws63_sle {
         BackendError {
             /// Correlated command when the runner still owns its lifecycle.
             operation: Option<crate::ProtocolCommandId>,
-            /// Stable facade stage identifier.
-            stage: u8,
-            /// Lossless vendor status.
-            status: u32,
+            /// Typed facade stage; no vendor stage number escapes this API.
+            stage: SleBackendStage,
+            /// Lossless backend status for diagnostics.
+            status: crate::VendorStatus,
         },
     }
 
@@ -3941,8 +4010,8 @@ mod ws63_sle {
                 lifecycles.announce.clear();
                 Some(SleEvent::BackendError {
                     operation,
-                    stage: 1,
-                    status,
+                    stage: SleBackendStage::StartAnnounce,
+                    status: crate::VendorStatus::from_raw(status),
                 })
             }
             hisi_rf_ws63::SleS1Event::AnnounceDisabled { status, .. } => {
@@ -3979,8 +4048,8 @@ mod ws63_sle {
                 lifecycles.seek.clear();
                 Some(SleEvent::BackendError {
                     operation,
-                    stage: 2,
-                    status,
+                    stage: SleBackendStage::StartSeek,
+                    status: crate::VendorStatus::from_raw(status),
                 })
             }
             hisi_rf_ws63::SleS1Event::SeekDisabled { status } => {
@@ -4000,8 +4069,8 @@ mod ws63_sle {
             hisi_rf_ws63::SleS1Event::Enabled { status } if status != 0 => {
                 Some(SleEvent::BackendError {
                     operation: None,
-                    stage: 0,
-                    status,
+                    stage: SleBackendStage::Enable,
+                    status: crate::VendorStatus::from_raw(status),
                 })
             }
             _ => None,
@@ -4519,8 +4588,8 @@ mod ws63_sle {
                 producer
                     .try_publish(SleEvent::BackendError {
                         operation: None,
-                        stage: 0,
-                        status: 1,
+                        stage: SleBackendStage::Enable,
+                        status: crate::VendorStatus::from_raw(1),
                     })
                     .unwrap();
             }
@@ -4528,8 +4597,8 @@ mod ws63_sle {
                 producer
                     .try_publish(SleEvent::BackendError {
                         operation: None,
-                        stage: 0,
-                        status: 1,
+                        stage: SleBackendStage::Enable,
+                        status: crate::VendorStatus::from_raw(1),
                     })
                     .is_err()
             );

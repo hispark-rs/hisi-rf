@@ -34,6 +34,17 @@ pub use hisi_rf::WifiL2Capabilities
 pub use hisi_rf::ble
 pub mod hisi_rf::ws63
 pub macro hisi_rf::ws63::declare_radio_storage!
+pub enum hisi_rf::ws63::BleBackendStage
+pub hisi_rf::ws63::BleBackendStage::AuthenticationPeer
+pub hisi_rf::ws63::BleBackendStage::BondObservation
+pub hisi_rf::ws63::BleBackendStage::ConnectionOwnership
+pub hisi_rf::ws63::BleBackendStage::DecodePeer
+pub hisi_rf::ws63::BleBackendStage::Enable
+pub hisi_rf::ws63::BleBackendStage::PairingPeer
+pub hisi_rf::ws63::BleBackendStage::PairingPrompt
+pub hisi_rf::ws63::BleBackendStage::Passkey
+pub hisi_rf::ws63::BleBackendStage::StartAdvertising
+pub hisi_rf::ws63::BleBackendStage::StartScanning
 pub enum hisi_rf::ws63::BleEvent
 pub hisi_rf::ws63::BleEvent::AdvertisingStarted
 pub hisi_rf::ws63::BleEvent::AdvertisingStarted::advertiser: hisi_rf::ws63::Advertiser
@@ -43,8 +54,8 @@ pub hisi_rf::ws63::BleEvent::AuthenticationComplete::peer: hisi_rf_core::ble::Bl
 pub hisi_rf::ws63::BleEvent::AuthenticationComplete::result: core::result::Result<(), hisi_rf::ws63::BleOperationError>
 pub hisi_rf::ws63::BleEvent::BackendError
 pub hisi_rf::ws63::BleEvent::BackendError::operation: core::option::Option<hisi_rf::ProtocolCommandId>
-pub hisi_rf::ws63::BleEvent::BackendError::stage: u8
-pub hisi_rf::ws63::BleEvent::BackendError::status: u32
+pub hisi_rf::ws63::BleEvent::BackendError::stage: hisi_rf::ws63::BleBackendStage
+pub hisi_rf::ws63::BleEvent::BackendError::status: hisi_rf::VendorStatus
 pub hisi_rf::ws63::BleEvent::Connected
 pub hisi_rf::ws63::BleEvent::Connected::connection: hisi_rf::ws63::BleConnection
 pub hisi_rf::ws63::BleEvent::Disconnected
@@ -219,6 +230,9 @@ pub hisi_rf::RadioResourceReport::task_stack_bytes: usize
 impl hisi_rf::RadioResourceReport
 pub const fn hisi_rf::RadioResourceReport::minimum_owned_bytes(self) -> usize
 pub fn hisi_rf::RadioResourceReport::write_json(self, &mut impl core::fmt::Write) -> core::fmt::Result
+pub struct hisi_rf::VendorStatus(_)
+impl hisi_rf::VendorStatus
+pub const fn hisi_rf::VendorStatus::get(self) -> u32
 pub const hisi_rf::EVENT_CAPACITY: usize
 pub const hisi_rf::RADIO_RESOURCE_REPORT_SCHEMA: &str
 pub type hisi_rf::WifiController = hisi_rf_core::wifi::WifiController<EVENT_CAPACITY>
