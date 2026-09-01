@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.103] - 2026-09-01
+
+### Changed
+
+- Align the facade dependency with `hisi-rf-ws63 0.1.0-alpha.92`, including
+  the explicit connected Wi-Fi/SLE and SoftAP/SLE composition contracts.
+
 ## [0.1.0-alpha.102] - 2026-09-01
 
 ### Fixed
