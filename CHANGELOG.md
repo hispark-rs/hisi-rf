@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.107] - 2026-09-01
+
+### Fixed
+
+- Align the facade diagnostics contract test with the backend's v12 resource
+  report schema.
+
 ## [0.1.0-alpha.106] - 2026-09-01
 
 ### Changed
