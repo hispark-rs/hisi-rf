@@ -74,7 +74,6 @@ required-features = ["chip-ws63", "profile-sle-ssap", "u2-hil-diagnostics"]
 hisi-rf-core = "=0.1.0-alpha.24"
 hisi-rf-ws63 = { version = "=0.1.0-alpha.100", optional = true, default-features = false }
 hisi-hal = { version = "0.7.0-alpha.9", optional = true, features = ["chip-ws63", "unstable"] }
-hisi-rtos = { version = "=0.1.0-alpha.25", optional = true, features = ["chip-ws63"] }
 
 [target.'cfg(target_arch = "riscv32")'.dev-dependencies]
 hisi-hal = { version = "0.7.0-alpha.9", features = ["chip-ws63", "unstable"] }
@@ -94,7 +93,7 @@ critical-section = { version = "1", features = ["std"] }
 
 [features]
 default = []
-chip-ws63 = ["dep:hisi-rf-ws63", "dep:hisi-rtos"]
+chip-ws63 = ["dep:hisi-rf-ws63"]
 ble = ["hisi-rf-ws63?/ble-init", "dep:hisi-hal"]
 sle = ["hisi-rf-ws63?/sle-init", "dep:hisi-hal"]
 # Diagnostic-only WS63 packet-path instrumentation. This is intentionally

@@ -102,7 +102,7 @@ pub hisi_rf::ws63::RunnerDiagnosticsSnapshot::Incremental(hisi_rf_core::incremen
 pub struct hisi_rf::ws63::InstalledRadioStorage
 impl hisi_rf::ws63::InstalledRadioStorage
 pub fn hisi_rf::ws63::InstalledRadioStorage::into_init_parts(self) -> (&'static hisi_rf::ws63::Storage, hisi_rf_ws63::profile::InstalledRadioArena<hisi_rf_ws63::profile::SelectedProfile>)
-pub fn hisi_rf::ws63::InstalledRadioStorage::rtos_resources(&self, fn() -> u64) -> hisi_rtos::config::Resources
+pub const fn hisi_rf::ws63::InstalledRadioStorage::runtime_allocator(&self) -> hisi_rf::RuntimeAllocator
 pub struct hisi_rf::ws63::RadioController(_)
 impl hisi_rf::ws63::RadioController
 pub fn hisi_rf::ws63::RadioController::split(self, hisi_rf_core::incremental::WorkBudget) -> hisi_rf::ws63::RadioParts
@@ -162,6 +162,10 @@ pub const hisi_rf::ws63::RADIO_DIAGNOSTICS_SCHEMA: &str
 pub fn hisi_rf::ws63::diagnostics(&hisi_rf::WifiController, &hisi_rf_ws63::composition::WifiDevice) -> hisi_rf::ws63::RadioDiagnosticsSnapshot
 pub fn hisi_rf::ws63::init(hisi_rf_core::wifi::RadioConfig, hisi_rf_ws63::composition::Resources<hisi_rf_ws63::profile::SelectedProfile>, &'static hisi_rf::ws63::Storage) -> core::result::Result<hisi_rf::ws63::RadioController, hisi_rf_ws63::composition::InitError>
 pub macro hisi_rf::declare_radio_storage!
+pub struct hisi_rf::RuntimeAllocator
+impl hisi_rf::RuntimeAllocator
+pub const fn hisi_rf::RuntimeAllocator::allocate_callback(self) -> fn(usize) -> *mut u8
+pub const fn hisi_rf::RuntimeAllocator::deallocate_callback(self) -> fn(*mut u8)
 pub const hisi_rf::EVENT_CAPACITY: usize
 pub type hisi_rf::IncrementalRadioParts<B, D> = hisi_rf_core::incremental::facade::IncrementalRadioParts<B, D, EVENT_CAPACITY>
 pub type hisi_rf::IncrementalRadioRunner<B> = hisi_rf_core::incremental::facade::IncrementalRadioRunner<B, EVENT_CAPACITY>

@@ -157,7 +157,7 @@ pub struct hisi_rf::ws63::GattServerHandle
 pub struct hisi_rf::ws63::InitError
 pub struct hisi_rf::ws63::InstalledRadioStorage
 impl hisi_rf::ws63::InstalledRadioStorage
-pub fn hisi_rf::ws63::InstalledRadioStorage::rtos_resources(&self, fn() -> u64) -> hisi_rtos::config::Resources
+pub const fn hisi_rf::ws63::InstalledRadioStorage::runtime_allocator(&self) -> hisi_rf::RuntimeAllocator
 pub struct hisi_rf::ws63::PairingResponder
 impl core::fmt::Debug for hisi_rf::ws63::PairingResponder
 pub fn hisi_rf::ws63::PairingResponder::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result
@@ -231,6 +231,10 @@ pub hisi_rf::RadioResourceReport::task_stack_bytes: usize
 impl hisi_rf::RadioResourceReport
 pub const fn hisi_rf::RadioResourceReport::minimum_owned_bytes(self) -> usize
 pub fn hisi_rf::RadioResourceReport::write_json(self, &mut impl core::fmt::Write) -> core::fmt::Result
+pub struct hisi_rf::RuntimeAllocator
+impl hisi_rf::RuntimeAllocator
+pub const fn hisi_rf::RuntimeAllocator::allocate_callback(self) -> fn(usize) -> *mut u8
+pub const fn hisi_rf::RuntimeAllocator::deallocate_callback(self) -> fn(*mut u8)
 pub struct hisi_rf::VendorStatus(_)
 impl hisi_rf::VendorStatus
 pub const fn hisi_rf::VendorStatus::get(self) -> u32

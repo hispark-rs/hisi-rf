@@ -152,6 +152,37 @@ impl VendorStatus {
     }
 }
 
+/// Opaque allocator capability installed by a caller-owned radio composition.
+///
+/// The application passes these callbacks to its chosen runtime; the facade
+/// does not select or start a scheduler backend.
+#[cfg(feature = "chip-ws63")]
+#[derive(Clone, Copy)]
+pub struct RuntimeAllocator {
+    allocate: unsafe fn(usize) -> *mut u8,
+    deallocate: unsafe fn(*mut u8),
+}
+
+#[cfg(feature = "chip-ws63")]
+impl RuntimeAllocator {
+    const fn new(allocate: unsafe fn(usize) -> *mut u8, deallocate: unsafe fn(*mut u8)) -> Self {
+        Self {
+            allocate,
+            deallocate,
+        }
+    }
+
+    /// Return the allocation callback expected by the selected runtime.
+    pub const fn allocate_callback(self) -> unsafe fn(usize) -> *mut u8 {
+        self.allocate
+    }
+
+    /// Return the deallocation callback expected by the selected runtime.
+    pub const fn deallocate_callback(self) -> unsafe fn(*mut u8) {
+        self.deallocate
+    }
+}
+
 /// Conservation snapshot for the public unsolicited-event queue.
 #[cfg(any(feature = "ble", feature = "sle"))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -580,13 +611,9 @@ mod ws63_ble {
             unsafe { hisi_rf_ws63::InstalledBleB1Storage::deallocate(pointer) };
         }
 
-        /// Build the RTOS services backed by this installed radio arena.
-        pub fn rtos_resources(&self, monotonic_ms: fn() -> u64) -> hisi_rtos::Resources {
-            hisi_rtos::Resources {
-                allocate: Self::allocate,
-                deallocate: Self::deallocate,
-                monotonic_ms,
-            }
+        /// Return the installed allocator capability for the selected runtime.
+        pub const fn runtime_allocator(&self) -> crate::RuntimeAllocator {
+            crate::RuntimeAllocator::new(Self::allocate, Self::deallocate)
         }
     }
 
@@ -3573,13 +3600,9 @@ mod ws63_sle {
             unsafe { hisi_rf_ws63::InstalledSleS1Storage::deallocate(pointer) };
         }
 
-        /// Build the RTOS services backed by this installed radio arena.
-        pub fn rtos_resources(&self, monotonic_ms: fn() -> u64) -> hisi_rtos::Resources {
-            hisi_rtos::Resources {
-                allocate: Self::allocate,
-                deallocate: Self::deallocate,
-                monotonic_ms,
-            }
+        /// Return the installed allocator capability for the selected runtime.
+        pub const fn runtime_allocator(&self) -> crate::RuntimeAllocator {
+            crate::RuntimeAllocator::new(Self::allocate, Self::deallocate)
         }
     }
 
@@ -4999,13 +5022,9 @@ mod ws63_wifi {
             unsafe { InstalledRadioArena::<SelectedProfile>::deallocate(pointer) };
         }
 
-        /// Build the RTOS services backed by this installed radio arena.
-        pub fn rtos_resources(&self, monotonic_ms: fn() -> u64) -> hisi_rtos::Resources {
-            hisi_rtos::Resources {
-                allocate: Self::allocate,
-                deallocate: Self::deallocate,
-                monotonic_ms,
-            }
+        /// Return the installed allocator capability for the selected runtime.
+        pub const fn runtime_allocator(&self) -> crate::RuntimeAllocator {
+            crate::RuntimeAllocator::new(Self::allocate, Self::deallocate)
         }
 
         /// Split storage at the post-RTOS radio initialization boundary.

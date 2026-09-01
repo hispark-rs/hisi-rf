@@ -52,13 +52,18 @@ fn run_inner<R>(
 
     let _timer = TimerAlarm0::new(p.TIMER);
     let _software_interrupt = SoftwareInterrupt0::new(p.SYS_CTL1);
+    let allocator = storage.runtime_allocator();
     let _runtime = hisi_rtos::start_with_port(
         hisi_rtos::PortedConfig {
             minimum_stack_size: NonZeroUsize::new(hisi_rf::ws63::MINIMUM_TASK_STACK_BYTES).unwrap(),
             radio_task_policy: hisi_rtos::RunPolicy::Cooperative,
             max_scheduler_lock_duration: NonZeroU32::new(5_000).unwrap(),
         },
-        storage.rtos_resources(monotonic_ms),
+        hisi_rtos::Resources {
+            allocate: allocator.allocate_callback(),
+            deallocate: allocator.deallocate_callback(),
+            monotonic_ms,
+        },
         hisi_rtos::SchedulerPort {
             max_timer_delay: NonZeroU32::new(TimerAlarm0::MAX_DELAY_MS).unwrap(),
             arm_timer: TimerAlarm0::arm_millis,
