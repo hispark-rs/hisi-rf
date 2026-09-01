@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.110] - 2026-09-01
+
+### Fixed
+
+- Align with `hisi-rf-ws63 0.1.0-alpha.100`, whose v13 resource report accounts
+  for the Wi-Fi event-conservation counters and restores all incremental and
+  cross-platform consumer builds.
+
 ## [0.1.0-alpha.109] - 2026-09-01
 
 ### Added
