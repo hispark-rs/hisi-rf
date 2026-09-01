@@ -74,6 +74,7 @@ required-features = ["chip-ws63", "profile-sle-ssap", "u2-hil-diagnostics"]
 hisi-rf-core = "=0.1.0-alpha.24"
 hisi-rf-ws63 = { version = "=0.1.0-alpha.100", optional = true, default-features = false }
 hisi-hal = { version = "0.7.0-alpha.9", optional = true, features = ["chip-ws63", "unstable"] }
+smoltcp = { version = "0.13", optional = true, default-features = false }
 
 [target.'cfg(target_arch = "riscv32")'.dev-dependencies]
 hisi-hal = { version = "0.7.0-alpha.9", features = ["chip-ws63", "unstable"] }
@@ -114,7 +115,7 @@ incremental-embassy-wait = [
     "hisi-rf-ws63?/incremental-embassy-wait",
 ]
 wifi = ["hisi-rf-ws63?/wifi", "dep:hisi-hal"]
-smoltcp = ["hisi-rf-core/smoltcp", "hisi-rf-ws63?/smoltcp"]
+smoltcp = ["dep:smoltcp", "hisi-rf-core/smoltcp", "hisi-rf-ws63?/smoltcp"]
 wpa2-personal = ["wifi", "hisi-rf-ws63?/wpa2-personal"]
 wpa3-personal = ["wifi", "hisi-rf-ws63?/wpa3-personal"]
 # Application profiles select a complete, tested protocol + security + L2

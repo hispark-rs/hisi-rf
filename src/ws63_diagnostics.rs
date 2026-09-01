@@ -7,10 +7,6 @@ use crate::IncrementalRunnerDiagnostics;
 use crate::{BlockingRunnerDiagnostics, EventDiagnostics};
 #[cfg(feature = "incremental-embassy-wait")]
 use hisi_rf_ws63::Ws63IncrementalWaitDiagnostics;
-use hisi_rf_ws63::{
-    BlockingBackendMetrics, DataPathDiagnostics, DhcpDiagnostics, L2ProtocolDiagnostics,
-    RxQueueDiagnostics, ScanDiagnostics,
-};
 
 /// Versioned, allocation-free resource contract for the selected WS63 profile.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -243,6 +239,425 @@ impl WaitDiagnosticsSnapshot {
     }
 }
 
+/// Ordered stages in the one-shot WS63 Wi-Fi bootstrap.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+#[repr(u8)]
+pub enum BootstrapStage {
+    /// Consume the uniquely owned HAL resources.
+    ResourceClaim = 0,
+    /// Install the selected cryptographic backend.
+    CryptoInstall = 1,
+    /// Run enabled cryptographic startup self-tests.
+    CryptoSelfTest = 2,
+    /// Prepare vendor RAM and linker-owned state.
+    VendorMemoryPrepare = 3,
+    /// Initialize the ROM monotonic timebase.
+    RomTimebaseInitialize = 4,
+    /// Start the vendor Wi-Fi runtime.
+    VendorWifiInitialize = 5,
+    /// Create the station network device.
+    StationDeviceCreate = 6,
+    /// Register bounded event delivery.
+    EventRegistration = 7,
+    /// Open the station data path.
+    StationDeviceOpen = 8,
+    /// Install the upstream supplicant port.
+    SupplicantPortPrepare = 9,
+    /// Create the upstream supplicant context.
+    NativeSupplicantCreate = 10,
+}
+
+impl BootstrapStage {
+    /// Stages in execution order.
+    pub const ALL: [Self; 11] = [
+        Self::ResourceClaim,
+        Self::CryptoInstall,
+        Self::CryptoSelfTest,
+        Self::VendorMemoryPrepare,
+        Self::RomTimebaseInitialize,
+        Self::VendorWifiInitialize,
+        Self::StationDeviceCreate,
+        Self::EventRegistration,
+        Self::StationDeviceOpen,
+        Self::SupplicantPortPrepare,
+        Self::NativeSupplicantCreate,
+    ];
+
+    /// Stable machine-readable stage name.
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::ResourceClaim => "resource_claim",
+            Self::CryptoInstall => "crypto_install",
+            Self::CryptoSelfTest => "crypto_self_test",
+            Self::VendorMemoryPrepare => "vendor_memory_prepare",
+            Self::RomTimebaseInitialize => "rom_timebase_initialize",
+            Self::VendorWifiInitialize => "vendor_wifi_initialize",
+            Self::StationDeviceCreate => "station_device_create",
+            Self::EventRegistration => "event_registration",
+            Self::StationDeviceOpen => "station_device_open",
+            Self::SupplicantPortPrepare => "supplicant_port_prepare",
+            Self::NativeSupplicantCreate => "native_supplicant_create",
+        }
+    }
+
+    const fn index(self) -> usize {
+        self as usize
+    }
+
+    const fn backend(self) -> hisi_rf_ws63::BootstrapStage {
+        match self {
+            Self::ResourceClaim => hisi_rf_ws63::BootstrapStage::ResourceClaim,
+            Self::CryptoInstall => hisi_rf_ws63::BootstrapStage::CryptoInstall,
+            Self::CryptoSelfTest => hisi_rf_ws63::BootstrapStage::CryptoSelfTest,
+            Self::VendorMemoryPrepare => hisi_rf_ws63::BootstrapStage::VendorMemoryPrepare,
+            Self::RomTimebaseInitialize => hisi_rf_ws63::BootstrapStage::RomTimebaseInitialize,
+            Self::VendorWifiInitialize => hisi_rf_ws63::BootstrapStage::VendorWifiInitialize,
+            Self::StationDeviceCreate => hisi_rf_ws63::BootstrapStage::StationDeviceCreate,
+            Self::EventRegistration => hisi_rf_ws63::BootstrapStage::EventRegistration,
+            Self::StationDeviceOpen => hisi_rf_ws63::BootstrapStage::StationDeviceOpen,
+            Self::SupplicantPortPrepare => hisi_rf_ws63::BootstrapStage::SupplicantPortPrepare,
+            Self::NativeSupplicantCreate => hisi_rf_ws63::BootstrapStage::NativeSupplicantCreate,
+        }
+    }
+}
+
+/// Per-stage bootstrap counters.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct BootstrapStageMetrics {
+    pub calls: u32,
+    pub completed_calls: u32,
+    pub failed_calls: u32,
+    pub timed_calls: u32,
+    pub max_elapsed_ms: u32,
+}
+
+impl BootstrapStageMetrics {
+    const fn from_backend(value: hisi_rf_ws63::BootstrapStageMetrics) -> Self {
+        Self {
+            calls: value.calls,
+            completed_calls: value.completed_calls,
+            failed_calls: value.failed_calls,
+            timed_calls: value.timed_calls,
+            max_elapsed_ms: value.max_elapsed_ms,
+        }
+    }
+}
+
+/// Stage-by-stage bootstrap counters.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct BlockingBootstrapMetrics {
+    stages: [BootstrapStageMetrics; 11],
+}
+
+impl BlockingBootstrapMetrics {
+    /// Return counters for one bootstrap stage.
+    pub fn stage(&self, stage: BootstrapStage) -> BootstrapStageMetrics {
+        self.stages[stage.index()]
+    }
+
+    fn from_backend(value: hisi_rf_ws63::BlockingBootstrapMetrics) -> Self {
+        let mut stages = [BootstrapStageMetrics::default(); 11];
+        for stage in BootstrapStage::ALL {
+            stages[stage.index()] =
+                BootstrapStageMetrics::from_backend(value.stage(stage.backend()));
+        }
+        Self { stages }
+    }
+}
+
+/// Per-operation blocking-call counters.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct BlockingOperationMetrics {
+    pub calls: u32,
+    pub timed_calls: u32,
+    pub max_elapsed_ms: u32,
+}
+
+impl BlockingOperationMetrics {
+    const fn from_backend(value: hisi_rf_ws63::BlockingOperationMetrics) -> Self {
+        Self {
+            calls: value.calls,
+            timed_calls: value.timed_calls,
+            max_elapsed_ms: value.max_elapsed_ms,
+        }
+    }
+}
+
+/// Counter-only timings for synchronous host-to-HMAC messages.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct FrwSyncPostMetrics {
+    pub calls: u32,
+    pub last_msg_id: u32,
+    pub last_timeout_ms: u32,
+    pub last_elapsed_ms: u32,
+    pub last_result: u32,
+    pub max_msg_id: u32,
+    pub max_elapsed_ms: u32,
+    pub last_wait_blocks: u32,
+    pub last_wait_wakeups: u32,
+    pub last_wait_ready_checks: u32,
+}
+
+impl FrwSyncPostMetrics {
+    const fn from_backend(value: hisi_rf_ws63::FrwSyncPostMetrics) -> Self {
+        Self {
+            calls: value.calls,
+            last_msg_id: value.last_msg_id,
+            last_timeout_ms: value.last_timeout_ms,
+            last_elapsed_ms: value.last_elapsed_ms,
+            last_result: value.last_result,
+            max_msg_id: value.max_msg_id,
+            max_elapsed_ms: value.max_elapsed_ms,
+            last_wait_blocks: value.last_wait_blocks,
+            last_wait_wakeups: value.last_wait_wakeups,
+            last_wait_ready_checks: value.last_wait_ready_checks,
+        }
+    }
+}
+
+/// Snapshot of the selected WS63 blocking workload.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct BlockingBackendMetrics {
+    pub bootstrap: BlockingBootstrapMetrics,
+    pub initialize: BlockingOperationMetrics,
+    pub scan: BlockingOperationMetrics,
+    pub connect: BlockingOperationMetrics,
+    pub disconnect: BlockingOperationMetrics,
+    pub poll: BlockingOperationMetrics,
+    pub internal_sleep_calls: u32,
+    pub supplicant_poll_calls: u32,
+    pub frw_sync_post: FrwSyncPostMetrics,
+}
+
+impl BlockingBackendMetrics {
+    pub(crate) fn from_backend(value: hisi_rf_ws63::BlockingBackendMetrics) -> Self {
+        Self {
+            bootstrap: BlockingBootstrapMetrics::from_backend(value.bootstrap),
+            initialize: BlockingOperationMetrics::from_backend(value.initialize),
+            scan: BlockingOperationMetrics::from_backend(value.scan),
+            connect: BlockingOperationMetrics::from_backend(value.connect),
+            disconnect: BlockingOperationMetrics::from_backend(value.disconnect),
+            poll: BlockingOperationMetrics::from_backend(value.poll),
+            internal_sleep_calls: value.internal_sleep_calls,
+            supplicant_poll_calls: value.supplicant_poll_calls,
+            frw_sync_post: FrwSyncPostMetrics::from_backend(value.frw_sync_post),
+        }
+    }
+}
+
+/// Secret-free scan/callback state captured at an operation boundary.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct ScanDiagnostics {
+    pub native_starts: u32,
+    pub native_results: u32,
+    pub native_done: u32,
+    pub native_active: bool,
+    pub queue_pending: bool,
+    pub queue_dropped: u32,
+    pub native_start_ms: u32,
+    pub native_done_ms: u32,
+    pub driver_active: bool,
+    pub driver_done: bool,
+    pub driver_results: u32,
+    pub driver_status: u32,
+    pub driver_done_ms: u32,
+}
+
+impl ScanDiagnostics {
+    pub(crate) const fn from_backend(value: hisi_rf_ws63::ScanDiagnostics) -> Self {
+        Self {
+            native_starts: value.native_starts,
+            native_results: value.native_results,
+            native_done: value.native_done,
+            native_active: value.native_active,
+            queue_pending: value.queue_pending,
+            queue_dropped: value.queue_dropped,
+            native_start_ms: value.native_start_ms,
+            native_done_ms: value.native_done_ms,
+            driver_active: value.driver_active,
+            driver_done: value.driver_done,
+            driver_results: value.driver_results,
+            driver_status: value.driver_status,
+            driver_done_ms: value.driver_done_ms,
+        }
+    }
+}
+
+/// Bounded L2 receive-queue counters.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RxQueueDiagnostics {
+    pub depth: usize,
+    pub pending: usize,
+    pub high_watermark: usize,
+    pub dropped: u32,
+    pub icmp_echo_replies: u32,
+    pub icmp_sequence_mask: u32,
+}
+
+impl RxQueueDiagnostics {
+    pub(crate) const fn from_backend(value: hisi_rf_ws63::RxQueueDiagnostics) -> Self {
+        Self {
+            depth: value.depth,
+            pending: value.pending,
+            high_watermark: value.high_watermark,
+            dropped: value.dropped,
+            icmp_echo_replies: value.icmp_echo_replies,
+            icmp_sequence_mask: value.icmp_sequence_mask,
+        }
+    }
+}
+
+/// DHCP packet counts at the Rust-visible L2 seam.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct DhcpDiagnostics {
+    pub client_packets: u32,
+    pub server_packets: u32,
+}
+
+impl DhcpDiagnostics {
+    pub(crate) const fn from_backend(value: hisi_rf_ws63::DhcpDiagnostics) -> Self {
+        Self {
+            client_packets: value.client_packets,
+            server_packets: value.server_packets,
+        }
+    }
+}
+
+/// Ethernet protocol counters at the Rust-visible L2 seam.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct L2ProtocolDiagnostics {
+    pub rx_arp_requests: u32,
+    pub rx_arp_replies: u32,
+    pub rx_ipv4: u32,
+    pub rx_other: u32,
+    pub tx_arp_requests: u32,
+    pub tx_arp_replies: u32,
+    pub tx_ipv4: u32,
+    pub tx_other: u32,
+}
+
+impl L2ProtocolDiagnostics {
+    pub(crate) const fn from_backend(value: hisi_rf_ws63::L2ProtocolDiagnostics) -> Self {
+        Self {
+            rx_arp_requests: value.rx_arp_requests,
+            rx_arp_replies: value.rx_arp_replies,
+            rx_ipv4: value.rx_ipv4,
+            rx_other: value.rx_other,
+            tx_arp_requests: value.tx_arp_requests,
+            tx_arp_replies: value.tx_arp_replies,
+            tx_ipv4: value.tx_ipv4,
+            tx_other: value.tx_other,
+        }
+    }
+}
+
+/// Bounded frame-submission and completion timeline.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct TxTimelineDiagnostics {
+    pub submission_total: u32,
+    pub completion_total: u32,
+    pub callback_total: u32,
+    pub submissions: [u32; 18],
+    pub submission_time_ms: [u32; 18],
+    pub completions: [u32; 18],
+    pub packet_number_lsb: [u32; 18],
+    pub completion_time_ms: [u32; 18],
+    pub completion_echo: [u32; 18],
+}
+
+impl TxTimelineDiagnostics {
+    const fn from_backend(value: hisi_rf_ws63::TxTimelineDiagnostics) -> Self {
+        Self {
+            submission_total: value.submission_total,
+            completion_total: value.completion_total,
+            callback_total: value.callback_total,
+            submissions: value.submissions,
+            submission_time_ms: value.submission_time_ms,
+            completions: value.completions,
+            packet_number_lsb: value.packet_number_lsb,
+            completion_time_ms: value.completion_time_ms,
+            completion_echo: value.completion_echo,
+        }
+    }
+}
+
+/// Counter-only view spanning the Rust L2 bridge and vendor IRQ boundary.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct DataPathDiagnostics {
+    pub instrumented_capabilities: u32,
+    pub tx_frames: u32,
+    pub tx_failed: u32,
+    pub vendor_tx_frames: u32,
+    pub tx_reference_diagnostics: [u32; 3],
+    pub tx_completions: u32,
+    pub tx_completion_status: [u32; 16],
+    pub tx_timeline: TxTimelineDiagnostics,
+    pub dmac_rx_prepares: u32,
+    pub dmac_rx_prepare_zero: u32,
+    pub dmac_rx_prepare_nonzero: u32,
+    pub dmac_rx_prepare_last_result: u32,
+    pub hmac_rx_data_event_adapt_calls: u32,
+    pub hmac_rx_process_data_msg_calls: u32,
+    pub hmac_rx_data_calls: u32,
+    pub vendor_rx_frames: u32,
+    pub rx_frames: u32,
+    pub mac_rx_successful_mpdu: u32,
+    pub mac_rx_failed_mpdu: u32,
+    pub mac_rx_filtered_mpdu: u32,
+    pub mac_ccmp_replay_failures: u32,
+    pub mac_tkip_replay_failures: u32,
+    pub mac_ccmp_mic_failures: u32,
+    pub mac_tkip_mic_failures: u32,
+    pub mac_key_search_failures: u32,
+    pub mac_rx_filter_control: u32,
+    pub mac_station_address_matches_device: bool,
+    pub mac_bssid_programmed: bool,
+    pub coex_wlan_irqs: u32,
+    pub wlphy_irqs: u32,
+    pub wlmac_irqs: u32,
+    pub wlmac_irq_lifecycle: [u32; 6],
+}
+
+impl DataPathDiagnostics {
+    pub(crate) const fn from_backend(value: hisi_rf_ws63::DataPathDiagnostics) -> Self {
+        Self {
+            instrumented_capabilities: value.instrumented_capabilities,
+            tx_frames: value.tx_frames,
+            tx_failed: value.tx_failed,
+            vendor_tx_frames: value.vendor_tx_frames,
+            tx_reference_diagnostics: value.tx_reference_diagnostics,
+            tx_completions: value.tx_completions,
+            tx_completion_status: value.tx_completion_status,
+            tx_timeline: TxTimelineDiagnostics::from_backend(value.tx_timeline),
+            dmac_rx_prepares: value.dmac_rx_prepares,
+            dmac_rx_prepare_zero: value.dmac_rx_prepare_zero,
+            dmac_rx_prepare_nonzero: value.dmac_rx_prepare_nonzero,
+            dmac_rx_prepare_last_result: value.dmac_rx_prepare_last_result,
+            hmac_rx_data_event_adapt_calls: value.hmac_rx_data_event_adapt_calls,
+            hmac_rx_process_data_msg_calls: value.hmac_rx_process_data_msg_calls,
+            hmac_rx_data_calls: value.hmac_rx_data_calls,
+            vendor_rx_frames: value.vendor_rx_frames,
+            rx_frames: value.rx_frames,
+            mac_rx_successful_mpdu: value.mac_rx_successful_mpdu,
+            mac_rx_failed_mpdu: value.mac_rx_failed_mpdu,
+            mac_rx_filtered_mpdu: value.mac_rx_filtered_mpdu,
+            mac_ccmp_replay_failures: value.mac_ccmp_replay_failures,
+            mac_tkip_replay_failures: value.mac_tkip_replay_failures,
+            mac_ccmp_mic_failures: value.mac_ccmp_mic_failures,
+            mac_tkip_mic_failures: value.mac_tkip_mic_failures,
+            mac_key_search_failures: value.mac_key_search_failures,
+            mac_rx_filter_control: value.mac_rx_filter_control,
+            mac_station_address_matches_device: value.mac_station_address_matches_device,
+            mac_bssid_programmed: value.mac_bssid_programmed,
+            coex_wlan_irqs: value.coex_wlan_irqs,
+            wlphy_irqs: value.wlphy_irqs,
+            wlmac_irqs: value.wlmac_irqs,
+            wlmac_irq_lifecycle: value.wlmac_irq_lifecycle,
+        }
+    }
+}
+
 /// Facade-owned, allocation-free snapshot of one WS63 radio composition.
 ///
 /// The snapshot contains only counters and static profile metadata. It never
@@ -288,7 +703,7 @@ impl RadioDiagnosticsSnapshot {
     #[cfg(not(feature = "incremental-backend-experiment"))]
     pub(crate) fn blocking(
         controller: &crate::WifiController,
-        device: &hisi_rf_ws63::WifiDevice,
+        device: &crate::ws63_wifi::WifiDevice,
         resources: ResourceReport,
     ) -> Self {
         Self {
@@ -299,8 +714,12 @@ impl RadioDiagnosticsSnapshot {
             control: controller.blocking_runner_diagnostics(),
             wait: WaitDiagnosticsSnapshot::default(),
             events: controller.event_diagnostics(),
-            blocking_calls: hisi_rf_ws63::blocking_backend_metrics(),
-            scan: hisi_rf_ws63::upstream_supplicant_scan_diagnostics(),
+            blocking_calls: BlockingBackendMetrics::from_backend(
+                hisi_rf_ws63::blocking_backend_metrics(),
+            ),
+            scan: ScanDiagnostics::from_backend(
+                hisi_rf_ws63::upstream_supplicant_scan_diagnostics(),
+            ),
             rx_queue: device.rx_queue_diagnostics(),
             dhcp: device.dhcp_diagnostics(),
             l2_protocol: device.l2_protocol_diagnostics(),
@@ -314,7 +733,7 @@ impl RadioDiagnosticsSnapshot {
     ))]
     pub(crate) fn incremental(
         controller: &crate::WifiController,
-        device: &hisi_rf_ws63::WifiDevice,
+        device: &crate::ws63_wifi::WifiDevice,
         resources: ResourceReport,
     ) -> Self {
         Self {
@@ -329,8 +748,12 @@ impl RadioDiagnosticsSnapshot {
                 hisi_rf_ws63::incremental_wait_diagnostics(),
             ),
             events: controller.event_diagnostics(),
-            blocking_calls: hisi_rf_ws63::blocking_backend_metrics(),
-            scan: hisi_rf_ws63::upstream_supplicant_scan_diagnostics(),
+            blocking_calls: BlockingBackendMetrics::from_backend(
+                hisi_rf_ws63::blocking_backend_metrics(),
+            ),
+            scan: ScanDiagnostics::from_backend(
+                hisi_rf_ws63::upstream_supplicant_scan_diagnostics(),
+            ),
             rx_queue: device.rx_queue_diagnostics(),
             dhcp: device.dhcp_diagnostics(),
             l2_protocol: device.l2_protocol_diagnostics(),
@@ -371,6 +794,97 @@ mod tests {
         backend.write_json(&mut backend_json).unwrap();
         facade.write_json(&mut facade_json).unwrap();
         assert_eq!(facade_json, backend_json);
+    }
+
+    #[test]
+    fn l2_diagnostic_projections_preserve_backend_values() {
+        let rx = hisi_rf_ws63::RxQueueDiagnostics {
+            depth: 16,
+            pending: 7,
+            high_watermark: 12,
+            dropped: 3,
+            icmp_echo_replies: 9,
+            icmp_sequence_mask: 0x155,
+        };
+        let facade_rx = RxQueueDiagnostics::from_backend(rx);
+        assert_eq!(facade_rx.depth, rx.depth);
+        assert_eq!(facade_rx.pending, rx.pending);
+        assert_eq!(facade_rx.high_watermark, rx.high_watermark);
+        assert_eq!(facade_rx.dropped, rx.dropped);
+        assert_eq!(facade_rx.icmp_echo_replies, rx.icmp_echo_replies);
+        assert_eq!(facade_rx.icmp_sequence_mask, rx.icmp_sequence_mask);
+
+        let dhcp = hisi_rf_ws63::DhcpDiagnostics {
+            client_packets: 5,
+            server_packets: 4,
+        };
+        let facade_dhcp = DhcpDiagnostics::from_backend(dhcp);
+        assert_eq!(facade_dhcp.client_packets, dhcp.client_packets);
+        assert_eq!(facade_dhcp.server_packets, dhcp.server_packets);
+
+        let l2 = hisi_rf_ws63::L2ProtocolDiagnostics {
+            rx_arp_requests: 1,
+            rx_arp_replies: 2,
+            rx_ipv4: 3,
+            rx_other: 4,
+            tx_arp_requests: 5,
+            tx_arp_replies: 6,
+            tx_ipv4: 7,
+            tx_other: 8,
+        };
+        let facade_l2 = L2ProtocolDiagnostics::from_backend(l2);
+        assert_eq!(facade_l2.rx_arp_requests, l2.rx_arp_requests);
+        assert_eq!(facade_l2.rx_arp_replies, l2.rx_arp_replies);
+        assert_eq!(facade_l2.rx_ipv4, l2.rx_ipv4);
+        assert_eq!(facade_l2.rx_other, l2.rx_other);
+        assert_eq!(facade_l2.tx_arp_requests, l2.tx_arp_requests);
+        assert_eq!(facade_l2.tx_arp_replies, l2.tx_arp_replies);
+        assert_eq!(facade_l2.tx_ipv4, l2.tx_ipv4);
+        assert_eq!(facade_l2.tx_other, l2.tx_other);
+    }
+
+    #[test]
+    fn data_path_projection_preserves_nested_and_edge_fields() {
+        let backend = hisi_rf_ws63::DataPathDiagnostics {
+            instrumented_capabilities: 0x3f,
+            tx_frames: 11,
+            tx_failed: 12,
+            tx_reference_diagnostics: [13, 14, 15],
+            tx_completion_status: [16; 16],
+            tx_timeline: hisi_rf_ws63::TxTimelineDiagnostics {
+                submission_total: 17,
+                completion_total: 18,
+                callback_total: 19,
+                submissions: [20; 18],
+                submission_time_ms: [21; 18],
+                completions: [22; 18],
+                packet_number_lsb: [23; 18],
+                completion_time_ms: [24; 18],
+                completion_echo: [25; 18],
+            },
+            mac_station_address_matches_device: true,
+            mac_bssid_programmed: true,
+            wlmac_irq_lifecycle: [26; 6],
+            ..Default::default()
+        };
+        let facade = DataPathDiagnostics::from_backend(backend);
+        assert_eq!(facade.instrumented_capabilities, 0x3f);
+        assert_eq!(facade.tx_frames, 11);
+        assert_eq!(facade.tx_failed, 12);
+        assert_eq!(facade.tx_reference_diagnostics, [13, 14, 15]);
+        assert_eq!(facade.tx_completion_status, [16; 16]);
+        assert_eq!(facade.tx_timeline.submission_total, 17);
+        assert_eq!(facade.tx_timeline.completion_total, 18);
+        assert_eq!(facade.tx_timeline.callback_total, 19);
+        assert_eq!(facade.tx_timeline.submissions, [20; 18]);
+        assert_eq!(facade.tx_timeline.submission_time_ms, [21; 18]);
+        assert_eq!(facade.tx_timeline.completions, [22; 18]);
+        assert_eq!(facade.tx_timeline.packet_number_lsb, [23; 18]);
+        assert_eq!(facade.tx_timeline.completion_time_ms, [24; 18]);
+        assert_eq!(facade.tx_timeline.completion_echo, [25; 18]);
+        assert!(facade.mac_station_address_matches_device);
+        assert!(facade.mac_bssid_programmed);
+        assert_eq!(facade.wlmac_irq_lifecycle, [26; 6]);
     }
 
     #[cfg(feature = "incremental-embassy-wait")]

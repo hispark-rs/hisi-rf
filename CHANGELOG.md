@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Replace the remaining public WS63 Wi-Fi device, token, and diagnostics
+  backend types with facade-owned projections while preserving the smoltcp
+  device contract and the existing counter schema.
+
 ## [0.1.0-alpha.111] - 2026-09-01
 
 ### Changed

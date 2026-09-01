@@ -4870,8 +4870,11 @@ pub type IncrementalRadioRunner<B> = hisi_rf_core::IncrementalRadioRunner<B, EVE
 mod ws63_wifi {
     pub use crate::declare_radio_storage;
     pub use crate::ws63_diagnostics::{
-        RADIO_DIAGNOSTICS_SCHEMA, RadioDiagnosticsSnapshot, ResourceReport,
-        RunnerDiagnosticsSnapshot, WaitDiagnosticsSnapshot,
+        BlockingBackendMetrics, BlockingBootstrapMetrics, BlockingOperationMetrics, BootstrapStage,
+        BootstrapStageMetrics, DataPathDiagnostics, DhcpDiagnostics, FrwSyncPostMetrics,
+        L2ProtocolDiagnostics, RADIO_DIAGNOSTICS_SCHEMA, RadioDiagnosticsSnapshot, ResourceReport,
+        RunnerDiagnosticsSnapshot, RxQueueDiagnostics, ScanDiagnostics, TxTimelineDiagnostics,
+        WaitDiagnosticsSnapshot,
     };
     #[allow(deprecated)]
     pub use hisi_rf_ws63::SELECTED_TASK_STACK_ARENA_BYTES;
@@ -4884,14 +4887,15 @@ mod ws63_wifi {
         any(feature = "wpa2-personal", feature = "wpa3-personal")
     ))]
     pub use hisi_rf_ws63::{
-        AssociationIoctlMetrics, AssociationTimingDiagnostics, BlockingBackendMetrics,
-        BlockingBootstrapMetrics, BlockingOperationMetrics, BootstrapStage, BootstrapStageMetrics,
-        DataPathDiagnostics, DhcpDiagnostics, L2ProtocolDiagnostics, RadioArena, RadioArenaStorage,
-        RfHeapMetrics, RxQueueDiagnostics, SELECTED_MINIMUM_TASK_STACK_BYTES,
-        SELECTED_RF_ARENA_BYTES, SELECTED_RUNTIME_ARENA_BYTES, ScanDiagnostics, WifiDevice,
-        WifiRxToken, WifiTxToken, association_timing_diagnostics, blocking_backend_metrics,
-        rf_heap_metrics,
+        AssociationIoctlMetrics, AssociationTimingDiagnostics, RadioArena, RadioArenaStorage,
+        RfHeapMetrics, SELECTED_MINIMUM_TASK_STACK_BYTES, SELECTED_RF_ARENA_BYTES,
+        SELECTED_RUNTIME_ARENA_BYTES, association_timing_diagnostics, rf_heap_metrics,
     };
+
+    /// Return a facade-owned snapshot of the current blocking workload.
+    pub fn blocking_backend_metrics() -> BlockingBackendMetrics {
+        BlockingBackendMetrics::from_backend(hisi_rf_ws63::blocking_backend_metrics())
+    }
     #[cfg(feature = "ws63-station-pm-diagnostics")]
     #[doc(hidden)]
     pub use hisi_rf_ws63::{
@@ -5085,6 +5089,94 @@ mod ws63_wifi {
         inner: hisi_rf_ws63::Resources<hisi_rf_ws63::SelectedProfile>,
     }
 
+    /// Facade-owned WS63 L2 device implementing the standard smoltcp contract.
+    pub struct WifiDevice(hisi_rf_ws63::WifiDevice);
+
+    impl WifiDevice {
+        /// Snapshot immutable L2 identity owned by this initialized radio instance.
+        pub fn l2_capabilities(&self) -> Option<crate::WifiL2Capabilities> {
+            self.0.l2_capabilities()
+        }
+
+        /// Return this initialized radio instance's station MAC address.
+        pub fn station_mac_address(&self) -> Option<[u8; 6]> {
+            self.0.station_mac_address()
+        }
+
+        /// Snapshot bounded L2 receive-queue occupancy and loss counters.
+        pub fn rx_queue_diagnostics(&self) -> crate::ws63_diagnostics::RxQueueDiagnostics {
+            crate::ws63_diagnostics::RxQueueDiagnostics::from_backend(self.0.rx_queue_diagnostics())
+        }
+
+        /// Start a new L2 receive-queue diagnostic window.
+        pub fn reset_rx_queue_diagnostics(&self) {
+            self.0.reset_rx_queue_diagnostics();
+        }
+
+        /// Snapshot Ethernet protocol counters at the Rust-visible L2 seam.
+        pub fn l2_protocol_diagnostics(&self) -> crate::ws63_diagnostics::L2ProtocolDiagnostics {
+            crate::ws63_diagnostics::L2ProtocolDiagnostics::from_backend(
+                self.0.l2_protocol_diagnostics(),
+            )
+        }
+
+        /// Start a new Ethernet protocol diagnostic window.
+        pub fn reset_l2_protocol_diagnostics(&self) {
+            self.0.reset_l2_protocol_diagnostics();
+        }
+
+        /// Snapshot DHCP packets crossing the Rust-visible L2 seam.
+        pub fn dhcp_diagnostics(&self) -> crate::ws63_diagnostics::DhcpDiagnostics {
+            crate::ws63_diagnostics::DhcpDiagnostics::from_backend(self.0.dhcp_diagnostics())
+        }
+
+        /// Snapshot aggregate frame progress and radio interrupt counters.
+        pub fn data_path_diagnostics(&self) -> crate::ws63_diagnostics::DataPathDiagnostics {
+            crate::ws63_diagnostics::DataPathDiagnostics::from_backend(
+                self.0.data_path_diagnostics(),
+            )
+        }
+    }
+
+    /// Facade-owned receive token for [`WifiDevice`].
+    pub struct WifiRxToken(hisi_rf_ws63::WifiRxToken);
+
+    /// Facade-owned transmit token for [`WifiDevice`].
+    pub struct WifiTxToken(hisi_rf_ws63::WifiTxToken);
+
+    impl smoltcp::phy::RxToken for WifiRxToken {
+        fn consume<R, F: FnOnce(&[u8]) -> R>(self, consume: F) -> R {
+            smoltcp::phy::RxToken::consume(self.0, consume)
+        }
+    }
+
+    impl smoltcp::phy::TxToken for WifiTxToken {
+        fn consume<R, F: FnOnce(&mut [u8]) -> R>(self, len: usize, consume: F) -> R {
+            smoltcp::phy::TxToken::consume(self.0, len, consume)
+        }
+    }
+
+    impl smoltcp::phy::Device for WifiDevice {
+        type RxToken<'a> = WifiRxToken;
+        type TxToken<'a> = WifiTxToken;
+
+        fn receive(
+            &mut self,
+            timestamp: smoltcp::time::Instant,
+        ) -> Option<(Self::RxToken<'_>, Self::TxToken<'_>)> {
+            smoltcp::phy::Device::receive(&mut self.0, timestamp)
+                .map(|(rx, tx)| (WifiRxToken(rx), WifiTxToken(tx)))
+        }
+
+        fn transmit(&mut self, timestamp: smoltcp::time::Instant) -> Option<Self::TxToken<'_>> {
+            smoltcp::phy::Device::transmit(&mut self.0, timestamp).map(WifiTxToken)
+        }
+
+        fn capabilities(&self) -> smoltcp::phy::DeviceCapabilities {
+            smoltcp::phy::Device::capabilities(&self.0)
+        }
+    }
+
     /// Stable category of a WS63 radio initialization failure.
     #[derive(Clone, Copy, Debug, Eq, PartialEq)]
     pub enum InitErrorKind {
@@ -5200,7 +5292,7 @@ mod ws63_wifi {
             RadioParts {
                 wifi: WifiParts {
                     controller: parts.wifi.controller,
-                    device: parts.wifi.device,
+                    device: WifiDevice(parts.wifi.device),
                 },
                 runner: RadioRunner(parts.runner),
             }

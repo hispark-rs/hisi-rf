@@ -67,11 +67,6 @@ pub use hisi_rf::WorkReport
 pub mod hisi_rf::ws63
 pub use hisi_rf::ws63::AssociationIoctlMetrics
 pub use hisi_rf::ws63::AssociationTimingDiagnostics
-pub use hisi_rf::ws63::BlockingBackendMetrics
-pub use hisi_rf::ws63::BlockingBootstrapMetrics
-pub use hisi_rf::ws63::BlockingOperationMetrics
-pub use hisi_rf::ws63::BootstrapStage
-pub use hisi_rf::ws63::BootstrapStageMetrics
 pub use hisi_rf::ws63::RadioArena
 pub use hisi_rf::ws63::RadioArenaStorage
 pub use hisi_rf::ws63::RfHeapMetrics
@@ -79,13 +74,25 @@ pub use hisi_rf::ws63::SELECTED_MINIMUM_TASK_STACK_BYTES
 pub use hisi_rf::ws63::SELECTED_RF_ARENA_BYTES
 pub use hisi_rf::ws63::SELECTED_RUNTIME_ARENA_BYTES
 pub use hisi_rf::ws63::SELECTED_TASK_STACK_ARENA_BYTES
-pub use hisi_rf::ws63::WifiDevice
-pub use hisi_rf::ws63::WifiRxToken
-pub use hisi_rf::ws63::WifiTxToken
 pub use hisi_rf::ws63::association_timing_diagnostics
 pub use hisi_rf::ws63::declare_radio_arena
 pub use hisi_rf::ws63::rf_heap_metrics
 pub macro hisi_rf::ws63::declare_radio_storage!
+#[non_exhaustive] #[repr(u8)] pub enum hisi_rf::ws63::BootstrapStage
+pub hisi_rf::ws63::BootstrapStage::CryptoInstall = 1
+pub hisi_rf::ws63::BootstrapStage::CryptoSelfTest = 2
+pub hisi_rf::ws63::BootstrapStage::EventRegistration = 7
+pub hisi_rf::ws63::BootstrapStage::NativeSupplicantCreate = 10
+pub hisi_rf::ws63::BootstrapStage::ResourceClaim = 0
+pub hisi_rf::ws63::BootstrapStage::RomTimebaseInitialize = 4
+pub hisi_rf::ws63::BootstrapStage::StationDeviceCreate = 6
+pub hisi_rf::ws63::BootstrapStage::StationDeviceOpen = 8
+pub hisi_rf::ws63::BootstrapStage::SupplicantPortPrepare = 9
+pub hisi_rf::ws63::BootstrapStage::VendorMemoryPrepare = 3
+pub hisi_rf::ws63::BootstrapStage::VendorWifiInitialize = 5
+impl hisi_rf::ws63::BootstrapStage
+pub const hisi_rf::ws63::BootstrapStage::ALL: [Self; 11]
+pub const fn hisi_rf::ws63::BootstrapStage::as_str(self) -> &'static str
 pub enum hisi_rf::ws63::InitErrorKind
 pub hisi_rf::ws63::InitErrorKind::Core
 pub hisi_rf::ws63::InitErrorKind::Runtime
@@ -95,6 +102,76 @@ pub hisi_rf::ws63::InitErrorKind::TaskAdmission
 pub enum hisi_rf::ws63::RunnerDiagnosticsSnapshot
 pub hisi_rf::ws63::RunnerDiagnosticsSnapshot::Blocking(hisi_rf_core::wifi::BlockingRunnerDiagnostics)
 pub hisi_rf::ws63::RunnerDiagnosticsSnapshot::Incremental(hisi_rf_core::incremental::facade::IncrementalRunnerDiagnostics)
+pub struct hisi_rf::ws63::BlockingBackendMetrics
+pub hisi_rf::ws63::BlockingBackendMetrics::bootstrap: hisi_rf::ws63::BlockingBootstrapMetrics
+pub hisi_rf::ws63::BlockingBackendMetrics::connect: hisi_rf::ws63::BlockingOperationMetrics
+pub hisi_rf::ws63::BlockingBackendMetrics::disconnect: hisi_rf::ws63::BlockingOperationMetrics
+pub hisi_rf::ws63::BlockingBackendMetrics::frw_sync_post: hisi_rf::ws63::FrwSyncPostMetrics
+pub hisi_rf::ws63::BlockingBackendMetrics::initialize: hisi_rf::ws63::BlockingOperationMetrics
+pub hisi_rf::ws63::BlockingBackendMetrics::internal_sleep_calls: u32
+pub hisi_rf::ws63::BlockingBackendMetrics::poll: hisi_rf::ws63::BlockingOperationMetrics
+pub hisi_rf::ws63::BlockingBackendMetrics::scan: hisi_rf::ws63::BlockingOperationMetrics
+pub hisi_rf::ws63::BlockingBackendMetrics::supplicant_poll_calls: u32
+pub struct hisi_rf::ws63::BlockingBootstrapMetrics
+impl hisi_rf::ws63::BlockingBootstrapMetrics
+pub fn hisi_rf::ws63::BlockingBootstrapMetrics::stage(&self, hisi_rf::ws63::BootstrapStage) -> hisi_rf::ws63::BootstrapStageMetrics
+pub struct hisi_rf::ws63::BlockingOperationMetrics
+pub hisi_rf::ws63::BlockingOperationMetrics::calls: u32
+pub hisi_rf::ws63::BlockingOperationMetrics::max_elapsed_ms: u32
+pub hisi_rf::ws63::BlockingOperationMetrics::timed_calls: u32
+pub struct hisi_rf::ws63::BootstrapStageMetrics
+pub hisi_rf::ws63::BootstrapStageMetrics::calls: u32
+pub hisi_rf::ws63::BootstrapStageMetrics::completed_calls: u32
+pub hisi_rf::ws63::BootstrapStageMetrics::failed_calls: u32
+pub hisi_rf::ws63::BootstrapStageMetrics::max_elapsed_ms: u32
+pub hisi_rf::ws63::BootstrapStageMetrics::timed_calls: u32
+pub struct hisi_rf::ws63::DataPathDiagnostics
+pub hisi_rf::ws63::DataPathDiagnostics::coex_wlan_irqs: u32
+pub hisi_rf::ws63::DataPathDiagnostics::dmac_rx_prepare_last_result: u32
+pub hisi_rf::ws63::DataPathDiagnostics::dmac_rx_prepare_nonzero: u32
+pub hisi_rf::ws63::DataPathDiagnostics::dmac_rx_prepare_zero: u32
+pub hisi_rf::ws63::DataPathDiagnostics::dmac_rx_prepares: u32
+pub hisi_rf::ws63::DataPathDiagnostics::hmac_rx_data_calls: u32
+pub hisi_rf::ws63::DataPathDiagnostics::hmac_rx_data_event_adapt_calls: u32
+pub hisi_rf::ws63::DataPathDiagnostics::hmac_rx_process_data_msg_calls: u32
+pub hisi_rf::ws63::DataPathDiagnostics::instrumented_capabilities: u32
+pub hisi_rf::ws63::DataPathDiagnostics::mac_bssid_programmed: bool
+pub hisi_rf::ws63::DataPathDiagnostics::mac_ccmp_mic_failures: u32
+pub hisi_rf::ws63::DataPathDiagnostics::mac_ccmp_replay_failures: u32
+pub hisi_rf::ws63::DataPathDiagnostics::mac_key_search_failures: u32
+pub hisi_rf::ws63::DataPathDiagnostics::mac_rx_failed_mpdu: u32
+pub hisi_rf::ws63::DataPathDiagnostics::mac_rx_filter_control: u32
+pub hisi_rf::ws63::DataPathDiagnostics::mac_rx_filtered_mpdu: u32
+pub hisi_rf::ws63::DataPathDiagnostics::mac_rx_successful_mpdu: u32
+pub hisi_rf::ws63::DataPathDiagnostics::mac_station_address_matches_device: bool
+pub hisi_rf::ws63::DataPathDiagnostics::mac_tkip_mic_failures: u32
+pub hisi_rf::ws63::DataPathDiagnostics::mac_tkip_replay_failures: u32
+pub hisi_rf::ws63::DataPathDiagnostics::rx_frames: u32
+pub hisi_rf::ws63::DataPathDiagnostics::tx_completion_status: [u32; 16]
+pub hisi_rf::ws63::DataPathDiagnostics::tx_completions: u32
+pub hisi_rf::ws63::DataPathDiagnostics::tx_failed: u32
+pub hisi_rf::ws63::DataPathDiagnostics::tx_frames: u32
+pub hisi_rf::ws63::DataPathDiagnostics::tx_reference_diagnostics: [u32; 3]
+pub hisi_rf::ws63::DataPathDiagnostics::tx_timeline: hisi_rf::ws63::TxTimelineDiagnostics
+pub hisi_rf::ws63::DataPathDiagnostics::vendor_rx_frames: u32
+pub hisi_rf::ws63::DataPathDiagnostics::vendor_tx_frames: u32
+pub hisi_rf::ws63::DataPathDiagnostics::wlmac_irq_lifecycle: [u32; 6]
+pub hisi_rf::ws63::DataPathDiagnostics::wlmac_irqs: u32
+pub hisi_rf::ws63::DataPathDiagnostics::wlphy_irqs: u32
+pub struct hisi_rf::ws63::DhcpDiagnostics
+pub hisi_rf::ws63::DhcpDiagnostics::client_packets: u32
+pub hisi_rf::ws63::DhcpDiagnostics::server_packets: u32
+pub struct hisi_rf::ws63::FrwSyncPostMetrics
+pub hisi_rf::ws63::FrwSyncPostMetrics::calls: u32
+pub hisi_rf::ws63::FrwSyncPostMetrics::last_elapsed_ms: u32
+pub hisi_rf::ws63::FrwSyncPostMetrics::last_msg_id: u32
+pub hisi_rf::ws63::FrwSyncPostMetrics::last_result: u32
+pub hisi_rf::ws63::FrwSyncPostMetrics::last_timeout_ms: u32
+pub hisi_rf::ws63::FrwSyncPostMetrics::last_wait_blocks: u32
+pub hisi_rf::ws63::FrwSyncPostMetrics::last_wait_ready_checks: u32
+pub hisi_rf::ws63::FrwSyncPostMetrics::last_wait_wakeups: u32
+pub hisi_rf::ws63::FrwSyncPostMetrics::max_elapsed_ms: u32
+pub hisi_rf::ws63::FrwSyncPostMetrics::max_msg_id: u32
 pub struct hisi_rf::ws63::InitError
 impl hisi_rf::ws63::InitError
 pub const fn hisi_rf::ws63::InitError::diagnostic(self) -> hisi_rf_core::diagnostics::Diagnostic
@@ -105,21 +182,30 @@ pub struct hisi_rf::ws63::InstalledRadioStorage
 impl hisi_rf::ws63::InstalledRadioStorage
 pub fn hisi_rf::ws63::InstalledRadioStorage::resources(self, hisi_hal::peripherals::ws63_only::Efuse<'static>, hisi_hal::peripherals::ws63_only::Km<'static>, hisi_hal::peripherals::ws63_only::Spacc<'static>, hisi_hal::peripherals::ws63_only::Pke<'static>, hisi_hal::peripherals::Trng<'static>) -> hisi_rf::ws63::Resources
 pub const fn hisi_rf::ws63::InstalledRadioStorage::runtime_allocator(&self) -> hisi_rf::RuntimeAllocator
+pub struct hisi_rf::ws63::L2ProtocolDiagnostics
+pub hisi_rf::ws63::L2ProtocolDiagnostics::rx_arp_replies: u32
+pub hisi_rf::ws63::L2ProtocolDiagnostics::rx_arp_requests: u32
+pub hisi_rf::ws63::L2ProtocolDiagnostics::rx_ipv4: u32
+pub hisi_rf::ws63::L2ProtocolDiagnostics::rx_other: u32
+pub hisi_rf::ws63::L2ProtocolDiagnostics::tx_arp_replies: u32
+pub hisi_rf::ws63::L2ProtocolDiagnostics::tx_arp_requests: u32
+pub hisi_rf::ws63::L2ProtocolDiagnostics::tx_ipv4: u32
+pub hisi_rf::ws63::L2ProtocolDiagnostics::tx_other: u32
 pub struct hisi_rf::ws63::RadioController(_)
 impl hisi_rf::ws63::RadioController
 pub fn hisi_rf::ws63::RadioController::split(self, hisi_rf_core::incremental::WorkBudget) -> hisi_rf::ws63::RadioParts
 pub struct hisi_rf::ws63::RadioDiagnosticsSnapshot
-pub hisi_rf::ws63::RadioDiagnosticsSnapshot::blocking_calls: hisi_rf_ws63::blocking_diagnostics::BlockingBackendMetrics
+pub hisi_rf::ws63::RadioDiagnosticsSnapshot::blocking_calls: hisi_rf::ws63::BlockingBackendMetrics
 pub hisi_rf::ws63::RadioDiagnosticsSnapshot::control: hisi_rf_core::wifi::BlockingRunnerDiagnostics
-pub hisi_rf::ws63::RadioDiagnosticsSnapshot::data_path: hisi_rf_ws63::composition::DataPathDiagnostics
-pub hisi_rf::ws63::RadioDiagnosticsSnapshot::dhcp: hisi_rf_ws63::netif_smoltcp::DhcpDiagnostics
+pub hisi_rf::ws63::RadioDiagnosticsSnapshot::data_path: hisi_rf::ws63::DataPathDiagnostics
+pub hisi_rf::ws63::RadioDiagnosticsSnapshot::dhcp: hisi_rf::ws63::DhcpDiagnostics
 pub hisi_rf::ws63::RadioDiagnosticsSnapshot::error_schema: &'static str
 pub hisi_rf::ws63::RadioDiagnosticsSnapshot::events: hisi_rf_core::wifi::EventDiagnostics
-pub hisi_rf::ws63::RadioDiagnosticsSnapshot::l2_protocol: hisi_rf_ws63::netif_smoltcp::L2ProtocolDiagnostics
+pub hisi_rf::ws63::RadioDiagnosticsSnapshot::l2_protocol: hisi_rf::ws63::L2ProtocolDiagnostics
 pub hisi_rf::ws63::RadioDiagnosticsSnapshot::resources: hisi_rf::ws63::ResourceReport
 pub hisi_rf::ws63::RadioDiagnosticsSnapshot::runner: hisi_rf::ws63::RunnerDiagnosticsSnapshot
-pub hisi_rf::ws63::RadioDiagnosticsSnapshot::rx_queue: hisi_rf_ws63::netif_smoltcp::RxQueueDiagnostics
-pub hisi_rf::ws63::RadioDiagnosticsSnapshot::scan: hisi_rf_ws63::ScanDiagnostics
+pub hisi_rf::ws63::RadioDiagnosticsSnapshot::rx_queue: hisi_rf::ws63::RxQueueDiagnostics
+pub hisi_rf::ws63::RadioDiagnosticsSnapshot::scan: hisi_rf::ws63::ScanDiagnostics
 pub hisi_rf::ws63::RadioDiagnosticsSnapshot::schema: &'static str
 pub hisi_rf::ws63::RadioDiagnosticsSnapshot::wait: hisi_rf::ws63::WaitDiagnosticsSnapshot
 pub struct hisi_rf::ws63::RadioParts
@@ -179,12 +265,43 @@ pub hisi_rf::ws63::ResourceReport::worker_task_slots: core::option::Option<usize
 impl hisi_rf::ws63::ResourceReport
 pub fn hisi_rf::ws63::ResourceReport::write_json(self, &mut impl core::fmt::Write) -> core::fmt::Result
 pub struct hisi_rf::ws63::Resources
+pub struct hisi_rf::ws63::RxQueueDiagnostics
+pub hisi_rf::ws63::RxQueueDiagnostics::depth: usize
+pub hisi_rf::ws63::RxQueueDiagnostics::dropped: u32
+pub hisi_rf::ws63::RxQueueDiagnostics::high_watermark: usize
+pub hisi_rf::ws63::RxQueueDiagnostics::icmp_echo_replies: u32
+pub hisi_rf::ws63::RxQueueDiagnostics::icmp_sequence_mask: u32
+pub hisi_rf::ws63::RxQueueDiagnostics::pending: usize
+pub struct hisi_rf::ws63::ScanDiagnostics
+pub hisi_rf::ws63::ScanDiagnostics::driver_active: bool
+pub hisi_rf::ws63::ScanDiagnostics::driver_done: bool
+pub hisi_rf::ws63::ScanDiagnostics::driver_done_ms: u32
+pub hisi_rf::ws63::ScanDiagnostics::driver_results: u32
+pub hisi_rf::ws63::ScanDiagnostics::driver_status: u32
+pub hisi_rf::ws63::ScanDiagnostics::native_active: bool
+pub hisi_rf::ws63::ScanDiagnostics::native_done: u32
+pub hisi_rf::ws63::ScanDiagnostics::native_done_ms: u32
+pub hisi_rf::ws63::ScanDiagnostics::native_results: u32
+pub hisi_rf::ws63::ScanDiagnostics::native_start_ms: u32
+pub hisi_rf::ws63::ScanDiagnostics::native_starts: u32
+pub hisi_rf::ws63::ScanDiagnostics::queue_dropped: u32
+pub hisi_rf::ws63::ScanDiagnostics::queue_pending: bool
 pub struct hisi_rf::ws63::Storage
 impl hisi_rf::ws63::Storage
 pub const fn hisi_rf::ws63::Storage::new() -> Self
 pub const fn hisi_rf::ws63::Storage::report(&self) -> hisi_rf::ws63::ResourceReport
 impl core::default::Default for hisi_rf::ws63::Storage
 pub fn hisi_rf::ws63::Storage::default() -> Self
+pub struct hisi_rf::ws63::TxTimelineDiagnostics
+pub hisi_rf::ws63::TxTimelineDiagnostics::callback_total: u32
+pub hisi_rf::ws63::TxTimelineDiagnostics::completion_echo: [u32; 18]
+pub hisi_rf::ws63::TxTimelineDiagnostics::completion_time_ms: [u32; 18]
+pub hisi_rf::ws63::TxTimelineDiagnostics::completion_total: u32
+pub hisi_rf::ws63::TxTimelineDiagnostics::completions: [u32; 18]
+pub hisi_rf::ws63::TxTimelineDiagnostics::packet_number_lsb: [u32; 18]
+pub hisi_rf::ws63::TxTimelineDiagnostics::submission_time_ms: [u32; 18]
+pub hisi_rf::ws63::TxTimelineDiagnostics::submission_total: u32
+pub hisi_rf::ws63::TxTimelineDiagnostics::submissions: [u32; 18]
 pub struct hisi_rf::ws63::WaitDiagnosticsSnapshot
 pub hisi_rf::ws63::WaitDiagnosticsSnapshot::active: bool
 pub hisi_rf::ws63::WaitDiagnosticsSnapshot::backend_signals: u32
@@ -194,14 +311,37 @@ pub hisi_rf::ws63::WaitDiagnosticsSnapshot::poll_calls: u32
 pub hisi_rf::ws63::WaitDiagnosticsSnapshot::ready_polls: u32
 pub hisi_rf::ws63::WaitDiagnosticsSnapshot::timer_ready_polls: u32
 pub hisi_rf::ws63::WaitDiagnosticsSnapshot::waker_notifications: u32
+pub struct hisi_rf::ws63::WifiDevice(_)
+impl hisi_rf::ws63::WifiDevice
+pub fn hisi_rf::ws63::WifiDevice::data_path_diagnostics(&self) -> hisi_rf::ws63::DataPathDiagnostics
+pub fn hisi_rf::ws63::WifiDevice::dhcp_diagnostics(&self) -> hisi_rf::ws63::DhcpDiagnostics
+pub fn hisi_rf::ws63::WifiDevice::l2_capabilities(&self) -> core::option::Option<hisi_rf_core::wifi::WifiL2Capabilities>
+pub fn hisi_rf::ws63::WifiDevice::l2_protocol_diagnostics(&self) -> hisi_rf::ws63::L2ProtocolDiagnostics
+pub fn hisi_rf::ws63::WifiDevice::reset_l2_protocol_diagnostics(&self)
+pub fn hisi_rf::ws63::WifiDevice::reset_rx_queue_diagnostics(&self)
+pub fn hisi_rf::ws63::WifiDevice::rx_queue_diagnostics(&self) -> hisi_rf::ws63::RxQueueDiagnostics
+pub fn hisi_rf::ws63::WifiDevice::station_mac_address(&self) -> core::option::Option<[u8; 6]>
+impl smoltcp::phy::Device for hisi_rf::ws63::WifiDevice
+pub type hisi_rf::ws63::WifiDevice::RxToken<'a> = hisi_rf::ws63::WifiRxToken
+pub type hisi_rf::ws63::WifiDevice::TxToken<'a> = hisi_rf::ws63::WifiTxToken
+pub fn hisi_rf::ws63::WifiDevice::capabilities(&self) -> smoltcp::phy::DeviceCapabilities
+pub fn hisi_rf::ws63::WifiDevice::receive(&mut self, smoltcp::time::Instant) -> core::option::Option<(Self::RxToken, Self::TxToken)>
+pub fn hisi_rf::ws63::WifiDevice::transmit(&mut self, smoltcp::time::Instant) -> core::option::Option<Self::TxToken>
 pub struct hisi_rf::ws63::WifiParts
 pub hisi_rf::ws63::WifiParts::controller: hisi_rf::WifiController
-pub hisi_rf::ws63::WifiParts::device: hisi_rf_ws63::composition::WifiDevice
+pub hisi_rf::ws63::WifiParts::device: hisi_rf::ws63::WifiDevice
 impl hisi_rf::ws63::WifiParts
 pub fn hisi_rf::ws63::WifiParts::diagnostics(&self) -> hisi_rf::ws63::RadioDiagnosticsSnapshot
+pub struct hisi_rf::ws63::WifiRxToken(_)
+impl smoltcp::phy::RxToken for hisi_rf::ws63::WifiRxToken
+pub fn hisi_rf::ws63::WifiRxToken::consume<R, F: core::ops::function::FnOnce(&[u8]) -> R>(self, F) -> R
+pub struct hisi_rf::ws63::WifiTxToken(_)
+impl smoltcp::phy::TxToken for hisi_rf::ws63::WifiTxToken
+pub fn hisi_rf::ws63::WifiTxToken::consume<R, F: core::ops::function::FnOnce(&mut [u8]) -> R>(self, usize, F) -> R
 pub const hisi_rf::ws63::EVENT_CAPACITY: usize
 pub const hisi_rf::ws63::RADIO_DIAGNOSTICS_SCHEMA: &str
-pub fn hisi_rf::ws63::diagnostics(&hisi_rf::WifiController, &hisi_rf_ws63::composition::WifiDevice) -> hisi_rf::ws63::RadioDiagnosticsSnapshot
+pub fn hisi_rf::ws63::blocking_backend_metrics() -> hisi_rf::ws63::BlockingBackendMetrics
+pub fn hisi_rf::ws63::diagnostics(&hisi_rf::WifiController, &hisi_rf::ws63::WifiDevice) -> hisi_rf::ws63::RadioDiagnosticsSnapshot
 pub fn hisi_rf::ws63::init(hisi_rf_core::wifi::RadioConfig, hisi_rf::ws63::Resources) -> core::result::Result<hisi_rf::ws63::RadioController, hisi_rf::ws63::InitError>
 pub macro hisi_rf::declare_radio_storage!
 pub struct hisi_rf::RuntimeAllocator

@@ -7,12 +7,12 @@ decision = "no-public-graduation"
 name = "wifi-station"
 snapshot = ".github/public-api/ws63-incremental.txt"
 decision = "blocked"
-backend_types = "present"
+backend_types = "absent"
 unsafe_allocator_hooks = "absent"
 raw_backend_event = "absent"
 blockers = [
-  "chip-backend types remain in public signatures",
   "L2 contract still lacks the planned Embassy Net adapter and typed link metadata",
+  "facade-owned device and diagnostics projections still require final HIL graduation evidence",
 ]
 
 [[surface]]
