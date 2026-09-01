@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.109] - 2026-09-01
+
+### Added
+
+- Expose RF heap diagnostics through the doc-hidden coexistence maintenance
+  surface so facade-only HIL fixtures can enforce resource headroom without
+  depending directly on the WS63 backend crate.
+
+### Changed
+
+- Align with `hisi-rf-core 0.1.0-alpha.24` and `hisi-rf-ws63
+  0.1.0-alpha.99`, including Wi-Fi/BLE/SLE event conservation diagnostics.
+
 ## [0.1.0-alpha.108] - 2026-09-01
 
 ### Added
