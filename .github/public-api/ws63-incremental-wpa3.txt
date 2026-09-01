@@ -317,6 +317,8 @@ pub fn hisi_rf::ws63::WifiDevice::data_path_diagnostics(&self) -> hisi_rf::ws63:
 pub fn hisi_rf::ws63::WifiDevice::dhcp_diagnostics(&self) -> hisi_rf::ws63::DhcpDiagnostics
 pub fn hisi_rf::ws63::WifiDevice::l2_capabilities(&self) -> core::option::Option<hisi_rf_core::wifi::WifiL2Capabilities>
 pub fn hisi_rf::ws63::WifiDevice::l2_protocol_diagnostics(&self) -> hisi_rf::ws63::L2ProtocolDiagnostics
+pub fn hisi_rf::ws63::WifiDevice::last_received_frame(&self, &mut [u8]) -> usize
+pub fn hisi_rf::ws63::WifiDevice::last_transmitted_frame(&self, &mut [u8]) -> usize
 pub fn hisi_rf::ws63::WifiDevice::reset_l2_protocol_diagnostics(&self)
 pub fn hisi_rf::ws63::WifiDevice::reset_rx_queue_diagnostics(&self)
 pub fn hisi_rf::ws63::WifiDevice::rx_queue_diagnostics(&self) -> hisi_rf::ws63::RxQueueDiagnostics

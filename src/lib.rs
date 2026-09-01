@@ -5130,6 +5130,16 @@ mod ws63_wifi {
             crate::ws63_diagnostics::DhcpDiagnostics::from_backend(self.0.dhcp_diagnostics())
         }
 
+        /// Copy the prefix of the most recently submitted Ethernet frame.
+        pub fn last_transmitted_frame(&self, output: &mut [u8]) -> usize {
+            self.0.last_transmitted_frame(output)
+        }
+
+        /// Copy the prefix of the most recently received Ethernet frame.
+        pub fn last_received_frame(&self, output: &mut [u8]) -> usize {
+            self.0.last_received_frame(output)
+        }
+
         /// Snapshot aggregate frame progress and radio interrupt counters.
         pub fn data_path_diagnostics(&self) -> crate::ws63_diagnostics::DataPathDiagnostics {
             crate::ws63_diagnostics::DataPathDiagnostics::from_backend(

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Preserve the bounded last-frame diagnostic accessors when wrapping the WS63
+  Wi-Fi device behind the facade.
+
 ## [0.1.0-alpha.112] - 2026-09-01
 
 ### Changed
