@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.111] - 2026-09-01
+
+### Changed
+
+- Make WS63 storage admission, resource assembly, resource reporting, and radio
+  initialization facade-owned. Applications no longer name backend profile,
+  arena, builder, or initialization-error types.
+- Keep WPA2 and WPA3 resource contracts separately locked: WPA2 leaves PKE
+  available to the application, while WPA3 requires the PKE token at compile
+  time.
+
 ## [0.1.0-alpha.110] - 2026-09-01
 
 ### Fixed
@@ -1247,7 +1258,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.102...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.111...HEAD
+[0.1.0-alpha.111]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.110...v0.1.0-alpha.111
+[0.1.0-alpha.110]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.109...v0.1.0-alpha.110
+[0.1.0-alpha.109]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.108...v0.1.0-alpha.109
+[0.1.0-alpha.108]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.107...v0.1.0-alpha.108
+[0.1.0-alpha.107]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.106...v0.1.0-alpha.107
+[0.1.0-alpha.106]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.105...v0.1.0-alpha.106
+[0.1.0-alpha.105]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.104...v0.1.0-alpha.105
+[0.1.0-alpha.104]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.103...v0.1.0-alpha.104
+[0.1.0-alpha.103]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.102...v0.1.0-alpha.103
 [0.1.0-alpha.102]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.101...v0.1.0-alpha.102
 [0.1.0-alpha.101]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.100...v0.1.0-alpha.101
 [0.1.0-alpha.100]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.99...v0.1.0-alpha.100
