@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.105] - 2026-09-01
+
+### Changed
+
+- Align the WS63 facade with `hisi-rf-ws63 0.1.0-alpha.95`, which separates
+  access-point BLE coexistence from the station-only supplicant runner and adds
+  the connected Wi-Fi/BLE two-board acceptance composition.
+
 ## [0.1.0-alpha.104] - 2026-09-01
 
 ### Changed
