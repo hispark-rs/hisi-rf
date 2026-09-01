@@ -145,9 +145,12 @@ fn run(mut parts: hisi_rf::ws63::RadioParts) -> ! {
                 hisi_rf::ws63::BleEvent::BackendError { stage, status, .. } => {
                     firmware::log_u32_hex(
                         b"RFDBG_RADIO_U5_BLE_PERIPHERAL_BACKEND_STAGE=",
-                        u32::from(stage),
+                        stage.diagnostic_code(),
                     );
-                    firmware::log_u32_hex(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_BACKEND_STATUS=", status);
+                    firmware::log_u32_hex(
+                        b"RFDBG_RADIO_U5_BLE_PERIPHERAL_BACKEND_STATUS=",
+                        status.get(),
+                    );
                     firmware::fail(b"RFDBG_RADIO_U5_BLE_PERIPHERAL_ERR\r\n")
                 }
                 _ => {}

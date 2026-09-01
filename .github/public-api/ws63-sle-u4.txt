@@ -38,6 +38,8 @@ pub enum hisi_rf::ws63::SleBackendStage
 pub hisi_rf::ws63::SleBackendStage::Enable
 pub hisi_rf::ws63::SleBackendStage::StartAnnounce
 pub hisi_rf::ws63::SleBackendStage::StartSeek
+impl hisi_rf::ws63::SleBackendStage
+pub const fn hisi_rf::ws63::SleBackendStage::diagnostic_code(self) -> u32
 pub enum hisi_rf::ws63::SleEvent
 pub hisi_rf::ws63::SleEvent::AnnounceStarted
 pub hisi_rf::ws63::SleEvent::AnnounceStarted::announcer: hisi_rf::ws63::Announcer
@@ -75,8 +77,7 @@ pub fn hisi_rf::ws63::Announcer::fmt(&self, &mut core::fmt::Formatter<'_>) -> co
 pub struct hisi_rf::ws63::InitError
 pub struct hisi_rf::ws63::InstalledRadioStorage
 impl hisi_rf::ws63::InstalledRadioStorage
-pub unsafe fn hisi_rf::ws63::InstalledRadioStorage::allocate(usize) -> *mut u8
-pub unsafe fn hisi_rf::ws63::InstalledRadioStorage::deallocate(*mut u8)
+pub fn hisi_rf::ws63::InstalledRadioStorage::rtos_resources(&self, fn() -> u64) -> hisi_rtos::config::Resources
 pub struct hisi_rf::ws63::RadioController
 impl hisi_rf::ws63::RadioController
 pub fn hisi_rf::ws63::RadioController::split(self) -> hisi_rf::ws63::RadioParts

@@ -570,25 +570,23 @@ mod ws63_ble {
     }
 
     impl InstalledRadioStorage {
-        /// Allocate one zeroed runtime object from the installed arena.
-        ///
-        /// # Safety
-        ///
-        /// The pointer must be returned only through [`Self::deallocate`].
-        pub unsafe fn allocate(size: usize) -> *mut u8 {
+        unsafe fn allocate(size: usize) -> *mut u8 {
             // SAFETY: this facade preserves the backend allocator contract.
             unsafe { hisi_rf_ws63::InstalledBleB1Storage::allocate(size) }
         }
 
-        /// Release an allocation from this composition.
-        ///
-        /// # Safety
-        ///
-        /// `pointer` must be null or a live allocation returned by
-        /// [`Self::allocate`] that has not already been released.
-        pub unsafe fn deallocate(pointer: *mut u8) {
+        unsafe fn deallocate(pointer: *mut u8) {
             // SAFETY: the caller upholds the backend deallocation contract.
             unsafe { hisi_rf_ws63::InstalledBleB1Storage::deallocate(pointer) };
+        }
+
+        /// Build the RTOS services backed by this installed radio arena.
+        pub fn rtos_resources(&self, monotonic_ms: fn() -> u64) -> hisi_rtos::Resources {
+            hisi_rtos::Resources {
+                allocate: Self::allocate,
+                deallocate: Self::deallocate,
+                monotonic_ms,
+            }
         }
     }
 
@@ -698,6 +696,24 @@ mod ws63_ble {
         PairingPrompt,
         /// Displayed or entered passkey was invalid for the active generation.
         Passkey,
+    }
+
+    impl BleBackendStage {
+        /// Return the stable facade-owned code used by compact diagnostics.
+        pub const fn diagnostic_code(self) -> u32 {
+            match self {
+                Self::Enable => 1,
+                Self::StartAdvertising => 2,
+                Self::StartScanning => 3,
+                Self::DecodePeer => 4,
+                Self::ConnectionOwnership => 5,
+                Self::PairingPeer => 6,
+                Self::AuthenticationPeer => 7,
+                Self::BondObservation => 8,
+                Self::PairingPrompt => 9,
+                Self::Passkey => 10,
+            }
+        }
     }
 
     /// Fail-closed BLE command rejection with an optional vendor status.
@@ -3547,25 +3563,23 @@ mod ws63_sle {
     }
 
     impl InstalledRadioStorage {
-        /// Allocate one zeroed runtime object from the installed arena.
-        ///
-        /// # Safety
-        ///
-        /// The pointer must be returned only through [`Self::deallocate`].
-        pub unsafe fn allocate(size: usize) -> *mut u8 {
+        unsafe fn allocate(size: usize) -> *mut u8 {
             // SAFETY: this facade preserves the backend allocator contract.
             unsafe { hisi_rf_ws63::InstalledSleS1Storage::allocate(size) }
         }
 
-        /// Release an allocation from this composition.
-        ///
-        /// # Safety
-        ///
-        /// `pointer` must be null or a live allocation returned by
-        /// [`Self::allocate`] that has not already been released.
-        pub unsafe fn deallocate(pointer: *mut u8) {
+        unsafe fn deallocate(pointer: *mut u8) {
             // SAFETY: the caller upholds the backend deallocation contract.
             unsafe { hisi_rf_ws63::InstalledSleS1Storage::deallocate(pointer) };
+        }
+
+        /// Build the RTOS services backed by this installed radio arena.
+        pub fn rtos_resources(&self, monotonic_ms: fn() -> u64) -> hisi_rtos::Resources {
+            hisi_rtos::Resources {
+                allocate: Self::allocate,
+                deallocate: Self::deallocate,
+                monotonic_ms,
+            }
         }
     }
 
@@ -3642,6 +3656,17 @@ mod ws63_sle {
         StartAnnounce,
         /// Seek start callback.
         StartSeek,
+    }
+
+    impl SleBackendStage {
+        /// Return the stable facade-owned code used by compact diagnostics.
+        pub const fn diagnostic_code(self) -> u32 {
+            match self {
+                Self::Enable => 1,
+                Self::StartAnnounce => 2,
+                Self::StartSeek => 3,
+            }
+        }
     }
 
     /// Fail-closed SLE command rejection with an optional vendor status.
@@ -4964,25 +4989,23 @@ mod ws63_wifi {
     }
 
     impl InstalledRadioStorage {
-        /// Allocate one zeroed RTOS block from the installed composition.
-        ///
-        /// # Safety
-        ///
-        /// The pointer must be released only through [`Self::deallocate`].
-        pub unsafe fn allocate(size: usize) -> *mut u8 {
+        unsafe fn allocate(size: usize) -> *mut u8 {
             // SAFETY: this method preserves the backend allocator's contract.
             unsafe { InstalledRadioArena::<SelectedProfile>::allocate(size) }
         }
 
-        /// Release one RTOS allocation.
-        ///
-        /// # Safety
-        ///
-        /// `pointer` must be null or a live allocation returned by
-        /// [`Self::allocate`] that has not already been released.
-        pub unsafe fn deallocate(pointer: *mut u8) {
+        unsafe fn deallocate(pointer: *mut u8) {
             // SAFETY: the caller upholds the backend deallocation contract.
             unsafe { InstalledRadioArena::<SelectedProfile>::deallocate(pointer) };
+        }
+
+        /// Build the RTOS services backed by this installed radio arena.
+        pub fn rtos_resources(&self, monotonic_ms: fn() -> u64) -> hisi_rtos::Resources {
+            hisi_rtos::Resources {
+                allocate: Self::allocate,
+                deallocate: Self::deallocate,
+                monotonic_ms,
+            }
         }
 
         /// Split storage at the post-RTOS radio initialization boundary.

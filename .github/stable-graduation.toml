@@ -8,11 +8,10 @@ name = "wifi-station"
 snapshot = ".github/public-api/ws63-incremental.txt"
 decision = "blocked"
 backend_types = "present"
-unsafe_allocator_hooks = "present"
+unsafe_allocator_hooks = "absent"
 raw_backend_event = "absent"
 blockers = [
   "chip-backend types remain in public signatures",
-  "allocator hooks remain public unsafe functions",
   "L2 contract still lacks the planned Embassy Net adapter and typed link metadata",
 ]
 
@@ -21,10 +20,9 @@ name = "ble"
 snapshot = ".github/public-api/ws63-ble-u5.txt"
 decision = "blocked"
 backend_types = "absent"
-unsafe_allocator_hooks = "present"
+unsafe_allocator_hooks = "absent"
 raw_backend_event = "absent"
 blockers = [
-  "allocator hooks remain public unsafe functions",
   "stable API naming and migration compatibility have not completed review",
 ]
 
@@ -33,10 +31,9 @@ name = "sle"
 snapshot = ".github/public-api/ws63-sle-u4.txt"
 decision = "blocked"
 backend_types = "absent"
-unsafe_allocator_hooks = "present"
+unsafe_allocator_hooks = "absent"
 raw_backend_event = "absent"
 blockers = [
-  "allocator hooks remain public unsafe functions",
   "connection and SSAP client lifecycle are not represented by the current public slice",
 ]
 

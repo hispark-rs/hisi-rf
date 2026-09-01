@@ -58,11 +58,7 @@ fn run_inner<R>(
             radio_task_policy: hisi_rtos::RunPolicy::Cooperative,
             max_scheduler_lock_duration: NonZeroU32::new(5_000).unwrap(),
         },
-        hisi_rtos::Resources {
-            allocate: rtos_allocate,
-            deallocate: rtos_deallocate,
-            monotonic_ms,
-        },
+        storage.rtos_resources(monotonic_ms),
         hisi_rtos::SchedulerPort {
             max_timer_delay: NonZeroU32::new(TimerAlarm0::MAX_DELAY_MS).unwrap(),
             arm_timer: TimerAlarm0::arm_millis,
@@ -78,7 +74,10 @@ fn run_inner<R>(
     unsafe { interrupt::enable_global() };
     hisi_rtos::request_reschedule();
 
+    #[cfg(feature = "ble")]
     let resources = hisi_rf::ws63::Resources::new(efuse, p.KM, p.SPACC, p.PKE, p.TRNG);
+    #[cfg(feature = "sle")]
+    let resources = hisi_rf::ws63::Resources::new(efuse, p.KM, p.SPACC, p.TRNG);
     log(b"RFDBG_RADIO_U2_INIT_BEGIN\r\n");
     match hisi_rf::ws63::init(resources, storage) {
         Ok(controller) => {
@@ -123,6 +122,7 @@ pub fn log(bytes: &[u8]) {
     }
 }
 
+#[cfg(feature = "ble")]
 pub fn log_passkey(prefix: &[u8], passkey: hisi_rf::ble::Passkey) {
     let mut value = passkey.as_u32();
     let mut digits = [b'0'; 6];
@@ -169,16 +169,6 @@ extern "C" fn SOFT_INT0() {
     hisi_rtos::interrupt_enter();
     hisi_rtos::on_software_interrupt();
     hisi_rtos::interrupt_exit();
-}
-
-unsafe fn rtos_allocate(size: usize) -> *mut u8 {
-    // SAFETY: the RTOS is the sole allocator client after storage installation.
-    unsafe { hisi_rf::ws63::InstalledRadioStorage::allocate(size) }
-}
-
-unsafe fn rtos_deallocate(pointer: *mut u8) {
-    // SAFETY: `pointer` is returned by `rtos_allocate` to the same RTOS instance.
-    unsafe { hisi_rf::ws63::InstalledRadioStorage::deallocate(pointer) };
 }
 
 fn monotonic_ms() -> u64 {

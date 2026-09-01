@@ -45,6 +45,8 @@ pub hisi_rf::ws63::BleBackendStage::PairingPrompt
 pub hisi_rf::ws63::BleBackendStage::Passkey
 pub hisi_rf::ws63::BleBackendStage::StartAdvertising
 pub hisi_rf::ws63::BleBackendStage::StartScanning
+impl hisi_rf::ws63::BleBackendStage
+pub const fn hisi_rf::ws63::BleBackendStage::diagnostic_code(self) -> u32
 pub enum hisi_rf::ws63::BleEvent
 pub hisi_rf::ws63::BleEvent::AdvertisingStarted
 pub hisi_rf::ws63::BleEvent::AdvertisingStarted::advertiser: hisi_rf::ws63::Advertiser
@@ -155,8 +157,7 @@ pub struct hisi_rf::ws63::GattServerHandle
 pub struct hisi_rf::ws63::InitError
 pub struct hisi_rf::ws63::InstalledRadioStorage
 impl hisi_rf::ws63::InstalledRadioStorage
-pub unsafe fn hisi_rf::ws63::InstalledRadioStorage::allocate(usize) -> *mut u8
-pub unsafe fn hisi_rf::ws63::InstalledRadioStorage::deallocate(*mut u8)
+pub fn hisi_rf::ws63::InstalledRadioStorage::rtos_resources(&self, fn() -> u64) -> hisi_rtos::config::Resources
 pub struct hisi_rf::ws63::PairingResponder
 impl core::fmt::Debug for hisi_rf::ws63::PairingResponder
 pub fn hisi_rf::ws63::PairingResponder::fmt(&self, &mut core::fmt::Formatter<'_>) -> core::fmt::Result

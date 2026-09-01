@@ -102,9 +102,8 @@ pub hisi_rf::ws63::RunnerDiagnosticsSnapshot::Blocking(hisi_rf_core::wifi::Block
 pub hisi_rf::ws63::RunnerDiagnosticsSnapshot::Incremental(hisi_rf_core::incremental::facade::IncrementalRunnerDiagnostics)
 pub struct hisi_rf::ws63::InstalledRadioStorage
 impl hisi_rf::ws63::InstalledRadioStorage
-pub unsafe fn hisi_rf::ws63::InstalledRadioStorage::allocate(usize) -> *mut u8
-pub unsafe fn hisi_rf::ws63::InstalledRadioStorage::deallocate(*mut u8)
 pub fn hisi_rf::ws63::InstalledRadioStorage::into_init_parts(self) -> (&'static hisi_rf::ws63::Storage, hisi_rf_ws63::profile::InstalledRadioArena<hisi_rf_ws63::profile::SelectedProfile>)
+pub fn hisi_rf::ws63::InstalledRadioStorage::rtos_resources(&self, fn() -> u64) -> hisi_rtos::config::Resources
 pub struct hisi_rf::ws63::RadioController(_)
 impl hisi_rf::ws63::RadioController
 pub fn hisi_rf::ws63::RadioController::split(self, hisi_rf_core::incremental::WorkBudget) -> hisi_rf::ws63::RadioParts
