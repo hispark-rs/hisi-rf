@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Compile the facade runtime allocator only for profiles that expose Wi-Fi,
+  BLE, or SLE, avoiding a dead-code failure in the WS63 SoftAP-only profile.
+
 ## [0.1.0-alpha.113] - 2026-09-01
 
 ### Fixed

@@ -156,14 +156,14 @@ impl VendorStatus {
 ///
 /// The application passes these callbacks to its chosen runtime; the facade
 /// does not select or start a scheduler backend.
-#[cfg(feature = "chip-ws63")]
+#[cfg(any(feature = "wifi", feature = "ble", feature = "sle"))]
 #[derive(Clone, Copy)]
 pub struct RuntimeAllocator {
     allocate: unsafe fn(usize) -> *mut u8,
     deallocate: unsafe fn(*mut u8),
 }
 
-#[cfg(feature = "chip-ws63")]
+#[cfg(any(feature = "wifi", feature = "ble", feature = "sle"))]
 impl RuntimeAllocator {
     const fn new(allocate: unsafe fn(usize) -> *mut u8, deallocate: unsafe fn(*mut u8)) -> Self {
         Self {
