@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.114] - 2026-09-03
+
 ### Fixed
 
 - Compile the facade runtime allocator only for profiles that expose Wi-Fi,
@@ -1278,7 +1280,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate `WifiController` and L2 `WifiDevice` ownership.
 - Optional delegation to `smoltcp::phy::Device`.
 
-[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.113...HEAD
+[Unreleased]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.114...HEAD
+[0.1.0-alpha.114]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.113...v0.1.0-alpha.114
 [0.1.0-alpha.113]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.112...v0.1.0-alpha.113
 [0.1.0-alpha.112]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.111...v0.1.0-alpha.112
 [0.1.0-alpha.111]: https://github.com/hispark-rs/hisi-rf/compare/v0.1.0-alpha.110...v0.1.0-alpha.111
