@@ -104,6 +104,7 @@ jobs:
           uv run --script .github/scripts/check-release-consumer.py
           candidate
           --crate candidate/${{ needs.package.outputs.crate-name }}
+          --expected-sha256 ${{ needs.package.outputs.sha256 }}
           --profile ${{ matrix.profile }}
           --report evidence/${{ matrix.os }}-${{ matrix.profile }}.json
       - name: Upload candidate evidence

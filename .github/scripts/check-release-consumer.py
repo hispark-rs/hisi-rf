@@ -43,6 +43,7 @@ def run(
         check=check,
         capture_output=capture,
         text=True,
+        encoding="utf-8",
     )
 
 
@@ -56,7 +57,9 @@ def copy_fixture(destination: Path) -> None:
 
 def replace_dependency(manifest: Path, replacement: str) -> None:
     original = manifest.read_text(encoding="utf-8")
-    updated, count = DEPENDENCY_LINE.subn(replacement, original)
+    # A replacement string interprets backslashes a second time, corrupting
+    # TOML-escaped Windows paths. A callable preserves the serialized literal.
+    updated, count = DEPENDENCY_LINE.subn(lambda _match: replacement, original)
     if count != 1:
         raise RuntimeError(f"expected one hisi-rf dependency in {manifest}, found {count}")
     manifest.write_text(updated, encoding="utf-8")
@@ -168,6 +171,7 @@ def main() -> int:
     parser.add_argument("mode", choices=("candidate", "published"))
     parser.add_argument("--profile", choices=PROFILES, required=True)
     parser.add_argument("--crate", type=Path)
+    parser.add_argument("--expected-sha256")
     parser.add_argument("--version")
     parser.add_argument("--report", type=Path)
     parser.add_argument("--registry-retries", type=int, default=12)
@@ -206,6 +210,8 @@ def main() -> int:
                 + ', features = ["chip-ws63"] }'
             )
             archive_sha256 = hashlib.sha256(candidate.read_bytes()).hexdigest()
+            if args.expected_sha256 and archive_sha256 != args.expected_sha256:
+                raise RuntimeError("candidate checksum differs from the package job")
             retries = 1
         else:
             version = args.version
@@ -235,7 +241,7 @@ def main() -> int:
         ], key=lambda node: node["id"])
         lock = (consumer / "Cargo.lock").read_bytes()
         binary = "radio" if args.profile in RADIO_PROFILES else "hisi-rf-ws63-external-consumer"
-        elf = consumer / "target" / TARGET / "release" / binary
+        elf = Path(meta["target_directory"]) / TARGET / "release" / binary
         if not elf.is_file():
             raise RuntimeError("consumer build did not produce the expected ELF")
         toolchain = run(["rustc", "-vV"], cwd=consumer, capture=True).stdout.strip()
