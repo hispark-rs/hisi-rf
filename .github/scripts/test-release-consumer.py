@@ -1,7 +1,7 @@
 #!/usr/bin/env -S uv run --script
 # /// script
 # requires-python = ">=3.11"
-# dependencies = []
+# dependencies = ["pyyaml==6.0.2"]
 # ///
 """Negative and unit tests for the release consumer evidence gate."""
 
@@ -16,6 +16,7 @@ import tarfile
 import tempfile
 import unittest
 from pathlib import Path
+import yaml
 
 
 sys.dont_write_bytecode = True
@@ -37,6 +38,18 @@ def package(name: str, version: str, source: str | None, manifest: Path) -> dict
 
 
 class ReleaseConsumerTests(unittest.TestCase):
+    def test_downloaded_candidates_do_not_dirty_the_release_checkout(self):
+        workflow = yaml.safe_load((SCRIPT.parents[1] / "workflows/publish.yml").read_text())
+        for job_name in ("candidate-consumer", "publish"):
+            steps = workflow["jobs"][job_name]["steps"]
+            downloads = [step for step in steps if step.get("uses", "").startswith("actions/download-artifact@")]
+            self.assertEqual(len(downloads), 1)
+            self.assertEqual(downloads[0]["with"]["path"], "${{ runner.temp }}/candidate")
+        publish_steps = workflow["jobs"]["publish"]["steps"]
+        repackage = next(step for step in publish_steps if step.get("name") == "Reproduce candidate package")
+        self.assertIn("${RUNNER_TEMP}/candidate/", repackage["run"])
+        self.assertNotIn("--allow-dirty", repackage["run"])
+
     def test_toml_path_roundtrip(self):
         for path in (r"D:\a\_temp\hisi rf\package", r"C:\Users\构建\release", "/tmp/space and unicode 构建/package"):
             with self.subTest(path=path), tempfile.TemporaryDirectory() as directory:

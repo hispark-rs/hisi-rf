@@ -98,12 +98,12 @@ jobs:
       - uses: actions/download-artifact@v6
         with:
           name: hisi-rf-release-candidate
-          path: candidate
+          path: ${{ runner.temp }}/candidate
       - name: Build isolated candidate consumer
         run: >-
           uv run --script .github/scripts/check-release-consumer.py
           candidate
-          --crate candidate/${{ needs.package.outputs.crate-name }}
+          --crate "${{ runner.temp }}/candidate/${{ needs.package.outputs.crate-name }}"
           --expected-sha256 ${{ needs.package.outputs.sha256 }}
           --profile ${{ matrix.profile }}
           --report evidence/${{ matrix.os }}-${{ matrix.profile }}.json
@@ -131,12 +131,12 @@ jobs:
       - uses: actions/download-artifact@v6
         with:
           name: hisi-rf-release-candidate
-          path: candidate
+          path: ${{ runner.temp }}/candidate
       - name: Reproduce candidate package
         run: |
           set -euo pipefail
           cargo package --locked --no-verify --target-dir "${RUNNER_TEMP}/repackage" --features chip-ws63,profile-wifi-wpa2-smoltcp
-          echo "${{ needs.package.outputs.sha256 }}  candidate/${{ needs.package.outputs.crate-name }}" | sha256sum --check
+          echo "${{ needs.package.outputs.sha256 }}  ${RUNNER_TEMP}/candidate/${{ needs.package.outputs.crate-name }}" | sha256sum --check
           echo "${{ needs.package.outputs.sha256 }}  ${RUNNER_TEMP}/repackage/package/${{ needs.package.outputs.crate-name }}" | sha256sum --check
       - name: Publish or dry-run
         id: publish
