@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import subprocess
 import tomllib
 from pathlib import Path
@@ -54,13 +53,6 @@ def exact_dependency_version(value: object, dependency: str) -> str:
     return requirement[1:]
 
 
-def alpha_release(version: str) -> tuple[tuple[int, int, int], int]:
-    match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)-alpha\.(\d+)", version)
-    if match is None:
-        raise ValueError(f"expected an alpha release version, found {version!r}")
-    return tuple(int(value) for value in match.groups()[:3]), int(match.group(4))
-
-
 def check_consumer_release_version(packages: dict[str, dict]) -> None:
     source = manifest(ROOT / "Cargo.toml")
     consumer = manifest(CONSUMER / "Cargo.toml")
@@ -68,19 +60,6 @@ def check_consumer_release_version(packages: dict[str, dict]) -> None:
     requested_version = exact_dependency_version(
         consumer["dependencies"]["hisi-rf"], "hisi-rf"
     )
-    source_base, source_alpha = alpha_release(source_version)
-    requested_base, requested_alpha = alpha_release(requested_version)
-    # Alpha sequence numbers may be intentionally skipped. During publish
-    # propagation the fixture therefore accepts the current source or either
-    # of the two immediately preceding alpha numbers, while remaining exactly
-    # pinned to a version that Cargo resolves from crates.io.
-    if source_base != requested_base or not 0 <= source_alpha - requested_alpha <= 2:
-        raise ValueError(
-            "external fixture must track the current facade or a recent published "
-            f"alpha during publish propagation: source={source_version}, "
-            f"fixture={requested_version}"
-        )
-
     resolved_facade = packages["hisi-rf"]["version"]
     if resolved_facade != requested_version:
         raise ValueError(
@@ -90,8 +69,8 @@ def check_consumer_release_version(packages: dict[str, dict]) -> None:
 
     if requested_version != source_version:
         print(
-            "external fixture is one release behind the source facade; "
-            "update it after the current release publishes"
+            "external registry fixture is a published baseline, not the source "
+            f"candidate: source={source_version}, baseline={requested_version}"
         )
         return
 

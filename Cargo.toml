@@ -9,6 +9,7 @@ description = "Chip-selecting radio facade for HiSilicon embedded Rust"
 repository = "https://github.com/hispark-rs/hisi-rf"
 keywords = ["embedded", "no-std", "wifi", "radio", "hisilicon"]
 categories = ["embedded", "no-std", "network-programming"]
+exclude = [".github/**"]
 
 [[example]]
 name = "ws63_ble_u2_advertise"

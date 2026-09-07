@@ -15,6 +15,8 @@ jobs:
           toolchain: nightly-2026-07-09
           components: clippy,rust-src,rustfmt
       - uses: astral-sh/setup-uv@v7
+      - name: Test release evidence gate failures
+        run: uv run --script .github/scripts/test-release-consumer.py
       - run: cargo fmt --all -- --check
       - name: Test the complete WS63 WPA2 facade
         run: cargo test --locked --features chip-ws63,profile-wifi-wpa2-smoltcp
@@ -139,8 +141,14 @@ jobs:
             exit 1
           fi
           grep -F "select exactly one BLE or SLE named profile" "${log}"
-      - name: Package the current published chip backend
-        run: cargo package --locked --features chip-ws63,profile-wifi-wpa2-smoltcp
+      - name: Package the current facade candidate
+        run: cargo package --locked --no-verify --target-dir target --features chip-ws63,profile-wifi-wpa2-smoltcp
+      - name: Consume the packaged candidate outside its source tree
+        run: >-
+          uv run --script .github/scripts/check-release-consumer.py
+          candidate
+          --crate target/package
+          --profile wpa2-personal
 
   consumer-matrix:
     name: Consumer (${{ matrix.os }}, ${{ matrix.profile }})
@@ -209,7 +217,7 @@ jobs:
       - name: Link a complete firmware through the public facade
         if: matrix.fixture_bin != 'radio'
         run: cargo build -Zbuild-std=core --locked --release --target riscv32imfc-unknown-none-elf --example ws63_plain_firmware --features chip-ws63,${{ matrix.named-profile }}
-      - name: Build the released facade from an external crates.io-only fixture
+      - name: Build the published-baseline facade from an external crates.io-only fixture
         working-directory: .github/fixtures/ws63-consumer
         env:
           CARGO_TARGET_DIR: ${{ runner.temp }}/hisi rf build 构建/long external consumer path/${{ matrix.profile }}

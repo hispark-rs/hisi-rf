@@ -136,7 +136,7 @@ fn check_ws63_incremental_facade(radio: hisi_rf::ws63::RadioController) {
         let _wait = parts.runner.wait_ready();
     }
     let runner_diagnostics: hisi_rf::IncrementalRunnerDiagnostics = parts.runner.diagnostics();
-    let wait_diagnostics: hisi_rf::ws63::Ws63IncrementalWaitDiagnostics =
+    let wait_diagnostics: hisi_rf::ws63::WaitDiagnosticsSnapshot =
         parts.runner.wait_diagnostics();
     let snapshot: hisi_rf::ws63::RadioDiagnosticsSnapshot = parts.diagnostics();
     let snapshot_runner = match snapshot.runner {
@@ -169,20 +169,25 @@ fn main() -> ! {
         .expect("diagnostic sink is infallible");
 
     let peripherals = unsafe { hisi_hal::peripherals::Peripherals::steal() };
-    let (control, arena) = RADIO_STORAGE
+    let installed = RADIO_STORAGE
         .install()
-        .expect("install caller-owned radio storage")
-        .into_init_parts();
-    let resources = hisi_rf::ws63::Resources::<hisi_rf::ws63::SelectedProfile>::builder(
-        peripherals.EFUSE,
-        arena,
-    )
-    .crypto(peripherals.KM, peripherals.SPACC, peripherals.TRNG);
+        .expect("install caller-owned radio storage");
     #[cfg(feature = "wpa2-personal")]
-    let resources = resources.build();
+    let resources = installed.resources(
+        peripherals.EFUSE,
+        peripherals.KM,
+        peripherals.SPACC,
+        peripherals.TRNG,
+    );
     #[cfg(feature = "wpa3-personal")]
-    let resources = resources.pke(peripherals.PKE).build();
-    let _radio = hisi_rf::ws63::init(hisi_rf::RadioConfig::default(), resources, control)
+    let resources = installed.resources(
+        peripherals.EFUSE,
+        peripherals.KM,
+        peripherals.SPACC,
+        peripherals.PKE,
+        peripherals.TRNG,
+    );
+    let _radio = hisi_rf::ws63::init(hisi_rf::RadioConfig::default(), resources)
         .expect("fresh static radio storage");
 
     loop {

@@ -4,18 +4,48 @@ on:
   push:
     tags: ['v*']
   workflow_dispatch:
-    inputs:
-      dry_run:
-        description: "Dry run (package + check, no upload)"
-        type: boolean
-        default: true
 
 permissions:
+  actions: read
   contents: read
 
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  publish:
+  source-ci:
+    name: Require successful source CI
     runs-on: ubuntu-latest
+    steps:
+      - name: Require successful CI for the release commit
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const response = await github.rest.actions.listWorkflowRunsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head_sha: context.sha,
+              status: 'completed',
+              per_page: 100,
+            });
+            const successful = response.data.workflow_runs.find(
+              run => run.name === 'CI' && run.conclusion === 'success'
+            );
+            if (!successful) {
+              core.setFailed(`No successful CI run exists for release SHA ${context.sha}`);
+              return;
+            }
+            core.info(`Source CI: ${successful.html_url}`);
+
+  package:
+    name: Build immutable candidate
+    needs: source-ci
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.identity.outputs.version }}
+      crate-name: ${{ steps.identity.outputs.crate-name }}
+      sha256: ${{ steps.identity.outputs.sha256 }}
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@master
@@ -28,11 +58,130 @@ jobs:
           git ls-files --error-unmatch Cargo.lock >/dev/null
           cargo metadata --locked --format-version 1 --no-deps >/dev/null
           git diff --exit-code -- Cargo.lock
-      - name: Publish crate
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-          DRY: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry-run' || '' }}
+      - name: Package candidate
+        run: cargo package --locked --no-verify --target-dir target --features chip-ws63,profile-wifi-wpa2-smoltcp
+      - name: Record candidate identity
+        id: identity
         run: |
           set -euo pipefail
-          cargo package --locked --features chip-ws63,profile-wifi-wpa2-smoltcp
-          cargo publish --locked --features chip-ws63,profile-wifi-wpa2-smoltcp --no-verify $DRY
+          version="$(cargo metadata --locked --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "hisi-rf") | .version')"
+          crate_name="hisi-rf-${version}.crate"
+          test -f "target/package/${crate_name}"
+          sha256="$(sha256sum "target/package/${crate_name}" | cut -d' ' -f1)"
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "crate-name=${crate_name}" >> "${GITHUB_OUTPUT}"
+          echo "sha256=${sha256}" >> "${GITHUB_OUTPUT}"
+      - name: Upload candidate package
+        uses: actions/upload-artifact@v6
+        with:
+          name: hisi-rf-release-candidate
+          path: target/package/${{ steps.identity.outputs.crate-name }}
+          if-no-files-found: error
+          retention-days: 30
+
+  candidate-consumer:
+    name: Candidate consumer (${{ matrix.os }}, ${{ matrix.profile }})
+    needs: package
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-14, windows-latest]
+        profile: [wpa2-personal, wpa3-personal, ble-peripheral, sle-announce]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2026-07-09
+          components: rust-src
+      - uses: astral-sh/setup-uv@v7
+      - uses: actions/download-artifact@v6
+        with:
+          name: hisi-rf-release-candidate
+          path: candidate
+      - name: Build isolated candidate consumer
+        run: >-
+          uv run --script .github/scripts/check-release-consumer.py
+          candidate
+          --crate candidate/${{ needs.package.outputs.crate-name }}
+          --profile ${{ matrix.profile }}
+          --report evidence/${{ matrix.os }}-${{ matrix.profile }}.json
+      - name: Upload candidate evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: candidate-evidence-${{ matrix.os }}-${{ matrix.profile }}
+          path: evidence
+          if-no-files-found: warn
+          retention-days: 30
+
+  publish:
+    name: Publish verified candidate
+    needs: [package, candidate-consumer]
+    runs-on: ubuntu-latest
+    outputs:
+      published: ${{ steps.publish.outputs.published }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2026-07-09
+          components: rust-src
+      - uses: actions/download-artifact@v6
+        with:
+          name: hisi-rf-release-candidate
+          path: candidate
+      - name: Reproduce candidate package
+        run: |
+          set -euo pipefail
+          cargo package --locked --no-verify --target-dir "${RUNNER_TEMP}/repackage" --features chip-ws63,profile-wifi-wpa2-smoltcp
+          echo "${{ needs.package.outputs.sha256 }}  candidate/${{ needs.package.outputs.crate-name }}" | sha256sum --check
+          echo "${{ needs.package.outputs.sha256 }}  ${RUNNER_TEMP}/repackage/package/${{ needs.package.outputs.crate-name }}" | sha256sum --check
+      - name: Publish or dry-run
+        id: publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          VERSION: ${{ needs.package.outputs.version }}
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            test "${GITHUB_REF_NAME}" = "v${VERSION}"
+            cargo publish --locked --features chip-ws63,profile-wifi-wpa2-smoltcp --no-verify
+            echo "published=true" >> "${GITHUB_OUTPUT}"
+          else
+            cargo publish --locked --features chip-ws63,profile-wifi-wpa2-smoltcp --no-verify --dry-run
+            echo "published=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+  published-consumer:
+    name: Published consumer (${{ matrix.os }}, ${{ matrix.profile }})
+    needs: [package, publish]
+    if: needs.publish.outputs.published == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-14, windows-latest]
+        profile: [wpa2-personal, wpa3-personal, ble-peripheral, sle-announce]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2026-07-09
+          components: rust-src
+      - uses: astral-sh/setup-uv@v7
+      - name: Build exact published consumer
+        run: >-
+          uv run --script .github/scripts/check-release-consumer.py
+          published
+          --version ${{ needs.package.outputs.version }}
+          --profile ${{ matrix.profile }}
+          --report evidence/${{ matrix.os }}-${{ matrix.profile }}.json
+      - name: Upload published evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: published-evidence-${{ matrix.os }}-${{ matrix.profile }}
+          path: evidence
+          if-no-files-found: warn
+          retention-days: 90
