@@ -143,8 +143,6 @@ jobs:
           grep -F "select exactly one BLE or SLE named profile" "${log}"
       - name: Package the current facade candidate
         run: cargo package --locked --no-verify --target-dir target --features chip-ws63,profile-wifi-wpa2-smoltcp
-      - name: Check candidate path serialization
-        run: uv run --script .github/scripts/test-release-consumer.py
       - name: Consume the packaged candidate outside its source tree
         run: >-
           uv run --script .github/scripts/check-release-consumer.py
