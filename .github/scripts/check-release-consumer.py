@@ -11,6 +11,7 @@ import argparse
 import hashlib
 import json
 import os
+import platform
 import re
 import shutil
 import subprocess
@@ -221,19 +222,44 @@ def main() -> int:
         meta = metadata(consumer, args.profile)
         verify_graph(meta, args.mode, version, package_root)
         build(consumer, args.profile)
+        # Normalize ephemeral paths out of the graph, retaining exact edges and
+        # selected features; Cargo.lock retains registry package checksums.
+        def package_id(package: dict) -> str:
+            return f"{package['name']}@{package['version']}#{package.get('source') or 'local-fixture'}"
+
+        ids = {package["id"]: package_id(package) for package in meta["packages"]}
+        graph = sorted([
+            {"id": ids[node["id"]], "features": sorted(node["features"]),
+             "dependencies": sorted(ids[dependency] for dependency in node["dependencies"])}
+            for node in meta["resolve"]["nodes"]
+        ], key=lambda node: node["id"])
+        lock = (consumer / "Cargo.lock").read_bytes()
+        binary = "radio" if args.profile in RADIO_PROFILES else "hisi-rf-ws63-external-consumer"
+        elf = consumer / "target" / TARGET / "release" / binary
+        if not elf.is_file():
+            raise RuntimeError("consumer build did not produce the expected ELF")
+        toolchain = run(["rustc", "-vV"], cwd=consumer, capture=True).stdout.strip()
 
         report = {
-            "schema": 1,
+            "schema": 2,
             "mode": args.mode,
             "profile": args.profile,
             "facade_version": version,
             "candidate_sha256": archive_sha256,
             "target": TARGET,
             "status": "pass",
+            "host": {"os": platform.system(), "architecture": platform.machine()},
+            "rustc": toolchain,
+            "lock_sha256": hashlib.sha256(lock).hexdigest(),
+            "elf_sha256": hashlib.sha256(elf.read_bytes()).hexdigest(),
+            "dependencies": graph,
+            "ci": {key: os.environ.get(key) for key in ("GITHUB_SHA", "GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT")},
         }
         rendered = json.dumps(report, indent=2, sort_keys=True)
         if args.report is not None:
             args.report.parent.mkdir(parents=True, exist_ok=True)
+            args.report.with_suffix(".Cargo.lock").write_bytes(lock)
+            shutil.copy2(elf, args.report.with_suffix(".elf"))
             args.report.write_text(rendered + "\n", encoding="utf-8")
         print(rendered)
     return 0
