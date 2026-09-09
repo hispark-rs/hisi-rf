@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.115] - 2026-09-09
+
+### Changed
+
+- Keep the facade and WS63 backend on the same published core contract:
+  `hisi-rf-core 0.1.0-alpha.25` and `hisi-rf-ws63 0.1.0-alpha.101`.
+  The backend's NET0 callback contract remains non-default and hidden; existing
+  named profiles still use the verified smoltcp path, not Embassy Net.
+
 ## [0.1.0-alpha.114] - 2026-09-03
 
 ### Fixed

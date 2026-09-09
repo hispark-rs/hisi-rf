@@ -176,7 +176,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "strsim",
- "syn 3.0.4",
+ "syn 3.0.5",
 ]
 
 [[package]]
@@ -187,7 +187,7 @@ checksum = "2ac7135c3ef02b2f7833bbeb1be5ba7f966dcde8a87c6b87f65a778d71a02785"
 dependencies = [
  "darling_core",
  "quote",
- "syn 3.0.4",
+ "syn 3.0.5",
 ]
 
 [[package]]
@@ -529,7 +529,7 @@ checksum = "82838ac70a30951282f15df5741eeb38f748f5347d419c91b93751ceccc49876"
 
 [[package]]
 name = "hisi-rf"
-version = "0.1.0-alpha.114"
+version = "0.1.0-alpha.115"
 dependencies = [
  "critical-section",
  "hisi-hal",
@@ -544,10 +544,11 @@ dependencies = [
 
 [[package]]
 name = "hisi-rf-core"
-version = "0.1.0-alpha.24"
+version = "0.1.0-alpha.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "711a77f6b158c2f1c85cbc634e0643dbcef59a62f7cfb63c5e19753126449f49"
+checksum = "4a6e485f8981eb030385581a031c20251232bd72620914d6c87e568fc75a7e9d"
 dependencies = [
+ "critical-section",
  "embassy-sync",
  "portable-atomic",
  "smoltcp",
@@ -570,9 +571,9 @@ dependencies = [
 
 [[package]]
 name = "hisi-rf-ws63"
-version = "0.1.0-alpha.100"
+version = "0.1.0-alpha.101"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "82cbff23c4180d615a6fdb48984a165fe8a33371c0b1ccd4f2946c69effba9d6"
+checksum = "40feae2161dce478fa8ae7f07c37e17cbfb77c7b489623398854e832bf470527"
 dependencies = [
  "ar_archive_writer",
  "critical-section",
@@ -659,9 +660,9 @@ checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
 name = "indexmap"
-version = "2.14.1"
+version = "2.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "07aa2048142242915a31d35844fb311e0e53fcca590c3a0a40dcf1b841fa09eb"
+checksum = "cc4e190f5d26ca7051642629da2c52fc03bde85a03197c99408dcd291734c855"
 dependencies = [
  "equivalent",
  "hashbrown 0.17.1",
@@ -695,7 +696,7 @@ dependencies = [
  "indoc",
  "proc-macro2",
  "quote",
- "syn 3.0.4",
+ "syn 3.0.5",
 ]
 
 [[package]]
@@ -967,7 +968,7 @@ checksum = "e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.4",
+ "syn 3.0.5",
 ]
 
 [[package]]
@@ -1076,9 +1077,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "3.0.4"
+version = "3.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6275cddf4610d1775e6d1fe9469b2e77d0f39fd98fb7450901b821e0c53649f"
+checksum = "12df2e0110f65b775f769bb17ef989067a1d931b2eb822bd4346631eeada89f9"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1166,9 +1167,9 @@ checksum = "23b97319f7b8343df12cc98938e5c3eb436064524c8d2b4e30a1d3a36eecdf81"
 
 [[package]]
 name = "ws63-pac"
-version = "0.4.5"
+version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb3408ff61dc9d263109539b0130b3ebeaf8789e0284a378621a037bbd650c38"
+checksum = "37eb2353e1f3a1cbdc752736170502435df9c12b09f288805015478d492a3764"
 dependencies = [
  "critical-section",
  "riscv",
