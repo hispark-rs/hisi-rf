@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.116] - 2026-09-09
+
+### Added
+
+- Export `UnicastMacAddress` from the facade, so applications can name and
+  construct the validated station identity without a direct core dependency.
+  Exercise identity and secret-redaction contracts through facade-only tests.
+
+### Fixed
+
+- Consume the core's validated unicast station identity and redacted
+  passphrase/configuration Debug implementations through the public facade.
+
+### Changed
+
+- Pin `hisi-rf-core 0.1.0-alpha.26` and `hisi-rf-ws63 0.1.0-alpha.102`
+  as one public dependency closure. NET0 native callback/lifecycle contracts
+  remain experimental; named profiles retain the existing smoltcp path.
+  This release does not add Embassy Net or new-L2 traffic/reconnect support.
+
 ## [0.1.0-alpha.115] - 2026-09-09
 
 ### Changed

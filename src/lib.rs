@@ -115,7 +115,7 @@ pub use hisi_rf_core::{
     DiagnosticTrace, DiagnosticTraceEntry, DiagnosticTraceKind, Error, EventDiagnostics,
     ManagementFrameProtection, OperationTimeout, Passphrase, PersonalSecurity, RadioConfig,
     RecoveryAction, SaePwe, ScanConfig, ScanOutcome, ScanResult, Security, Ssid, StationConfig,
-    WifiConfig, WifiDevice, WifiEvent, WifiL2Capabilities,
+    UnicastMacAddress, WifiConfig, WifiDevice, WifiEvent, WifiL2Capabilities,
 };
 
 /// Generation-tagged identity of one accepted protocol command.

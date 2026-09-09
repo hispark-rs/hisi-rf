@@ -27,6 +27,7 @@ pub use hisi_rf::ScanResult
 pub use hisi_rf::Security
 pub use hisi_rf::Ssid
 pub use hisi_rf::StationConfig
+pub use hisi_rf::UnicastMacAddress
 pub use hisi_rf::WifiConfig
 pub use hisi_rf::WifiDevice
 pub use hisi_rf::WifiEvent
